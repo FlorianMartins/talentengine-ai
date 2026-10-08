@@ -68,6 +68,8 @@ jobs:
           curl -fsS localhost:8000/api/audit/verify | grep -q '"valid":true'
           curl -fsS localhost:8000/ | grep -qi '<div id="root"'
           docker exec te python -c "from talentengine.shield.ner import SpacyNer; assert SpacyNer().persons('Avec Sophie Bernard.')"
+          docker exec te python -c "from talentengine.assessment.bank import load_bank; assert len(load_bank()) >= 200"
+          docker exec te git --version
 
   secrets:
     name: Secret scan

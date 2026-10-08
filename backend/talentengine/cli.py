@@ -1,4 +1,4 @@
-"""Command line: ``talentengine serve | seed | verify | keygen``."""
+"""Command line: ``talentengine serve | seed | verify | keygen | adduser | users | deluser | purge``."""
 
 from __future__ import annotations
 
@@ -17,7 +17,28 @@ def main() -> None:
     sub.add_parser("seed", help="load the fictional demo jobs and candidates")
     sub.add_parser("verify", help="verify the integrity of the audit ledger")
     sub.add_parser("keygen", help="print fresh values for TE_VAULT_KEY and TE_LEDGER_SEAL_KEY")
+    add = sub.add_parser("adduser", help="create a named account and print its API key (shown once)")
+    add.add_argument("name")
+    add.add_argument("--role", choices=["recruiter", "dpo", "admin"], required=True)
+    sub.add_parser("users", help="list named accounts")
+    rm = sub.add_parser("deluser", help="remove a named account")
+    rm.add_argument("name")
+    sub.add_parser("purge", help="erase applications whose retention period is over")
     args = parser.parse_args()
+
+    if args.cmd in ("adduser", "users", "deluser"):
+        from .auth import UserStore
+
+        store = UserStore(get_settings().data_dir / "users.json")
+        if args.cmd == "adduser":
+            key = store.add(args.name, args.role)
+            print(f"Account {args.name!r} ({args.role}) created. API key, shown once:\n{key}")
+        elif args.cmd == "users":
+            for user in store.list():
+                print(f"{user['name']:<30} {user['role']:<10} {user['created_at']}")
+        else:
+            print("removed" if store.remove(args.name) else "no such account")
+        return
 
     if args.cmd == "keygen":
         import secrets
@@ -40,6 +61,8 @@ def main() -> None:
         from .demo import seed_demo
 
         print(json.dumps(seed_demo(engine), indent=2, ensure_ascii=False))
+    elif args.cmd == "purge":
+        print(json.dumps({"erased": engine.purge_expired(actor="cli")}))
     elif args.cmd == "verify":
         result = engine.verify_ledger()
         print(result.model_dump_json(indent=2))

@@ -58,6 +58,14 @@ _HEADING_BODY = re.compile(
     r"références|references|activités|activities|bénévolat|volunteering)\b",
     re.IGNORECASE,
 )
+_BARE_TITLES = {
+    "expérience", "expériences", "experience", "expérience professionnelle", "work experience", "formation",
+    "formations", "education", "certifications", "licences et certifications", "licenses & certifications",
+    "licenses and certifications", "compétences", "compétences principales", "top skills", "skills", "langues",
+    "languages", "résumé", "summary", "à propos", "about", "coordonnées", "contact", "projets", "projects",
+    "distinctions", "honors-awards", "honors & awards", "publications", "bénévolat", "volunteering",
+    "volunteer experience", "recommandations", "recommendations", "centres d'intérêt", "intérêts", "interests",
+}
 _CLAIM_LINE = re.compile(
     r"^(?:maîtrise|maitrise|connaissances?|bonne connaissance|notions|proficient|familiar|knowledge of|"
     r"expert en|expert in|compétent|skilled in)\b",
@@ -128,6 +136,16 @@ _VOCAB: dict[str, str] = {
     "ci_cd": r"CI/CD|intégration continue|continuous integration|déploiement continu|continuous delivery|"
              r"continuous deployment|pipelines? (?:CI|de déploiement|de livraison)|GitHub Actions|GitLab CI|Jenkins|"
              r"mise en production|release",
+    "llm_engineering": r"LLMs?|RAG|retrieval[- ]augmented|embeddings?|bases? vectorielles?|vector (?:database|store)s?|"
+                       r"LangChain|LlamaIndex|LangGraph|prompt engineering|ingénierie de prompts?|agents? (?:IA|AI|LLM)|"
+                       r"AI agents?|fine-?tuning|LoRA|QLoRA|Hugging ?Face|transformers|OpenAI|Anthropic|Claude|GPT-?\d*|"
+                       r"Mistral|Llama|Ollama|IA générative|generative AI|GenAI|chatbots?|évaluations? de modèles?|"
+                       r"LLM evals?|guardrails?",
+    "mobile_development": r"iOS|Android|Swift(?:UI)?|Kotlin|Flutter|React Native|Jetpack Compose|Xcode|"
+                          r"App Store|Google Play|application mobile|mobile app",
+    "systems_integration": r"orchestration|orchestré|orchestrated|intégration de systèmes|systems integration|"
+                           r"interconnect\w+|middleware|bus de messages|message bus|event[- ]driven|webhooks?|"
+                           r"ETL|connecteurs?|connectors?|intégration (?:d'API|des API|entre)",
     "cloud_infrastructure": r"Azure|AWS|Amazon Web Services|GCP|Google Cloud|OVH ?cloud|Scaleway|cloud public|"
                             r"public cloud|serverless|Lambda|EC2|S3|AKS|EKS|GKE|Cloud Run|App Service|"
                             r"Azure DevOps|landing zone",
@@ -175,8 +193,11 @@ def _sections(text: str) -> list[_Line]:
             continue
         heading = line.lstrip("#*•- ").rstrip(":： ").strip()
         known = bool(_HEADING_CLAIMS.match(heading) or _HEADING_EDU.match(heading) or _HEADING_BODY.match(heading))
+        # LinkedIn PDF exports write section titles as plain words ("Expérience", "Certifications"). Only an
+        # exact title counts: "Certification Google Analytics" is a credential, not a heading.
+        bare_title = heading.lower() in _BARE_TITLES
         # A short all-caps line is a heading only if it names a section: "CISSP" or "HACCP" are content.
-        is_heading = raw.lstrip().startswith("#") or (
+        is_heading = raw.lstrip().startswith("#") or bare_title or (
             len(heading) <= 40 and (line.endswith(":") or (line.isupper() and (known or len(heading.split()) >= 3)))
         )
         if is_heading:
@@ -266,7 +287,7 @@ def analyze_text(artifact: Artifact) -> list[Signal]:
                 id=f"S-{artifact.id}-{len(signals) + 1:03d}", artifact_id=artifact.id,
                 kind=("visual_work" if visual else ("declared" if claim else "documented_outcome")),
                 skills=[skill], strength=round(strength, 3), claim_only=claim, facets=facets,
-                self_reported=artifact.kind == ArtifactKind.cv,
+                self_reported=artifact.kind in (ArtifactKind.cv, ArtifactKind.linkedin),
                 evidence=EvidenceRef(artifact_id=artifact.id, artifact_label=artifact.label, locator=locator,
                                      excerpt=excerpt, line_start=None if visual else first.no,
                                      line_end=None if visual else last.no),
@@ -279,25 +300,47 @@ _CERT_WORD = re.compile(r"certifi|certificate|diplôme|diploma|habilitation|titr
 
 
 def extract_credentials(artifact: Artifact) -> list[CredentialItem]:
-    """Diplomas and certifications. Naming a tool ("ran Google Ads campaigns") is not a credential."""
+    """Diplomas and certifications. Naming a tool ("ran Google Ads campaigns") is not a credential.
+
+    In a diploma or certificate file every line is read as education, and the result is marked as
+    supported by a document; if nothing is recognised, the file's first meaningful line names it.
+    """
+    supporting = artifact.kind in (ArtifactKind.degree, ArtifactKind.certification)
     items: list[CredentialItem] = []
     seen: set[str] = set()
     for entry in _sections(artifact.text):
         no, line = entry.no, entry.text.strip(" \t•-*")
-        if not line or len(line) > 220 or entry.section == "claims":
+        if not line or len(line) > 220 or (entry.section == "claims" and not supporting):
             continue
-        in_education = entry.section == "education"
+        in_education = entry.section == "education" or supporting
         cert = _CERT.search(line) if (in_education or _CERT_WORD.search(line)) else None
         degree = _DEGREE.search(line) if (in_education or _DEGREE.match(line)) else None
+        if supporting and not degree:  # diplomas often print the title in capitals ("MASTER")
+            degree = re.search(_DEGREE.pattern, line, re.IGNORECASE)
         if not (cert or degree):
             continue
         label = " ".join(line.split())[:160]
+        if supporting and len(label) < 25:  # "MASTER" on one line, "Management de projet" on the next
+            following = next((e.text for e in _sections(artifact.text) if e.no > no and len(e.text) > 3), "")
+            if following and not _CERT_WORD.search(following) and len(following) < 80:
+                label = f"{label} {following.strip()}"[:160]
         if label.lower() in seen:
             continue
         seen.add(label.lower())
+        kind = "certification" if cert and not degree else "degree"
+        if supporting:
+            kind = "degree" if artifact.kind == ArtifactKind.degree else "certification"
         items.append(CredentialItem(
-            kind="certification" if cert and not degree else "degree", label=label,
+            kind=kind, label=label, supported_by_document=supporting,
             evidence=EvidenceRef(artifact_id=artifact.id, artifact_label=artifact.label, locator=f"line {no}",
                                  excerpt=label, line_start=no, line_end=no),
         ))
+    if supporting and not items:
+        first = next((ln.strip() for ln in artifact.text.splitlines() if len(ln.strip()) >= 4), "")
+        if first:
+            items.append(CredentialItem(
+                kind="degree" if artifact.kind == ArtifactKind.degree else "certification", label=first[:160],
+                supported_by_document=True,
+                evidence=EvidenceRef(artifact_id=artifact.id, artifact_label=artifact.label, locator="document",
+                                     excerpt=first[:160])))
     return items[:12]

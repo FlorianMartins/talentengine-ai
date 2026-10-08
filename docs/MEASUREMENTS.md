@@ -152,7 +152,34 @@ questions. Guarded by `test_gaming_does_not_beat_real_work`.
 
 ---
 
-## 5. Demo ranking (sanity check)
+## 5. Cross-repository analysis on a real profile
+
+Run on the author's own public profile (14 repositories, read in 6.2 s with parallel partial clones):
+
+| Finding | Status |
+|---|---|
+| `regent` declares `cloudguard-iac @ git+https://github.com/…/cloudguard-iac` and its CI installs and runs it as a security gate | detected: dependency + CI orchestration |
+| `regent` CI chains 18 tools (tests, typing, Bandit, Semgrep, CodeQL, Trivy, gitleaks, cosign, SBOM, SARIF…) with 8 job dependencies | detected: pipeline orchestration |
+| `lineage-mlops` depends on torch, transformers, peft, mlflow | detected: declared ML stack (weak signal) |
+| **False positive 1**: a VS Code extension's `"id": "hiveyCode"` read as a dependency on the `HiveyCode` repository | fixed — package names count only inside declared dependencies |
+| **False positive 2**: a Dockerfile comment "scanned by CloudGuard-IaC" read as a deployment link | fixed — comment lines are ignored outside documentation |
+| **Leak**: a CV sentence "Built agent-platform" kept the repository name, which can be searched online | fixed — repository names become `repo-n` in every document; tested |
+
+Guarded by `tests/test_portfolio_sources.py`.
+
+## 6. Verification tests
+
+| Item | Value |
+|---|---|
+| Question bank | 236 questions: 134 single choice, 37 multiple choice, 53 numeric (numbers drawn per candidate), 12 ordering |
+| Coverage | all 37 skills × 3 levels (junior, confirmed, senior); all 47 reference roles testable |
+| Review | each family written against a correctness checklist; ambiguous keys documented and tightened — e.g. two numeric tolerances were narrowed so that a *wrong method* (adding downtimes instead of multiplying availabilities; 1024 instead of 1000 bytes) no longer passes |
+| Guarantees tested in CI | answers never sent to the client; deadline survives reloads; late answers score zero; no skipping or second answers; per-session variants; safe arithmetic evaluator rejects code; SEB hash check; candidate does not see the score; erasure removes tests |
+
+Not yet measured: item difficulty and discrimination on real candidates. Plan: collect anonymous per-item
+statistics (time used, success rate per level) and retire items that do not separate levels.
+
+## 7. Demo ranking (sanity check)
 
 `talentengine seed`, local-only mode, v0.2.0, with and without NER (identical):
 

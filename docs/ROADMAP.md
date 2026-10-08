@@ -69,21 +69,25 @@ in PDFs (white on white, 1-pt fonts) is not detected yet.
 
 ## Phase 4 — Production basics (weeks 8–9, ~14 h)
 
-1. **Authentication and roles**: OIDC login (Keycloak or Authentik), roles *recruiter*, *hiring
+Status (v0.4.0): items 1 (named accounts and roles, API keys — OIDC still 🔜) and 4 ✅; items 2–3 🔜.
+
+1. ✅ **Authentication and roles** (keys now; 🔜 OIDC login (Keycloak or Authentik), roles *recruiter*, *hiring
    manager*, *DPO*, *admin*; the `X-Actor` header is replaced by the authenticated identity.
 2. **PostgreSQL** behind the `Store` interface (ledger triggers ported as `BEFORE UPDATE/DELETE` rules),
    Alembic migrations.
 3. **Background jobs** for ingestion and evaluation (RQ or arq) so a 500-candidate job does not block a
    request; progress shown in the UI.
-4. **Retention enforcement**: a daily task that erases candidates past `retention_days` (with ledger
+4. ✅ **Retention enforcement**: a daily task that erases candidates past `retention_days` (with ledger
    entries), plus export of a candidate's data (GDPR Art. 15/20).
 
 ## Phase 5 — The candidate side and explainability exports (weeks 10–11, ~14 h)
 
-1. **Candidate portal**: a public application page per job (the submission form already exists) and a
+Status (v0.4.0): items 1–3 ✅ (public sandbox, explanation links, print-to-PDF, DPIA draft); item 4 🔜.
+
+1. ✅ **Candidate portal**: a public application page per job (the submission form already exists) and a
    "Why this score?" page reachable with a one-time token: the evidence used, in plain language.
-2. **PDF export** of the report and of the ledger extract for one candidate (audit file).
-3. **DPIA template** pre-filled from the configuration (`docs/DPIA-template.md`).
+2. ✅ **PDF export** of the report and of the ledger extract for one candidate (audit file).
+3. ✅ **DPIA template** pre-filled from the configuration (`docs/DPIA-template.md`).
 4. Integrations: inbound webhook from an existing ATS (Greenhouse/Lever/Workable) and outbound
    shortlist export.
 

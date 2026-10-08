@@ -8,6 +8,7 @@ import {
   Cpu,
   Eye,
   FileSearch,
+  FileCheck2,
   FileText,
   Fingerprint,
   GitBranch,
@@ -107,6 +108,45 @@ export function CriteriaMatrix({ report }: { report: DashboardReport }) {
 
 // ------------------------------------------------------------------ evidence
 
+/** "ci.yml, ligne 183 → repo-12": highlight the cross-repository arrow. */
+function Locator({ text }: { text: string }) {
+  const parts = text.split(/\s*→\s*/);
+  if (parts.length < 2) return <>{text}</>;
+  return (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {i > 0 && <span className="ev-arrow"> → </span>}
+          {p}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** A single-line, comma-separated list of short items (e.g. CI tools) reads better as chips. */
+export function toolList(text: string): string[] | null {
+  if (text.includes("\n")) return null;
+  const items = text.split(/\s*,\s*/).filter(Boolean);
+  if (items.length < 3) return null;
+  return items.every((x) => x.length <= 32 && x.split(" ").length <= 3) ? items : null;
+}
+
+function Excerpt({ text }: { text: string }) {
+  const { t } = usePrefs();
+  const tools = toolList(text);
+  if (!tools) return <pre>{text}</pre>;
+  return (
+    <ul className="tool-chips" aria-label={`${tools.length} ${t.docs.tools}`} style={{ listStyle: "none", margin: 0 }}>
+      {tools.map((x) => (
+        <li key={x} className="chip chip-plain">
+          <span>{x}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function EvidenceItem({ ev, candidateRef, imageIds }: { ev: EvidenceRef; candidateRef: string; imageIds: Set<string> }) {
   const { t } = usePrefs();
   const [src, setSrc] = useState<string | null>(null);
@@ -130,12 +170,14 @@ function EvidenceItem({ ev, candidateRef, imageIds }: { ev: EvidenceRef; candida
         <FileText size={12} aria-hidden="true" />
         <b>{ev.artifact_label}</b>
         <span className="faint">·</span>
-        <span className="mono truncate">{ev.locator}</span>
+        <span className="mono truncate" title={ev.locator}>
+          <Locator text={ev.locator} />
+        </span>
         <span className="spacer" />
         <span className="hash">{ev.artifact_id}</span>
       </div>
       {src && <img src={src} alt={`${t.report.media} — ${ev.artifact_label}`} />}
-      {ev.excerpt && <pre>{ev.excerpt}</pre>}
+      {ev.excerpt && <Excerpt text={ev.excerpt} />}
     </li>
   );
 }
@@ -193,13 +235,12 @@ export function SkillCard({
           {open ? t.report.hideEvidence : `${t.report.showEvidence} (${skill.evidence.length})`}
         </button>
       </div>
-      {open && (
-        <ul id={panelId} className="evidence-list">
-          {skill.evidence.map((ev, i) => (
-            <EvidenceItem key={`${ev.artifact_id}-${i}`} ev={ev} candidateRef={candidateRef} imageIds={imageIds} />
-          ))}
-        </ul>
-      )}
+      {/* always rendered: collapsed on screen, but excerpts stay visible in print/PDF */}
+      <ul id={panelId} className={cx("evidence-list", !open && "print-reveal")}>
+        {skill.evidence.map((ev, i) => (
+          <EvidenceItem key={`${ev.artifact_id}-${i}`} ev={ev} candidateRef={candidateRef} imageIds={open ? imageIds : new Set()} />
+        ))}
+      </ul>
     </article>
   );
 }
@@ -244,6 +285,7 @@ export function ArtifactsPanel({ artifacts }: { artifacts: Artifact[] | null }) 
         <FileText size={16} aria-hidden="true" />
         {t.report.artifacts}
       </h2>
+      {artifacts.some((a) => a.kind === "repository") && <p className="xs faint">{t.docs.blindRepos}</p>}
       <ul className="file-list">
         {artifacts.map((a) => {
           const masked = Object.values(a.redaction.pii_replaced).reduce((s, n) => s + n, 0);
@@ -252,7 +294,7 @@ export function ArtifactsPanel({ artifacts }: { artifacts: Artifact[] | null }) 
               <span className="hash">{a.id}</span>
               <b className="small">{a.label}</b>
               <span className="chip chip-plain">
-                <span>{a.kind}</span>
+                <span>{t.docs.kinds[a.kind] ?? a.kind}</span>
               </span>
               {a.status === "quarantined" && (
                 <span className="chip chip-warn">
@@ -508,6 +550,12 @@ export function CredentialsPanel({ report }: { report: DashboardReport }) {
                   <span>{t.report.matched}</span>
                 </span>
               )}
+              {c.supported_by_document && (
+                <span className="chip chip-accent">
+                  <FileCheck2 size={12} aria-hidden="true" />
+                  <span>{t.docs.supported}</span>
+                </span>
+              )}
               <span className="xs faint mono">
                 {c.evidence.artifact_label} · {c.evidence.locator}
               </span>
@@ -529,6 +577,12 @@ const KIND_ICONS: Record<string, LucideIcon> = {
   human_decision: Handshake,
   reidentification: Eye,
   erasure: Trash2,
+  data_export: FileText,
+  explanation_link: Link2,
+  explanation_viewed: Eye,
+  retention_sweep: Trash2,
+  account_created: Settings2,
+  account_removed: Settings2,
 };
 
 export function LedgerTimeline({ entries }: { entries: LedgerEntry[] }) {

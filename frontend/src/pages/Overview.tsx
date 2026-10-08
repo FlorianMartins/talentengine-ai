@@ -2,16 +2,17 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Briefcase, DatabaseZap, Loader2, Plus } from "lucide-react";
 import { api } from "../api/client";
-import { useAsync, useSystem, useT, useToast } from "../lib/prefs";
+import { useAccess, useAsync, useSystem, useT, useToast } from "../lib/prefs";
 import { PageHeader, useCrumbs } from "../components/Shell";
 import { StatusStrip } from "../components/StatusStrip";
-import { EmptyState, ErrorState, FamilyIcon, Skeleton } from "../components/feedback";
+import { EmptyState, ErrorState, FamilyIcon, Gate, Skeleton } from "../components/feedback";
 import { ScoreRing } from "../components/charts";
 
 export function OverviewPage() {
   const t = useT();
   const toast = useToast();
   const system = useSystem();
+  const access = useAccess();
   const jobs = useAsync(() => api.jobs(), []);
   const [seeding, setSeeding] = useState(false);
   useCrumbs([{ label: t.nav.overview }]);
@@ -43,10 +44,12 @@ export function OverviewPage() {
           title={<span id="ov-title">{t.overview.title}</span>}
           sub={t.overview.subtitle}
           actions={
-            <Link to="/jobs/new" className="btn btn-primary">
-              <Plus size={16} aria-hidden="true" />
-              {t.overview.newJob}
-            </Link>
+            access.can("write") ? (
+              <Link to="/jobs/new" className="btn btn-primary">
+                <Plus size={16} aria-hidden="true" />
+                {t.overview.newJob}
+              </Link>
+            ) : undefined
           }
         />
         <StatusStrip />
@@ -83,16 +86,22 @@ export function OverviewPage() {
             title={t.overview.emptyTitle}
             action={
               <div className="row wrap" style={{ justifyContent: "center" }}>
-                {system.runtime?.demo_enabled && (
-                  <button className="btn btn-primary" onClick={seed} disabled={seeding}>
-                    {seeding ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <DatabaseZap size={16} aria-hidden="true" />}
-                    {t.overview.loadDemo}
-                  </button>
+                {(system.runtime?.demo_enabled ?? system.health?.demo_enabled) && (
+                  <Gate perm="admin">
+                    {(ok) => (
+                      <button className="btn btn-primary" onClick={seed} disabled={seeding || !ok}>
+                        {seeding ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <DatabaseZap size={16} aria-hidden="true" />}
+                        {t.overview.loadDemo}
+                      </button>
+                    )}
+                  </Gate>
                 )}
-                <Link to="/jobs/new" className="btn">
-                  <Plus size={16} aria-hidden="true" />
-                  {t.overview.newJob}
-                </Link>
+                {access.can("write") && (
+                  <Link to="/jobs/new" className="btn">
+                    <Plus size={16} aria-hidden="true" />
+                    {t.overview.newJob}
+                  </Link>
+                )}
               </div>
             }
           >
@@ -140,12 +149,14 @@ export function OverviewPage() {
               </Link>
             </li>
           ))}
-          <li style={{ display: "flex" }}>
-            <Link to="/jobs/new" className="new-card" style={{ flex: 1 }}>
-              <Plus size={22} aria-hidden="true" />
-              {t.overview.newJob}
-            </Link>
-          </li>
+          {access.can("write") && (
+            <li style={{ display: "flex" }}>
+              <Link to="/jobs/new" className="new-card" style={{ flex: 1 }}>
+                <Plus size={22} aria-hidden="true" />
+                {t.overview.newJob}
+              </Link>
+            </li>
+          )}
         </ul>
       )}
     </div>

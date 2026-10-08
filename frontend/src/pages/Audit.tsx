@@ -1,14 +1,37 @@
 import { Fragment, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Link2, Link2Off, Loader2, RotateCcw, ScrollText, Search, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eraser, Link2, Link2Off, Loader2, RotateCcw, ScrollText, Search, ShieldCheck } from "lucide-react";
 import { api } from "../api/client";
-import type { ChainVerification, LedgerQuery } from "../api/types";
-import { useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
+import type { ChainVerification, LedgerQuery, RetentionRun } from "../api/types";
+import { useAccess, useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
 import { cx, dateTime, shortHash } from "../lib/format";
 import { PageHeader, useCrumbs } from "../components/Shell";
-import { EmptyState, ErrorState, Skeleton } from "../components/feedback";
+import { EmptyState, ErrorState, Modal, Skeleton } from "../components/feedback";
 
-const KINDS = ["job_config", "ingestion", "score", "escalation", "human_decision", "reidentification", "erasure"];
+const KINDS = [
+  "job_config",
+  "ingestion",
+  "score",
+  "escalation",
+  "human_decision",
+  "reidentification",
+  "erasure",
+  "data_export",
+  "explanation_link",
+  "explanation_viewed",
+  "retention_sweep",
+  "account_created",
+  "account_removed",
+];
+
+/** Chip tone per ledger kind: violet = human/identity acts, red = deletions, cyan = scoring, green = privacy ops. */
+function kindTone(kind: string): string {
+  if (["human_decision", "reidentification", "explanation_link", "explanation_viewed"].includes(kind)) return "chip-violet";
+  if (["erasure", "account_removed"].includes(kind)) return "chip-danger";
+  if (["data_export", "retention_sweep", "account_created"].includes(kind)) return "chip-ok";
+  if (kind === "score") return "chip-accent";
+  return "chip-plain";
+}
 
 export function AuditPage() {
   const { t, lang } = usePrefs();
@@ -25,6 +48,25 @@ export function AuditPage() {
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const [verifying, setVerifying] = useState(false);
   const [verification, setVerification] = useState<ChainVerification | null>(null);
+  const access = useAccess();
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const [purgeResult, setPurgeResult] = useState<RetentionRun | null>(null);
+  const purge = async () => {
+    setPurging(true);
+    try {
+      const r = await api.retentionRun();
+      setPurgeResult(r);
+      setPurgeOpen(false);
+      toast.push("success", t.ops.purgeDone(r.count), t.ops.purge);
+      ledger.reload();
+      system.refresh();
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setPurging(false);
+    }
+  };
 
   const jobs = useAsync(() => api.jobs(), []);
   // Fetch one extra row to know whether a next page exists (the API returns no total).
@@ -67,12 +109,29 @@ export function AuditPage() {
           title={t.audit.title}
           sub={t.audit.subtitle}
           actions={
+            <>
+            {(access.can("privacy")) && (
+              <button className="btn" onClick={() => setPurgeOpen(true)} title={t.ops.purgeHint}>
+                <Eraser size={16} aria-hidden="true" />
+                {t.ops.purge}
+              </button>
+            )}
             <button className="btn btn-primary" onClick={verify} disabled={verifying}>
               {verifying ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <ShieldCheck size={16} aria-hidden="true" />}
               {verifying ? t.audit.verifying : t.audit.verify}
             </button>
+            </>
           }
         />
+        {purgeResult && (
+          <p className="callout callout-ok" role="status" style={{ marginTop: 20 }}>
+            <Eraser size={16} aria-hidden="true" />
+            <span>
+              <b>{t.ops.purgeDone(purgeResult.count)}</b>
+              {purgeResult.erased.length > 0 && <span className="mono xs"> {purgeResult.erased.join(", ")}</span>}
+            </span>
+          </p>
+        )}
         {chain && (
           <div
             className={cx("callout", chain.valid ? "callout-ok" : "callout-danger")}
@@ -194,18 +253,7 @@ export function AuditPage() {
                     <tr style={broken ? { background: "var(--danger-soft)" } : undefined}>
                       <td className="num">{e.seq}</td>
                       <td>
-                        <span
-                          className={cx(
-                            "chip",
-                            e.kind === "human_decision" || e.kind === "reidentification"
-                              ? "chip-violet"
-                              : e.kind === "erasure"
-                                ? "chip-danger"
-                                : e.kind === "score"
-                                  ? "chip-accent"
-                                  : "chip-plain",
-                          )}
-                        >
+                        <span className={cx("chip", kindTone(e.kind))}>
                           <span>{t.audit.kinds[e.kind] ?? e.kind}</span>
                         </span>
                       </td>
@@ -270,6 +318,30 @@ export function AuditPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {purgeOpen && (
+        <Modal
+          title={t.ops.purge}
+          onClose={() => setPurgeOpen(false)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setPurgeOpen(false)}>
+                {t.common.cancel}
+              </button>
+              <button className="btn btn-danger is-solid" onClick={purge} disabled={purging}>
+                {purging ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Eraser size={16} aria-hidden="true" />}
+                {t.ops.purgeDo}
+              </button>
+            </>
+          }
+        >
+          <p className="small">{t.ops.purgeHint}</p>
+          <p className="callout callout-warn">
+            <Eraser size={16} aria-hidden="true" />
+            <span>{t.ops.purgeConfirm}</span>
+          </p>
+        </Modal>
       )}
 
       <nav className="row" style={{ justifyContent: "space-between" }} aria-label="Pagination">

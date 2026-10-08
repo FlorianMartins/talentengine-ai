@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { api } from "../api/client";
 import type { CandidateSummary, DashboardReport, DecisionKind, EvidenceBand } from "../api/types";
-import { useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
+import { useAccess, useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
 import { cx, dateTime, num, usd } from "../lib/format";
 import { PageHeader, useCrumbs } from "../components/Shell";
 import {
@@ -27,6 +27,7 @@ import {
   ErrorState,
   EscalatedChip,
   FamilyIcon,
+  Gate,
   ImportanceChip,
   Modal,
   PageSkeleton,
@@ -35,6 +36,7 @@ import {
 } from "../components/feedback";
 import { Meter, ScoreRing } from "../components/charts";
 import { RangeField } from "../components/controls";
+import { DpiaButton } from "../components/DpiaButton";
 
 type BandFilter = "all" | EvidenceBand | "pending";
 type DecisionFilter = "all" | "undecided" | DecisionKind;
@@ -45,6 +47,7 @@ export function PipelinePage() {
   const { t, lang } = usePrefs();
   const toast = useToast();
   const system = useSystem();
+  const access = useAccess();
   const job = useAsync(() => api.job(id), [id]);
   const cands = useAsync(() => api.candidates(id), [id]);
   const usage = useAsync(() => api.usage(id), [id]);
@@ -127,18 +130,45 @@ export function PipelinePage() {
           sub={j.summary || undefined}
           actions={
             <>
-              <Link to={`/jobs/${id}/edit`} className="btn">
-                <Settings2 size={16} aria-hidden="true" />
-                {t.pipeline.edit}
-              </Link>
-              <Link to={`/jobs/${id}/apply`} className="btn">
-                <UserPlus size={16} aria-hidden="true" />
-                {t.pipeline.add}
-              </Link>
-              <button className="btn btn-primary" onClick={run} disabled={running || all.length === 0}>
-                {running ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
-                {running ? t.pipeline.running : t.pipeline.run}
-              </button>
+              <DpiaButton jobId={id} locale={j.locale} />
+              <Gate perm="write">
+                {(ok) =>
+                  ok ? (
+                    <Link to={`/jobs/${id}/edit`} className="btn">
+                      <Settings2 size={16} aria-hidden="true" />
+                      {t.pipeline.edit}
+                    </Link>
+                  ) : (
+                    <button className="btn" disabled>
+                      <Settings2 size={16} aria-hidden="true" />
+                      {t.pipeline.edit}
+                    </button>
+                  )
+                }
+              </Gate>
+              <Gate perm="write">
+                {(ok) =>
+                  ok ? (
+                    <Link to={`/jobs/${id}/apply`} className="btn">
+                      <UserPlus size={16} aria-hidden="true" />
+                      {t.pipeline.add}
+                    </Link>
+                  ) : (
+                    <button className="btn" disabled>
+                      <UserPlus size={16} aria-hidden="true" />
+                      {t.pipeline.add}
+                    </button>
+                  )
+                }
+              </Gate>
+              <Gate perm="write">
+                {(ok) => (
+                  <button className="btn btn-primary" onClick={run} disabled={running || all.length === 0 || !ok}>
+                    {running ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+                    {running ? t.pipeline.running : t.pipeline.run}
+                  </button>
+                )}
+              </Gate>
             </>
           }
         />
@@ -189,10 +219,12 @@ export function PipelinePage() {
                 icon={Users}
                 title={t.pipeline.emptyTitle}
                 action={
-                  <Link to={`/jobs/${id}/apply`} className="btn btn-primary">
-                    <UserPlus size={16} aria-hidden="true" />
-                    {t.pipeline.add}
-                  </Link>
+                  access.can("write") ? (
+                    <Link to={`/jobs/${id}/apply`} className="btn btn-primary">
+                      <UserPlus size={16} aria-hidden="true" />
+                      {t.pipeline.add}
+                    </Link>
+                  ) : undefined
                 }
               >
                 {t.pipeline.emptyBody}

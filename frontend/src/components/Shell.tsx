@@ -15,8 +15,14 @@ import {
   Settings,
   ShieldCheck,
   Sun,
+  UserRound,
+  Users,
+  Gavel,
+  Plug,
+  KeyRound as KeyIcon,
+  FlaskRound,
 } from "lucide-react";
-import { usePrefs, useSystem } from "../lib/prefs";
+import { useAccess, usePrefs, useSystem } from "../lib/prefs";
 import { ApiError } from "../api/client";
 import { getStored, setStored } from "../lib/storage";
 import { cx } from "../lib/format";
@@ -63,6 +69,7 @@ export function Shell() {
   const [crumbs, setCrumbs] = useState<Crumb[]>([]);
   const location = useLocation();
   const { runtimeError } = useSystem();
+  const access = useAccess();
   const needsKey = runtimeError instanceof ApiError && runtimeError.status === 401;
 
   useEffect(() => {
@@ -78,7 +85,7 @@ export function Shell() {
     () => [
       { to: "/", label: t.nav.overview, icon: LayoutGrid, end: true },
       { to: "/audit", label: t.nav.audit, icon: ScrollText, end: false },
-      { to: "/settings", label: t.nav.settings, icon: Settings, end: false },
+      { to: "/settings", label: t.nav.settings, icon: Settings, end: true },
     ],
     [t],
   );
@@ -117,12 +124,38 @@ export function Shell() {
                   </NavLink>
                 </li>
               ))}
-              <li>
-                <NavLink to="/jobs/new" className="nav-item" title={collapsed ? t.nav.newJob : undefined}>
-                  <Plus size={18} aria-hidden="true" />
-                  <span className="nav-label">{t.nav.newJob}</span>
-                </NavLink>
-              </li>
+              {access.can("privacy") && (
+                <li>
+                  <NavLink to="/compliance" className="nav-item" title={collapsed ? t.compliance.nav : undefined}>
+                    <Gavel size={18} aria-hidden="true" />
+                    <span className="nav-label">{t.compliance.nav}</span>
+                  </NavLink>
+                </li>
+              )}
+              {access.can("admin") && (
+                <li>
+                  <NavLink to="/settings/integrations" className="nav-item" title={collapsed ? t.integrations.nav : undefined}>
+                    <Plug size={18} aria-hidden="true" />
+                    <span className="nav-label">{t.integrations.nav}</span>
+                  </NavLink>
+                </li>
+              )}
+              {access.can("admin") && (
+                <li>
+                  <NavLink to="/settings/accounts" className="nav-item" title={collapsed ? t.accounts.nav : undefined}>
+                    <Users size={18} aria-hidden="true" />
+                    <span className="nav-label">{t.accounts.nav}</span>
+                  </NavLink>
+                </li>
+              )}
+              {access.can("write") && (
+                <li>
+                  <NavLink to="/jobs/new" className="nav-item" title={collapsed ? t.nav.newJob : undefined}>
+                    <Plus size={18} aria-hidden="true" />
+                    <span className="nav-label">{t.nav.newJob}</span>
+                  </NavLink>
+                </li>
+              )}
             </ul>
             <ul className="nav-list nav-public">
               <li>
@@ -176,6 +209,7 @@ export function Shell() {
               </ol>
             </nav>
             <div className="topbar-actions">
+              <IdentityChip />
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLang(lang === "fr" ? "en" : "fr")}
@@ -216,10 +250,12 @@ export function Shell() {
             {n.label}
           </NavLink>
         ))}
-        <NavLink to="/jobs/new">
-          <Plus size={20} aria-hidden="true" />
-          {t.nav.newJob}
-        </NavLink>
+        {access.can("write") && (
+          <NavLink to="/jobs/new">
+            <Plus size={20} aria-hidden="true" />
+            {t.nav.newJob}
+          </NavLink>
+        )}
       </nav>
       <ToastRegion />
     </CrumbContext.Provider>
@@ -246,5 +282,34 @@ export function PageHeader({
       </div>
       {actions && <div className="page-actions">{actions}</div>}
     </div>
+  );
+}
+
+/** Who is acting: personal account (name · role), shared key, open dev mode, or not signed in. */
+function IdentityChip() {
+  const { t } = usePrefs();
+  const { me, mode } = useAccess();
+  if (mode === "loading") return null;
+  if (mode === "anonymous") {
+    return (
+      <Link to="/settings" className="who who-warn" title={t.access.loginRequired}>
+        <KeyIcon size={14} aria-hidden="true" />
+        <span className="who-text">{t.access.signIn}</span>
+      </Link>
+    );
+  }
+  const label =
+    mode === "named" && me
+      ? `${me.name} · ${t.access.roles[me.role] ?? me.role}`
+      : mode === "shared"
+        ? t.access.sharedKey
+        : t.access.open;
+  const title =
+    mode === "named" ? `${t.access.signedIn} : ${label}` : mode === "shared" ? t.access.sharedHint : t.access.openHint;
+  return (
+    <Link to="/settings" className={cx("who", mode === "open" && "who-warn")} title={title} aria-label={`${t.access.signedIn} — ${label}`}>
+      {mode === "open" ? <FlaskRound size={14} aria-hidden="true" /> : <UserRound size={14} aria-hidden="true" />}
+      <span className="who-text">{label}</span>
+    </Link>
   );
 }

@@ -1,0 +1,2396 @@
+[
+ {
+  "id": "backend_development_l1_idempotent_retry",
+  "skill_id": "backend_development",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Un client mobile renvoie POST /payments après un délai d'attente dépassé ; certains paiements sont débités deux fois. Quelle correction est la bonne ?",
+   "en": "A mobile client resends POST /payments after a timeout; some payments are charged twice. What is the right fix?"
+  },
+  "options": [
+   {
+    "fr": "Exiger une clé d'idempotence par paiement et renvoyer le résultat déjà enregistré en cas de doublon",
+    "en": "Require an idempotency key per payment and return the stored result for a duplicate"
+   },
+   {
+    "fr": "Passer la route en PUT, sans rien changer d'autre",
+    "en": "Switch the route to PUT and change nothing else"
+   },
+   {
+    "fr": "Augmenter le délai d'attente du client à 60 s",
+    "en": "Raise the client timeout to 60 s"
+   },
+   {
+    "fr": "Répondre 201 au lieu de 200",
+    "en": "Return 201 instead of 200"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Le délai dépassé ne dit pas si le serveur a traité la requête ; seule une clé d'idempotence rend la nouvelle tentative sûre.",
+   "en": "A timeout does not tell whether the server processed the request; only an idempotency key makes the retry safe."
+  }
+ },
+ {
+  "id": "backend_development_l1_pagination_offset",
+  "skill_id": "backend_development",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Une API pagine avec LIMIT {size} OFFSET ?, pages numérotées à partir de 1. Quelle valeur d'OFFSET pour la page {page} ?",
+   "en": "An API paginates with LIMIT {size} OFFSET ?, pages numbered from 1. What OFFSET value for page {page}?"
+  },
+  "params": {
+   "page": {
+    "min": 2,
+    "max": 40,
+    "step": 1
+   },
+   "size": {
+    "min": 10,
+    "max": 100,
+    "step": 10
+   }
+  },
+  "answer": "(page - 1) * size",
+  "tolerance": 0,
+  "unit": "",
+  "seconds": 60,
+  "explanation": {
+   "fr": "OFFSET = (page − 1) × taille de page.",
+   "en": "OFFSET = (page − 1) × page size."
+  }
+ },
+ {
+  "id": "backend_development_l2_n_plus_one",
+  "skill_id": "backend_development",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Une route qui liste 50 commandes avec leur client exécute 51 requêtes SQL. Quelles corrections règlent le problème ?",
+   "en": "An endpoint listing 50 orders with their customer runs 51 SQL queries. Which fixes solve the problem?"
+  },
+  "options": [
+   {
+    "fr": "Charger les clients avec une jointure ou un chargement anticipé",
+    "en": "Load customers with a join or eager loading"
+   },
+   {
+    "fr": "Charger tous les clients en une requête WHERE id IN (...)",
+    "en": "Load all customers in one WHERE id IN (...) query"
+   },
+   {
+    "fr": "Ajouter un index sur orders.id",
+    "en": "Add an index on orders.id"
+   },
+   {
+    "fr": "Agrandir le pool de connexions",
+    "en": "Enlarge the connection pool"
+   }
+  ],
+  "correct": [
+   0,
+   1
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "C'est le problème N+1 : il faut regrouper les lectures, pas accélérer chacune d'elles.",
+   "en": "This is the N+1 problem: batch the reads rather than speed up each one."
+  }
+ },
+ {
+  "id": "backend_development_l2_latency_budget",
+  "skill_id": "backend_development",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "SLO de la route : p95 ≤ {slo} ms, dont 20 % gardés en marge. Budgets déjà alloués : passerelle {gw} ms, authentification {auth} ms, base de données {db} ms. Combien de ms reste-t-il pour l'appel au service de prix ?",
+   "en": "Endpoint SLO: p95 ≤ {slo} ms, with 20% kept as margin. Budgets already allotted: gateway {gw} ms, authentication {auth} ms, database {db} ms. How many ms remain for the pricing service call?"
+  },
+  "params": {
+   "slo": {
+    "min": 400,
+    "max": 800,
+    "step": 50
+   },
+   "gw": {
+    "min": 10,
+    "max": 30,
+    "step": 5
+   },
+   "auth": {
+    "min": 20,
+    "max": 60,
+    "step": 5
+   },
+   "db": {
+    "min": 40,
+    "max": 150,
+    "step": 10
+   }
+  },
+  "answer": "slo * 0.8 - gw - auth - db",
+  "tolerance": 0.01,
+  "unit": "ms",
+  "seconds": 90,
+  "explanation": {
+   "fr": "Reste = SLO × 0,8 − passerelle − authentification − base.",
+   "en": "Remaining = SLO × 0.8 − gateway − auth − database."
+  }
+ },
+ {
+  "id": "backend_development_l2_retry_backoff",
+  "skill_id": "backend_development",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Pendant une panne d'un service aval, vos appels réessaient aussitôt et en boucle ; le service aval ne parvient plus à redémarrer. Quelle politique adopter ?",
+   "en": "During a downstream outage, your calls retry immediately in a loop; the downstream service cannot recover. Which policy should you adopt?"
+  },
+  "options": [
+   {
+    "fr": "Backoff exponentiel avec gigue, plafond de tentatives et disjoncteur",
+    "en": "Exponential backoff with jitter, capped attempts and a circuit breaker"
+   },
+   {
+    "fr": "Réessayer immédiatement 5 fois au lieu de 3",
+    "en": "Retry immediately 5 times instead of 3"
+   },
+   {
+    "fr": "Porter le délai d'attente à 60 s",
+    "en": "Raise the timeout to 60 s"
+   },
+   {
+    "fr": "Ajouter des threads pour paralléliser les tentatives",
+    "en": "Add threads to parallelise the retries"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Les nouvelles tentatives synchronisées amplifient la charge ; gigue et disjoncteur laissent le service aval récupérer.",
+   "en": "Synchronised retries amplify load; jitter and a circuit breaker let the downstream service recover."
+  }
+ },
+ {
+  "id": "backend_development_l3_retry_amplification",
+  "skill_id": "backend_development",
+  "level": 3,
+  "type": "numeric",
+  "stem": {
+   "fr": "Une requête traverse {n} services en chaîne ; le dernier appelle la base. Chaque service fait jusqu'à {a} tentatives (initiale comprise) vers le suivant. Base en panne : combien d'appels reçoit-elle au pire pour une seule requête utilisateur ?",
+   "en": "A request crosses {n} services in a chain; the last one calls the database. Each service makes up to {a} attempts (initial included) to the next. Database down: worst case, how many calls does it receive for one user request?"
+  },
+  "params": {
+   "n": {
+    "min": 2,
+    "max": 4,
+    "step": 1
+   },
+   "a": {
+    "min": 2,
+    "max": 4,
+    "step": 1
+   }
+  },
+  "answer": "a ** n",
+  "tolerance": 0,
+  "unit": "",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Les tentatives se multiplient à chaque couche : a^n. D'où la règle de ne réessayer qu'à une seule couche.",
+   "en": "Retries multiply at each layer: a^n. Hence the rule of retrying at a single layer only."
+  }
+ },
+ {
+  "id": "backend_development_l3_outbox",
+  "skill_id": "backend_development",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Un service enregistre une commande en base puis publie un événement dans un broker. Après un crash entre les deux, l'événement est perdu. Quelle conception corrige cela ?",
+   "en": "A service saves an order to the database and then publishes an event to a broker. After a crash between the two, the event is lost. Which design fixes this?"
+  },
+  "options": [
+   {
+    "fr": "Écrire l'événement dans une table outbox dans la même transaction, puis le publier depuis cette table",
+    "en": "Write the event to an outbox table in the same transaction, then publish from that table"
+   },
+   {
+    "fr": "Publier l'événement avant de valider la transaction",
+    "en": "Publish the event before committing the transaction"
+   },
+   {
+    "fr": "Exiger l'accusé de réception de tous les réplicas du broker",
+    "en": "Require acknowledgement from all broker replicas"
+   },
+   {
+    "fr": "Réessayer la publication dans un bloc finally",
+    "en": "Retry the publish in a finally block"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "L'outbox rend l'écriture et l'intention de publier atomiques ; la publication devient « au moins une fois », donc consommateurs idempotents.",
+   "en": "The outbox makes the write and the intent to publish atomic; publishing becomes at-least-once, so consumers must be idempotent."
+  }
+ },
+ {
+  "id": "frontend_development_l1_list_keys",
+  "skill_id": "frontend_development",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une liste de champs éditables utilise l'index du tableau comme clé. Après suppression d'un élément, le texte saisi apparaît dans la mauvaise ligne. Cause ?",
+   "en": "A list of editable fields uses the array index as key. After deleting an item, typed text shows up in the wrong row. Cause?"
+  },
+  "options": [
+   {
+    "fr": "Les clés ne sont pas stables : il faut un identifiant propre à chaque élément",
+    "en": "Keys are not stable: each item needs its own identifier"
+   },
+   {
+    "fr": "Le composant n'est pas mémoïsé",
+    "en": "The component is not memoised"
+   },
+   {
+    "fr": "Le state est mis à jour de façon asynchrone",
+    "en": "State updates are asynchronous"
+   },
+   {
+    "fr": "Le CSS de la liste est mal ciblé",
+    "en": "The list CSS selectors are wrong"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Avec l'index comme clé, l'état local reste attaché à la position et non à l'élément.",
+   "en": "With the index as key, local state stays bound to the position, not to the item."
+  }
+ },
+ {
+  "id": "frontend_development_l1_div_button",
+  "skill_id": "frontend_development",
+  "level": 1,
+  "type": "multi",
+  "stem": {
+   "fr": "Un bouton est codé en <div onclick>. Que perdent les personnes qui naviguent au clavier ou avec un lecteur d'écran ?",
+   "en": "A button is built as <div onclick>. What do keyboard and screen-reader users lose?"
+  },
+  "options": [
+   {
+    "fr": "Il n'est pas atteignable avec Tab",
+    "en": "It cannot be reached with Tab"
+   },
+   {
+    "fr": "Entrée et Espace ne le déclenchent pas",
+    "en": "Enter and Space do not trigger it"
+   },
+   {
+    "fr": "Il n'est pas annoncé comme bouton",
+    "en": "It is not announced as a button"
+   },
+   {
+    "fr": "Il ne peut pas recevoir de style au survol",
+    "en": "It cannot get hover styles"
+   },
+   {
+    "fr": "Il ne réagit pas au toucher sur mobile",
+    "en": "It does not respond to touch on mobile"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Un vrai <button> apporte focus, activation clavier et rôle ; le style et le toucher fonctionnent de toute façon.",
+   "en": "A real <button> brings focus, keyboard activation and role; styling and touch work anyway."
+  }
+ },
+ {
+  "id": "frontend_development_l2_layout_shift",
+  "skill_id": "frontend_development",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Sur mobile, le texte d'un article saute vers le bas quand les images finissent de charger. Correction la plus directe ?",
+   "en": "On mobile, an article's text jumps down when images finish loading. Most direct fix?"
+  },
+  "options": [
+   {
+    "fr": "Réserver la place : width/height ou aspect-ratio sur les images",
+    "en": "Reserve the space: width/height or aspect-ratio on images"
+   },
+   {
+    "fr": "Charger les images en différé (lazy loading)",
+    "en": "Lazy-load the images"
+   },
+   {
+    "fr": "Convertir les images dans un format plus léger",
+    "en": "Convert images to a lighter format"
+   },
+   {
+    "fr": "Précharger la police du texte",
+    "en": "Preload the text font"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Le décalage vient de l'espace non réservé ; le lazy loading peut même l'aggraver.",
+   "en": "The shift comes from unreserved space; lazy loading can even make it worse."
+  }
+ },
+ {
+  "id": "frontend_development_l2_bundle_transfer",
+  "skill_id": "frontend_development",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Le bundle JavaScript principal pèse {kb} Ko compressés. Sur une connexion à {mbps} Mbit/s, combien de ms faut-il pour le transférer ? (1 Ko = 1000 octets, ignorer latence et surcoût protocolaire)",
+   "en": "The main JavaScript bundle weighs {kb} KB compressed. On a {mbps} Mbit/s connection, how many ms does it take to transfer? (1 KB = 1000 bytes, ignore latency and protocol overhead)"
+  },
+  "params": {
+   "kb": {
+    "min": 150,
+    "max": 600,
+    "step": 50
+   },
+   "mbps": {
+    "min": 2,
+    "max": 20,
+    "step": 1
+   }
+  },
+  "answer": "kb * 8 / mbps",
+  "tolerance": 0.01,
+  "unit": "ms",
+  "seconds": 90,
+  "explanation": {
+   "fr": "Ko × 8 = kbit ; kbit ÷ (Mbit/s) = ms.",
+   "en": "KB × 8 = kbit; kbit ÷ (Mbit/s) = ms."
+  }
+ },
+ {
+  "id": "frontend_development_l3_hydration_mismatch",
+  "skill_id": "frontend_development",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Une page rendue côté serveur affiche « il y a 3 min », puis la console signale une erreur d'hydratation et le texte clignote. Cause la plus probable ?",
+   "en": "A server-rendered page shows “3 min ago”, then the console reports a hydration error and the text flickers. Most likely cause?"
+  },
+  "options": [
+   {
+    "fr": "Le serveur et le navigateur calculent la valeur à partir d'une heure ou d'un fuseau différents",
+    "en": "Server and browser compute the value from a different time or time zone"
+   },
+   {
+    "fr": "Le CDN met la page en cache trop longtemps",
+    "en": "The CDN caches the page too long"
+   },
+   {
+    "fr": "Le composant est importé deux fois",
+    "en": "The component is imported twice"
+   },
+   {
+    "fr": "La feuille de style est chargée après le script",
+    "en": "The stylesheet loads after the script"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Le HTML serveur et le premier rendu client doivent être identiques ; une valeur dépendant de l'heure se calcule après le montage.",
+   "en": "Server HTML and the first client render must match; a time-dependent value is computed after mount."
+  }
+ },
+ {
+  "id": "frontend_development_l3_large_table",
+  "skill_id": "frontend_development",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Un tableau de 10 000 lignes avec filtre en saisie libre fige l'interface à chaque frappe. Quelles mesures sont efficaces ?",
+   "en": "A 10,000-row table with a free-text filter freezes the UI on every keystroke. Which measures are effective?"
+  },
+  "options": [
+   {
+    "fr": "Virtualiser : ne rendre que les lignes visibles",
+    "en": "Virtualise: render only the visible rows"
+   },
+   {
+    "fr": "Éviter de re-rendre les lignes inchangées (mémoïsation)",
+    "en": "Avoid re-rendering unchanged rows (memoisation)"
+   },
+   {
+    "fr": "Différer le filtrage (debounce ou rendu non prioritaire)",
+    "en": "Defer filtering (debounce or low-priority rendering)"
+   },
+   {
+    "fr": "Passer tous les styles en inline",
+    "en": "Move all styles inline"
+   },
+   {
+    "fr": "Ajouter une animation de transition sur chaque ligne",
+    "en": "Add a transition animation to each row"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Le coût vient du nombre de nœuds rendus et de la fréquence des rendus ; les styles inline et les animations l'aggravent.",
+   "en": "The cost comes from how many nodes render and how often; inline styles and animations make it worse."
+  }
+ },
+ {
+  "id": "mobile_development_l1_process_death",
+  "skill_id": "mobile_development",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une personne remplit un formulaire, ouvre l'appareil photo, revient : le formulaire est vide. Ça n'arrive que sur les téléphones avec peu de mémoire. Cause ?",
+   "en": "A user fills a form, opens the camera, comes back: the form is empty. It only happens on low-memory phones. Cause?"
+  },
+  "options": [
+   {
+    "fr": "L'OS a tué le processus en arrière-plan et l'état n'était ni sauvegardé ni restauré",
+    "en": "The OS killed the process in the background and state was neither saved nor restored"
+   },
+   {
+    "fr": "L'appareil photo a vidé le cache de l'application",
+    "en": "The camera cleared the app cache"
+   },
+   {
+    "fr": "Une requête réseau a expiré",
+    "en": "A network request timed out"
+   },
+   {
+    "fr": "Le formulaire n'a pas d'identifiant d'accessibilité",
+    "en": "The form has no accessibility identifier"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Une application en arrière-plan peut être tuée à tout moment ; l'état de saisie doit être persisté.",
+   "en": "A backgrounded app can be killed at any time; input state must be persisted."
+  }
+ },
+ {
+  "id": "mobile_development_l1_main_thread",
+  "skill_id": "mobile_development",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "L'écran se fige 3 secondes quand on touche « Synchroniser », puis tout revient. Que faut-il corriger en premier ?",
+   "en": "The screen freezes for 3 seconds when tapping “Sync”, then recovers. What should be fixed first?"
+  },
+  "options": [
+   {
+    "fr": "Sortir l'appel réseau et le traitement du thread principal",
+    "en": "Move the network call and processing off the main thread"
+   },
+   {
+    "fr": "Ajouter une animation pendant la synchro",
+    "en": "Add an animation during sync"
+   },
+   {
+    "fr": "Réduire la taille des images de l'écran",
+    "en": "Shrink the screen's images"
+   },
+   {
+    "fr": "Augmenter le délai d'attente réseau",
+    "en": "Increase the network timeout"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Tout travail bloquant sur le thread de l'interface la fige ; une animation y serait figée aussi.",
+   "en": "Any blocking work on the UI thread freezes it; an animation there would freeze too."
+  }
+ },
+ {
+  "id": "mobile_development_l2_offline_sync",
+  "skill_id": "mobile_development",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "L'application doit permettre de créer des notes hors ligne et les synchroniser au retour du réseau. Quels éléments sont nécessaires ?",
+   "en": "The app must let people create notes offline and sync them when the network returns. Which elements are needed?"
+  },
+  "options": [
+   {
+    "fr": "Une file locale persistante des modifications en attente",
+    "en": "A persistent local queue of pending changes"
+   },
+   {
+    "fr": "Des identifiants générés côté client et des envois idempotents",
+    "en": "Client-generated IDs and idempotent uploads"
+   },
+   {
+    "fr": "Une règle de résolution des conflits",
+    "en": "A conflict-resolution rule"
+   },
+   {
+    "fr": "Réessayer la synchro toutes les 100 ms tant que le réseau manque",
+    "en": "Retry sync every 100 ms while offline"
+   },
+   {
+    "fr": "Garder les modifications en mémoire jusqu'au retour du réseau",
+    "en": "Keep changes in memory until the network returns"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "La mémoire ne survit pas à la fermeture de l'app, et la boucle serrée vide la batterie.",
+   "en": "Memory does not survive the app being closed, and a tight loop drains the battery."
+  }
+ },
+ {
+  "id": "mobile_development_l2_crash_free",
+  "skill_id": "mobile_development",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Sur la nouvelle version : {sessions} sessions, dont {crashed} terminées par un crash. Quel est le taux de sessions sans crash, en %, à deux décimales ?",
+   "en": "On the new release: {sessions} sessions, {crashed} of which ended in a crash. What is the crash-free session rate, in %, to two decimals?"
+  },
+  "params": {
+   "sessions": {
+    "min": 20000,
+    "max": 200000,
+    "step": 1000
+   },
+   "crashed": {
+    "min": 50,
+    "max": 2000,
+    "step": 10
+   }
+  },
+  "answer": "(1 - crashed / sessions) * 100",
+  "tolerance": 0.0001,
+  "unit": "%",
+  "seconds": 75,
+  "explanation": {
+   "fr": "(1 − sessions en crash ÷ sessions) × 100.",
+   "en": "(1 − crashed sessions ÷ sessions) × 100."
+  }
+ },
+ {
+  "id": "mobile_development_l3_api_compat",
+  "skill_id": "mobile_development",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "L'API doit renommer un champ utilisé par l'application. 30 % des personnes gardent une ancienne version pendant des mois. Quelle stratégie ?",
+   "en": "The API must rename a field the app uses. 30% of users keep an old version for months. Which strategy?"
+  },
+  "options": [
+   {
+    "fr": "Ajouter le nouveau champ, garder l'ancien, et ne le retirer que sous un seuil d'usage ou une version minimale imposée",
+    "en": "Add the new field, keep the old one, and remove it only below a usage threshold or an enforced minimum version"
+   },
+   {
+    "fr": "Renommer le champ et publier la nouvelle version de l'app le même jour",
+    "en": "Rename the field and ship the new app version the same day"
+   },
+   {
+    "fr": "Renommer le champ et afficher une erreur aux anciennes versions",
+    "en": "Rename the field and show an error to old versions"
+   },
+   {
+    "fr": "Laisser les anciennes versions planter pour pousser la mise à jour",
+    "en": "Let old versions crash to push the update"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Côté mobile, on ne contrôle pas la mise à jour : l'API doit rester rétrocompatible le temps de la transition.",
+   "en": "On mobile you do not control updates: the API must stay backward compatible during the transition."
+  }
+ },
+ {
+  "id": "mobile_development_l3_secret_in_binary",
+  "skill_id": "mobile_development",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "L'application appelle directement un service tiers payant avec une clé d'API intégrée au binaire. Quelle approche protège réellement la clé ?",
+   "en": "The app calls a paid third-party service directly with an API key embedded in the binary. Which approach really protects the key?"
+  },
+  "options": [
+   {
+    "fr": "Faire passer les appels par votre backend, qui détient la clé et applique authentification et quotas",
+    "en": "Route calls through your backend, which holds the key and enforces auth and quotas"
+   },
+   {
+    "fr": "Obfusquer le code de l'application",
+    "en": "Obfuscate the app code"
+   },
+   {
+    "fr": "Stocker la clé dans le trousseau sécurisé de l'appareil",
+    "en": "Store the key in the device's secure keychain"
+   },
+   {
+    "fr": "Chiffrer la clé avec une autre clé incluse dans l'app",
+    "en": "Encrypt the key with another key shipped in the app"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Tout secret livré dans l'app est extractible ; le trousseau protège les secrets de la personne, pas ceux livrés avec l'app.",
+   "en": "Any secret shipped in the app can be extracted; the keychain protects the user's secrets, not ones shipped with the app."
+  }
+ },
+ {
+  "id": "database_design_l1_many_to_many",
+  "skill_id": "database_design",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une personne étudiante suit plusieurs cours et chaque cours compte plusieurs inscrits, avec une note par inscription. Quelle modélisation ?",
+   "en": "A student takes several courses and each course has several enrolled students, with a grade per enrolment. Which model?"
+  },
+  "options": [
+   {
+    "fr": "Une table d'inscription (student_id, course_id, note) avec clé composite",
+    "en": "An enrolment table (student_id, course_id, grade) with a composite key"
+   },
+   {
+    "fr": "Une colonne course_ids contenant une liste dans la table des étudiants",
+    "en": "A course_ids column holding a list in the students table"
+   },
+   {
+    "fr": "Une clé étrangère student_id dans la table des cours",
+    "en": "A student_id foreign key in the courses table"
+   },
+   {
+    "fr": "Une colonne par cours dans la table des étudiants",
+    "en": "One column per course in the students table"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Une relation plusieurs-à-plusieurs porteuse d'attributs se modélise par une table d'association.",
+   "en": "A many-to-many relation that carries attributes is modelled with an association table."
+  }
+ },
+ {
+  "id": "database_design_l1_rows_selectivity",
+  "skill_id": "database_design",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Une table compte {rows} lignes ; la colonne status a {distinct} valeurs réparties uniformément. Combien de lignes renvoie environ WHERE status = 'x' ?",
+   "en": "A table has {rows} rows; the status column has {distinct} evenly distributed values. About how many rows does WHERE status = 'x' return?"
+  },
+  "params": {
+   "rows": {
+    "min": 100000,
+    "max": 5000000,
+    "step": 100000
+   },
+   "distinct": {
+    "min": 2,
+    "max": 50,
+    "step": 1
+   }
+  },
+  "answer": "rows / distinct",
+  "tolerance": 0.01,
+  "unit": "",
+  "seconds": 60,
+  "explanation": {
+   "fr": "Lignes ÷ valeurs distinctes. Avec peu de valeurs, un index sur cette seule colonne sert rarement.",
+   "en": "Rows ÷ distinct values. With few values, an index on that column alone rarely helps."
+  }
+ },
+ {
+  "id": "database_design_l2_composite_index",
+  "skill_id": "database_design",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Une table a un index sur (customer_id, created_at). Quelle requête en profite le plus ?",
+   "en": "A table has an index on (customer_id, created_at). Which query benefits most?"
+  },
+  "options": [
+   {
+    "fr": "WHERE customer_id = ? ORDER BY created_at DESC LIMIT 10",
+    "en": "WHERE customer_id = ? ORDER BY created_at DESC LIMIT 10"
+   },
+   {
+    "fr": "WHERE created_at > ?",
+    "en": "WHERE created_at > ?"
+   },
+   {
+    "fr": "WHERE customer_id = ? OR created_at > ?",
+    "en": "WHERE customer_id = ? OR created_at > ?"
+   },
+   {
+    "fr": "ORDER BY created_at DESC LIMIT 10",
+    "en": "ORDER BY created_at DESC LIMIT 10"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Égalité sur la colonne de tête puis tri sur la seconde : l'index fournit directement les 10 lignes, déjà triées.",
+   "en": "Equality on the leading column then sort on the second: the index yields the 10 rows directly, already sorted."
+  }
+ },
+ {
+  "id": "database_design_l2_oversell",
+  "skill_id": "database_design",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Deux requêtes simultanées lisent stock = 1, puis décrémentent chacune : l'article est vendu deux fois. Quelles corrections empêchent la survente ?",
+   "en": "Two concurrent requests read stock = 1, then each decrements it: the item is sold twice. Which fixes prevent overselling?"
+  },
+  "options": [
+   {
+    "fr": "UPDATE ... SET stock = stock - 1 WHERE id = ? AND stock > 0, puis vérifier le nombre de lignes modifiées",
+    "en": "UPDATE ... SET stock = stock - 1 WHERE id = ? AND stock > 0, then check the affected row count"
+   },
+   {
+    "fr": "Lire la ligne avec SELECT ... FOR UPDATE avant de décrémenter",
+    "en": "Read the row with SELECT ... FOR UPDATE before decrementing"
+   },
+   {
+    "fr": "Isolation SERIALIZABLE avec nouvelle tentative en cas d'échec de sérialisation",
+    "en": "SERIALIZABLE isolation with a retry on serialisation failure"
+   },
+   {
+    "fr": "Ajouter un index sur la colonne stock",
+    "en": "Add an index on the stock column"
+   },
+   {
+    "fr": "Envelopper lecture et écriture dans une transaction READ COMMITTED sans verrou",
+    "en": "Wrap read and write in a READ COMMITTED transaction without locks"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 70,
+  "explanation": {
+   "fr": "READ COMMITTED seul laisse passer la mise à jour perdue ; il faut une écriture conditionnelle, un verrou ou la sérialisation.",
+   "en": "READ COMMITTED alone allows the lost update; you need a conditional write, a lock or serialisation."
+  }
+ },
+ {
+  "id": "database_design_l3_soft_delete_unique",
+  "skill_id": "database_design",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Les comptes sont supprimés logiquement (deleted_at). Une personne supprimée ne peut plus se réinscrire : l'e-mail est UNIQUE. Meilleure correction ?",
+   "en": "Accounts are soft-deleted (deleted_at). A deleted user can no longer sign up again: email is UNIQUE. Best fix?"
+  },
+  "options": [
+   {
+    "fr": "Un index unique partiel sur email WHERE deleted_at IS NULL",
+    "en": "A partial unique index on email WHERE deleted_at IS NULL"
+   },
+   {
+    "fr": "Supprimer la contrainte et vérifier l'unicité dans le code",
+    "en": "Drop the constraint and check uniqueness in code"
+   },
+   {
+    "fr": "Ajouter deleted_at à une contrainte UNIQUE (email, deleted_at)",
+    "en": "Add deleted_at to a UNIQUE (email, deleted_at) constraint"
+   },
+   {
+    "fr": "Purger physiquement les comptes au bout d'une heure",
+    "en": "Hard-delete accounts after one hour"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 55,
+  "explanation": {
+   "fr": "La vérification applicative a une condition de course ; (email, deleted_at) laisse passer deux comptes actifs car NULL ≠ NULL.",
+   "en": "The app-level check races; (email, deleted_at) allows two active accounts because NULL ≠ NULL."
+  }
+ },
+ {
+  "id": "database_design_l3_zero_downtime_column",
+  "skill_id": "database_design",
+  "level": 3,
+  "type": "order",
+  "stem": {
+   "fr": "Ajouter une colonne obligatoire à une table de 500 millions de lignes en production, sans interruption. Ordonnez les étapes.",
+   "en": "Add a mandatory column to a 500-million-row production table, without downtime. Order the steps."
+  },
+  "options": [
+   {
+    "fr": "Poser la contrainte NOT NULL une fois qu'il ne reste aucun NULL",
+    "en": "Add the NOT NULL constraint once no NULLs remain"
+   },
+   {
+    "fr": "Ajouter la colonne en nullable, sans valeur par défaut qui réécrit la table",
+    "en": "Add the column as nullable, without a default that rewrites the table"
+   },
+   {
+    "fr": "Remplir les lignes existantes par petits lots",
+    "en": "Backfill existing rows in small batches"
+   },
+   {
+    "fr": "Déployer le code qui renseigne la colonne pour les lignes nouvelles et modifiées",
+    "en": "Deploy code that fills the column for new and updated rows"
+   }
+  ],
+  "correct": [
+   1,
+   3,
+   2,
+   0
+  ],
+  "seconds": 75,
+  "explanation": {
+   "fr": "Le code écrit la colonne avant le remplissage, sinon de nouvelles lignes NULL apparaissent pendant le backfill.",
+   "en": "The code writes the column before the backfill, otherwise new NULL rows appear during it."
+  }
+ },
+ {
+  "id": "software_architecture_l1_dependency_injection",
+  "skill_id": "software_architecture",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Les règles de remise appellent directement le client de base de données ; impossible de les tester sans base réelle. Quel changement ?",
+   "en": "Discount rules call the database client directly; they cannot be tested without a real database. Which change?"
+  },
+  "options": [
+   {
+    "fr": "Faire dépendre la logique d'une interface de dépôt injectée, remplaçable en test",
+    "en": "Make the logic depend on an injected repository interface, replaceable in tests"
+   },
+   {
+    "fr": "Lancer une base partagée pour toute l'équipe de test",
+    "en": "Run a shared database for the whole test team"
+   },
+   {
+    "fr": "Déplacer les règles dans des procédures stockées",
+    "en": "Move the rules into stored procedures"
+   },
+   {
+    "fr": "Rendre le client de base global et statique",
+    "en": "Make the database client global and static"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Inverser la dépendance isole la logique métier de l'infrastructure.",
+   "en": "Inverting the dependency isolates business logic from infrastructure."
+  }
+ },
+ {
+  "id": "software_architecture_l1_cache_invalidation",
+  "skill_id": "software_architecture",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Le profil est mis en cache (cache-aside) pendant 1 h. Après modification, l'ancien nom reste affiché jusqu'à une heure. Correction la plus simple et fiable ?",
+   "en": "The profile is cached (cache-aside) for 1 h. After an edit, the old name stays visible for up to an hour. Simplest reliable fix?"
+  },
+  "options": [
+   {
+    "fr": "Supprimer la clé du cache après l'écriture en base",
+    "en": "Delete the cache key after writing to the database"
+   },
+   {
+    "fr": "Mettre à jour le cache avant d'écrire en base",
+    "en": "Update the cache before writing to the database"
+   },
+   {
+    "fr": "Passer la durée de vie du cache à 24 h",
+    "en": "Raise the cache TTL to 24 h"
+   },
+   {
+    "fr": "Vider tout le cache chaque nuit",
+    "en": "Flush the whole cache every night"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Invalider après l'écriture : la lecture suivante recharge la valeur à jour. Écrire le cache d'abord laisse une valeur fausse si la base échoue.",
+   "en": "Invalidate after the write: the next read reloads the fresh value. Writing the cache first leaves a wrong value if the database write fails."
+  }
+ },
+ {
+  "id": "software_architecture_l2_serial_availability",
+  "skill_id": "software_architecture",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Une requête exige trois composants en série, de disponibilités {a} %, {b} % et {c} %. Combien de minutes d'indisponibilité attendre sur un mois de 30 jours ?",
+   "en": "A request requires three components in series, with availability {a}%, {b}% and {c}%. How many minutes of downtime should you expect over a 30-day month?"
+  },
+  "params": {
+   "a": {
+    "min": 99.5,
+    "max": 99.95,
+    "step": 0.05
+   },
+   "b": {
+    "min": 99.5,
+    "max": 99.95,
+    "step": 0.05
+   },
+   "c": {
+    "min": 99.5,
+    "max": 99.95,
+    "step": 0.05
+   }
+  },
+  "answer": "(1 - a * b * c / 1000000) * 43200",
+  "tolerance": 0.0005,
+  "unit": "min",
+  "seconds": 110,
+  "explanation": {
+   "fr": "En série, les disponibilités se multiplient ; un mois de 30 jours = 43 200 min.",
+   "en": "In series, availabilities multiply; a 30-day month = 43,200 min."
+  }
+ },
+ {
+  "id": "software_architecture_l2_async_side_effect",
+  "skill_id": "software_architecture",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Le service de commande appelle le service d'e-mail en synchrone. Quand l'e-mail tombe, plus personne ne peut commander. Quelle évolution ?",
+   "en": "The order service calls the email service synchronously. When email is down, nobody can order. Which change?"
+  },
+  "options": [
+   {
+    "fr": "Publier un événement « commande passée » dans une file ; l'e-mail le consomme de façon asynchrone",
+    "en": "Publish an “order placed” event to a queue; email consumes it asynchronously"
+   },
+   {
+    "fr": "Doubler le délai d'attente de l'appel e-mail",
+    "en": "Double the email call timeout"
+   },
+   {
+    "fr": "Fusionner les deux services",
+    "en": "Merge the two services"
+   },
+   {
+    "fr": "Ajouter un second fournisseur d'e-mail appelé en synchrone",
+    "en": "Add a second email provider called synchronously"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Un effet secondaire non critique ne doit pas être sur le chemin critique de la commande.",
+   "en": "A non-critical side effect must not sit on the order's critical path."
+  }
+ },
+ {
+  "id": "software_architecture_l3_microservices_cost",
+  "skill_id": "software_architecture",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Une équipe de 6 personnes envisage de découper son monolithe en 12 microservices. Quels coûts réels doivent peser dans la décision ?",
+   "en": "A team of 6 is considering splitting its monolith into 12 microservices. Which real costs should weigh in the decision?"
+  },
+  "options": [
+   {
+    "fr": "Pannes partielles et latence réseau entre services",
+    "en": "Partial failures and network latency between services"
+   },
+   {
+    "fr": "Cohérence des données sans transaction commune",
+    "en": "Data consistency without a shared transaction"
+   },
+   {
+    "fr": "Surcoût d'exploitation : déploiements, observabilité, versions d'API",
+    "en": "Operational overhead: deployments, observability, API versioning"
+   },
+   {
+    "fr": "Un monolithe ne peut pas tourner sur plusieurs instances",
+    "en": "A monolith cannot run on several instances"
+   },
+   {
+    "fr": "Les microservices rendent chaque requête plus rapide",
+    "en": "Microservices make every request faster"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 70,
+  "explanation": {
+   "fr": "Un monolithe se réplique horizontalement, et les appels réseau ajoutent de la latence plutôt qu'ils n'en retirent.",
+   "en": "A monolith scales horizontally, and network calls add latency rather than remove it."
+  }
+ },
+ {
+  "id": "software_architecture_l3_idempotent_consumer",
+  "skill_id": "software_architecture",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Un broker livre « au moins une fois » et parfois dans le désordre. Un consommateur applique des mises à jour de solde. Quelle conception est correcte ?",
+   "en": "A broker delivers at least once and sometimes out of order. A consumer applies balance updates. Which design is correct?"
+  },
+  "options": [
+   {
+    "fr": "Dédupliquer par identifiant d'événement et ignorer les versions plus anciennes que l'état stocké",
+    "en": "Deduplicate by event ID and ignore versions older than the stored state"
+   },
+   {
+    "fr": "Passer le broker en mode « au plus une fois »",
+    "en": "Switch the broker to at-most-once"
+   },
+   {
+    "fr": "Traiter les messages avec plus de consommateurs en parallèle",
+    "en": "Process messages with more parallel consumers"
+   },
+   {
+    "fr": "Accuser réception avant de traiter le message",
+    "en": "Acknowledge before processing the message"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 55,
+  "explanation": {
+   "fr": "« Au plus une fois » et l'accusé anticipé perdent des messages ; le parallélisme aggrave le désordre.",
+   "en": "At-most-once and early acknowledgement lose messages; parallelism worsens ordering."
+  }
+ },
+ {
+  "id": "data_engineering_l1_idempotent_load",
+  "skill_id": "data_engineering",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Un job quotidien a échoué à mi-chemin ; une fois relancé, la journée apparaît en double dans l'entrepôt. Que corriger ?",
+   "en": "A daily job failed halfway; after a rerun, the day appears twice in the warehouse. What should be fixed?"
+  },
+  "options": [
+   {
+    "fr": "Rendre le chargement idempotent : remplacer la partition du jour ou faire un MERGE sur la clé",
+    "en": "Make the load idempotent: overwrite the day's partition or MERGE on the key"
+   },
+   {
+    "fr": "Ne jamais relancer un job échoué",
+    "en": "Never rerun a failed job"
+   },
+   {
+    "fr": "Ajouter un DISTINCT dans les tableaux de bord",
+    "en": "Add DISTINCT in the dashboards"
+   },
+   {
+    "fr": "Augmenter la mémoire du job",
+    "en": "Give the job more memory"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Un pipeline doit pouvoir être relancé sans effet de bord : c'est la condition de toute reprise.",
+   "en": "A pipeline must be rerunnable without side effects: that is what makes recovery possible."
+  }
+ },
+ {
+  "id": "data_engineering_l1_file_sizing",
+  "skill_id": "data_engineering",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Une partition quotidienne fait {gb} Go. Vous visez des fichiers d'environ {mb} Mo. Combien de fichiers environ ? (1 Go = 1000 Mo)",
+   "en": "A daily partition is {gb} GB. You target files of about {mb} MB. About how many files? (1 GB = 1000 MB)"
+  },
+  "params": {
+   "gb": {
+    "min": 50,
+    "max": 500,
+    "step": 10
+   },
+   "mb": {
+    "min": 128,
+    "max": 512,
+    "step": 128
+   }
+  },
+  "answer": "gb * 1000 / mb",
+  "tolerance": 0.01,
+  "unit": "",
+  "seconds": 60,
+  "explanation": {
+   "fr": "Volume ÷ taille cible. Trop de petits fichiers ralentit la lecture et surcharge les métadonnées.",
+   "en": "Volume ÷ target size. Too many small files slow reads and overload metadata."
+  }
+ },
+ {
+  "id": "data_engineering_l2_late_events",
+  "skill_id": "data_engineering",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Un flux agrège des clics par fenêtre de 5 min ; des événements mobiles arrivent avec 10 min de retard et sont perdus. Que faire ?",
+   "en": "A stream aggregates clicks into 5-minute windows; mobile events arrive 10 minutes late and are dropped. What should you do?"
+  },
+  "options": [
+   {
+    "fr": "Fenêtrer sur l'heure de l'événement avec un watermark et un retard toléré suffisant",
+    "en": "Window on event time with a watermark and enough allowed lateness"
+   },
+   {
+    "fr": "Fenêtrer sur l'heure d'arrivée au serveur",
+    "en": "Window on server arrival time"
+   },
+   {
+    "fr": "Passer à des fenêtres de 1 min",
+    "en": "Switch to 1-minute windows"
+   },
+   {
+    "fr": "Ajouter des partitions au topic",
+    "en": "Add partitions to the topic"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "L'heure d'arrivée range les clics dans la mauvaise fenêtre ; le watermark arbitre exactitude contre latence.",
+   "en": "Arrival time puts clicks in the wrong window; the watermark trades accuracy against latency."
+  }
+ },
+ {
+  "id": "data_engineering_l2_watermark_extract",
+  "skill_id": "data_engineering",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Une extraction incrémentale lit WHERE updated_at > dernier_max. Quelles situations lui font manquer des données ?",
+   "en": "An incremental extract reads WHERE updated_at > last_max. Which situations make it miss data?"
+  },
+  "options": [
+   {
+    "fr": "Une transaction longue valide une ligne horodatée avant dernier_max",
+    "en": "A long transaction commits a row stamped before last_max"
+   },
+   {
+    "fr": "Des lignes partagent exactement l'horodatage dernier_max, arrivées après l'extraction",
+    "en": "Rows share exactly the last_max timestamp, arriving after the extract"
+   },
+   {
+    "fr": "Des lignes sont supprimées physiquement à la source",
+    "en": "Rows are hard-deleted at the source"
+   },
+   {
+    "fr": "Les horodatages sont stockés en UTC",
+    "en": "Timestamps are stored in UTC"
+   },
+   {
+    "fr": "La colonne updated_at est indexée",
+    "en": "The updated_at column is indexed"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 70,
+  "explanation": {
+   "fr": "D'où les fenêtres de recouvrement, la déduplication en aval, ou la capture de changements depuis le journal.",
+   "en": "Hence overlap windows, downstream deduplication, or log-based change data capture."
+  }
+ },
+ {
+  "id": "data_engineering_l3_schema_drift",
+  "skill_id": "data_engineering",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "La source a renommé une colonne ; pendant une semaine, le pipeline a chargé des NULL sans erreur et les rapports ont été faux. Quelle mesure empêche la récidive ?",
+   "en": "The source renamed a column; for a week the pipeline loaded NULLs without error and reports were wrong. Which measure prevents a repeat?"
+  },
+  "options": [
+   {
+    "fr": "Un contrat de schéma vérifié à l'ingestion qui bloque ou met en quarantaine le lot",
+    "en": "A schema contract checked at ingestion that blocks or quarantines the batch"
+   },
+   {
+    "fr": "Rendre toutes les colonnes nullables",
+    "en": "Make every column nullable"
+   },
+   {
+    "fr": "Relancer le pipeline chaque heure",
+    "en": "Rerun the pipeline every hour"
+   },
+   {
+    "fr": "Inférer automatiquement le schéma à chaque chargement",
+    "en": "Infer the schema automatically on every load"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Le défaut était silencieux : il faut échouer tôt et bruyamment, pas s'adapter en silence.",
+   "en": "The failure was silent: fail early and loudly instead of silently adapting."
+  }
+ },
+ {
+  "id": "data_engineering_l3_join_skew",
+  "skill_id": "data_engineering",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Une jointure distribuée bloque : une tâche tourne 2 h pendant que les autres finissent en 3 min. Une clé client représente 40 % des lignes. Correction adaptée ?",
+   "en": "A distributed join stalls: one task runs 2 h while the others finish in 3 min. One customer key holds 40% of the rows. Suitable fix?"
+  },
+  "options": [
+   {
+    "fr": "Saler la clé chaude ou diffuser (broadcast) le petit côté de la jointure",
+    "en": "Salt the hot key or broadcast the small side of the join"
+   },
+   {
+    "fr": "Doubler le nombre d'exécuteurs",
+    "en": "Double the number of executors"
+   },
+   {
+    "fr": "Augmenter le nombre de partitions de sortie",
+    "en": "Increase the number of output partitions"
+   },
+   {
+    "fr": "Trier les données avant la jointure",
+    "en": "Sort the data before the join"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Toutes les lignes d'une même clé vont au même exécuteur ; ajouter des ressources ne divise pas cette tâche.",
+   "en": "All rows of one key go to the same executor; more resources do not split that task."
+  }
+ },
+ {
+  "id": "data_analysis_l1_median_skew",
+  "skill_id": "data_analysis",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "La plupart des commandes font environ 30 €, mais quelques commandes professionnelles dépassent 20 000 €. Quel indicateur décrit la commande typique ?",
+   "en": "Most orders are about €30, but a few business orders exceed €20,000. Which statistic describes the typical order?"
+  },
+  "options": [
+   {
+    "fr": "La médiane",
+    "en": "The median"
+   },
+   {
+    "fr": "La moyenne",
+    "en": "The mean"
+   },
+   {
+    "fr": "Le maximum",
+    "en": "The maximum"
+   },
+   {
+    "fr": "La somme divisée par le nombre de jours",
+    "en": "The total divided by the number of days"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 30,
+  "explanation": {
+   "fr": "La moyenne est tirée par les valeurs extrêmes ; la médiane leur résiste.",
+   "en": "The mean is pulled by extreme values; the median resists them."
+  }
+ },
+ {
+  "id": "data_analysis_l1_pp_vs_percent",
+  "skill_id": "data_analysis",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Le taux de conversion était de {base} % et gagne {delta} points de pourcentage. De combien de % a-t-il augmenté en relatif ?",
+   "en": "The conversion rate was {base}% and gains {delta} percentage points. By how many % did it increase in relative terms?"
+  },
+  "params": {
+   "base": {
+    "min": 2,
+    "max": 6,
+    "step": 0.1
+   },
+   "delta": {
+    "min": 0.2,
+    "max": 1.5,
+    "step": 0.1
+   }
+  },
+  "answer": "delta / base * 100",
+  "tolerance": 0.01,
+  "unit": "%",
+  "seconds": 60,
+  "explanation": {
+   "fr": "Hausse relative = points gagnés ÷ taux de départ × 100.",
+   "en": "Relative increase = points gained ÷ starting rate × 100."
+  }
+ },
+ {
+  "id": "data_analysis_l2_simpson",
+  "skill_id": "data_analysis",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "La conversion progresse sur mobile et sur ordinateur, mais la conversion globale baisse. Explication la plus probable ?",
+   "en": "Conversion rises on mobile and on desktop, yet overall conversion falls. Most likely explanation?"
+  },
+  "options": [
+   {
+    "fr": "La part du trafic mobile, qui convertit moins, a augmenté",
+    "en": "The share of mobile traffic, which converts less, has grown"
+   },
+   {
+    "fr": "Une erreur de calcul est certaine",
+    "en": "There is certainly a calculation error"
+   },
+   {
+    "fr": "L'échantillon est trop petit pour conclure quoi que ce soit",
+    "en": "The sample is too small to conclude anything"
+   },
+   {
+    "fr": "La conversion globale est la moyenne simple des deux segments",
+    "en": "Overall conversion is the plain average of the two segments"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Effet de structure (paradoxe de Simpson) : le global est une moyenne pondérée par les volumes.",
+   "en": "Mix effect (Simpson's paradox): the overall rate is a volume-weighted average."
+  }
+ },
+ {
+  "id": "data_analysis_l2_weighted_rate",
+  "skill_id": "data_analysis",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Segment A : {na} visites, conversion {pa} %. Segment B : {nb} visites, conversion {pb} %. Quelle est la conversion globale, en % ?",
+   "en": "Segment A: {na} visits, {pa}% conversion. Segment B: {nb} visits, {pb}% conversion. What is the overall conversion, in %?"
+  },
+  "params": {
+   "na": {
+    "min": 1000,
+    "max": 20000,
+    "step": 1000
+   },
+   "pa": {
+    "min": 1,
+    "max": 10,
+    "step": 0.5
+   },
+   "nb": {
+    "min": 1000,
+    "max": 20000,
+    "step": 1000
+   },
+   "pb": {
+    "min": 1,
+    "max": 10,
+    "step": 0.5
+   }
+  },
+  "answer": "(na * pa + nb * pb) / (na + nb)",
+  "tolerance": 0.01,
+  "unit": "%",
+  "seconds": 90,
+  "explanation": {
+   "fr": "Moyenne pondérée par les visites, pas moyenne simple des deux taux.",
+   "en": "Visit-weighted average, not the plain average of the two rates."
+  }
+ },
+ {
+  "id": "data_analysis_l3_ab_pitfalls",
+  "skill_id": "data_analysis",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Quelles pratiques gonflent les faux positifs ou invalident le résultat d'un test A/B ?",
+   "en": "Which practices inflate false positives or invalidate an A/B test result?"
+  },
+  "options": [
+   {
+    "fr": "Regarder chaque jour et arrêter dès que p < 0,05",
+    "en": "Checking daily and stopping as soon as p < 0.05"
+   },
+   {
+    "fr": "Suivre 20 métriques et rapporter celle qui est significative",
+    "en": "Tracking 20 metrics and reporting the one that is significant"
+   },
+   {
+    "fr": "Ignorer un déséquilibre 55/45 alors que le partage prévu est 50/50",
+    "en": "Ignoring a 55/45 imbalance when the planned split is 50/50"
+   },
+   {
+    "fr": "Fixer la taille d'échantillon avant le lancement",
+    "en": "Fixing the sample size before launch"
+   },
+   {
+    "fr": "Faire tourner le test sur des semaines complètes",
+    "en": "Running the test over full weeks"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 70,
+  "explanation": {
+   "fr": "Arrêt anticipé et comparaisons multiples gonflent l'erreur ; un déséquilibre d'échantillon signale un biais d'affectation.",
+   "en": "Early stopping and multiple comparisons inflate error; a sample ratio mismatch signals an assignment bug."
+  }
+ },
+ {
+  "id": "data_analysis_l3_metric_jump",
+  "skill_id": "data_analysis",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Le nombre d'utilisateurs actifs bondit de 30 % du jour au lendemain, juste après une mise en production. Première vérification ?",
+   "en": "Active users jump 30% overnight, right after a release. First check?"
+  },
+  "options": [
+   {
+    "fr": "Un changement de collecte ou de définition : événements dupliqués, nouveau déclencheur, filtre des robots",
+    "en": "A tracking or definition change: duplicated events, a new trigger, bot filtering"
+   },
+   {
+    "fr": "Annoncer la hausse à la direction",
+    "en": "Announce the rise to leadership"
+   },
+   {
+    "fr": "Recalculer la tendance sur un an",
+    "en": "Recompute the one-year trend"
+   },
+   {
+    "fr": "Tester la significativité de la hausse",
+    "en": "Test the rise for statistical significance"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Une rupture nette coïncidant avec un déploiement vient d'abord de la mesure ; un test statistique ne détecte pas un bug de collecte.",
+   "en": "A sharp break that coincides with a deploy usually comes from measurement; a statistical test does not detect a tracking bug."
+  }
+ },
+ {
+  "id": "machine_learning_l1_precision",
+  "skill_id": "machine_learning",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Un classifieur de fraude, sur le jeu de test : VP = {tp}, FP = {fp}, FN = {fn}, VN = {tn}. Quelle est sa précision, en % ?",
+   "en": "A fraud classifier, on the test set: TP = {tp}, FP = {fp}, FN = {fn}, TN = {tn}. What is its precision, in %?"
+  },
+  "params": {
+   "tp": {
+    "min": 40,
+    "max": 400,
+    "step": 5
+   },
+   "fp": {
+    "min": 5,
+    "max": 200,
+    "step": 5
+   },
+   "fn": {
+    "min": 5,
+    "max": 200,
+    "step": 5
+   },
+   "tn": {
+    "min": 1000,
+    "max": 9000,
+    "step": 100
+   }
+  },
+  "answer": "tp / (tp + fp) * 100",
+  "tolerance": 0.01,
+  "unit": "%",
+  "seconds": 60,
+  "explanation": {
+   "fr": "Précision = VP ÷ (VP + FP) : la part des alertes qui sont de vraies fraudes.",
+   "en": "Precision = TP ÷ (TP + FP): the share of alerts that are real fraud."
+  }
+ },
+ {
+  "id": "machine_learning_l1_imbalanced_accuracy",
+  "skill_id": "machine_learning",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Sur un jeu où 1 % des transactions sont frauduleuses, un modèle affiche 99 % d'exactitude. Que faut-il en conclure ?",
+   "en": "On a dataset where 1% of transactions are fraud, a model shows 99% accuracy. What should you conclude?"
+  },
+  "options": [
+   {
+    "fr": "Rien encore : prédire « jamais de fraude » donne déjà 99 % ; il faut regarder rappel et précision",
+    "en": "Nothing yet: predicting “never fraud” already gives 99%; look at recall and precision"
+   },
+   {
+    "fr": "Le modèle est prêt pour la production",
+    "en": "The model is ready for production"
+   },
+   {
+    "fr": "Le modèle sur-apprend forcément",
+    "en": "The model is necessarily overfitting"
+   },
+   {
+    "fr": "Il faut augmenter le nombre d'époques",
+    "en": "You need more epochs"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Avec des classes déséquilibrées, l'exactitude ne mesure presque rien.",
+   "en": "With imbalanced classes, accuracy measures almost nothing."
+  }
+ },
+ {
+  "id": "machine_learning_l2_f1",
+  "skill_id": "machine_learning",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Matrice de confusion : VP = {tp}, FP = {fp}, FN = {fn}. Quel est le score F1, en % ?",
+   "en": "Confusion matrix: TP = {tp}, FP = {fp}, FN = {fn}. What is the F1 score, in %?"
+  },
+  "params": {
+   "tp": {
+    "min": 40,
+    "max": 400,
+    "step": 5
+   },
+   "fp": {
+    "min": 5,
+    "max": 200,
+    "step": 5
+   },
+   "fn": {
+    "min": 5,
+    "max": 200,
+    "step": 5
+   }
+  },
+  "answer": "2 * tp / (2 * tp + fp + fn) * 100",
+  "tolerance": 0.01,
+  "unit": "%",
+  "seconds": 90,
+  "explanation": {
+   "fr": "F1 = 2·VP ÷ (2·VP + FP + FN), moyenne harmonique de la précision et du rappel.",
+   "en": "F1 = 2·TP ÷ (2·TP + FP + FN), the harmonic mean of precision and recall."
+  }
+ },
+ {
+  "id": "machine_learning_l2_time_split",
+  "skill_id": "machine_learning",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Un modèle de prévision de ventes obtient d'excellents scores en validation croisée aléatoire, puis déçoit en production. Correction de l'évaluation ?",
+   "en": "A sales-forecast model scores very well in random k-fold cross-validation, then disappoints in production. How should evaluation be fixed?"
+  },
+  "options": [
+   {
+    "fr": "Valider sur des périodes postérieures à l'entraînement (découpage temporel)",
+    "en": "Validate on periods after the training data (time-based split)"
+   },
+   {
+    "fr": "Augmenter le nombre de plis",
+    "en": "Increase the number of folds"
+   },
+   {
+    "fr": "Mélanger les données avant de découper",
+    "en": "Shuffle the data before splitting"
+   },
+   {
+    "fr": "Évaluer sur le jeu d'entraînement",
+    "en": "Evaluate on the training set"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Le découpage aléatoire laisse le modèle voir le futur ; la validation doit imiter l'usage réel.",
+   "en": "A random split lets the model see the future; validation must mimic real use."
+  }
+ },
+ {
+  "id": "machine_learning_l3_training_serving_skew",
+  "skill_id": "machine_learning",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Un modèle excellent hors ligne se dégrade dès sa mise en ligne, sans changement des données réelles. Quelles causes sont plausibles ?",
+   "en": "A model that is excellent offline degrades as soon as it goes live, with no change in real-world data. Which causes are plausible?"
+  },
+  "options": [
+   {
+    "fr": "Une variable calculée différemment par le pipeline d'entraînement et par le service en ligne",
+    "en": "A feature computed differently by the training pipeline and the online service"
+   },
+   {
+    "fr": "Une variable d'entraînement qui contenait une information connue seulement après coup",
+    "en": "A training feature that held information only known after the fact"
+   },
+   {
+    "fr": "Des valeurs manquantes remplacées différemment hors ligne et en ligne",
+    "en": "Missing values filled differently offline and online"
+   },
+   {
+    "fr": "Le modèle a trop peu de paramètres",
+    "en": "The model has too few parameters"
+   },
+   {
+    "fr": "Le jeu de test était trop grand",
+    "en": "The test set was too large"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 70,
+  "explanation": {
+   "fr": "Fuite de données et écart entraînement/service font briller le hors-ligne sans rien prédire en ligne.",
+   "en": "Leakage and training/serving skew make offline results shine while predicting nothing online."
+  }
+ },
+ {
+  "id": "machine_learning_l3_undersampling_calibration",
+  "skill_id": "machine_learning",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Pour entraîner, vous avez sous-échantillonné les négatifs à 10 %. Les scores servent de probabilités pour estimer une perte attendue, qui sort très surestimée. Que faire ?",
+   "en": "For training you undersampled negatives to 10%. Scores are used as probabilities to estimate expected loss, which comes out heavily overestimated. What should you do?"
+  },
+  "options": [
+   {
+    "fr": "Recalibrer les scores sur des données à la proportion réelle, ou corriger du taux d'échantillonnage",
+    "en": "Recalibrate scores on data at the real class ratio, or correct for the sampling rate"
+   },
+   {
+    "fr": "Sous-échantillonner encore plus les négatifs",
+    "en": "Undersample negatives even more"
+   },
+   {
+    "fr": "Remplacer le modèle par un modèle plus profond",
+    "en": "Replace the model with a deeper one"
+   },
+   {
+    "fr": "Abaisser le seuil de décision à 0,5",
+    "en": "Lower the decision threshold to 0.5"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 55,
+  "explanation": {
+   "fr": "Le sous-échantillonnage déplace le taux de base appris : le classement reste bon, les probabilités sont fausses.",
+   "en": "Undersampling shifts the learned base rate: ranking stays good, probabilities are wrong."
+  }
+ },
+ {
+  "id": "llm_engineering_l1_rag_chunking",
+  "skill_id": "llm_engineering",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Un RAG sur des contrats indexe chaque contrat de 40 pages comme un seul bloc. Il retrouve le bon contrat, mais la réponse rate la clause demandée. Premier correctif ?",
+   "en": "A RAG over contracts indexes each 40-page contract as a single chunk. It finds the right contract, but the answer misses the requested clause. First fix?"
+  },
+  "options": [
+   {
+    "fr": "Découper en blocs plus petits qui suivent la structure (articles, sections), avec un léger recouvrement",
+    "en": "Split into smaller chunks that follow the structure (articles, sections), with slight overlap"
+   },
+   {
+    "fr": "Passer à un modèle à plus grande fenêtre de contexte",
+    "en": "Switch to a model with a larger context window"
+   },
+   {
+    "fr": "Baisser la température à 0",
+    "en": "Lower the temperature to 0"
+   },
+   {
+    "fr": "Récupérer 20 contrats au lieu de 5",
+    "en": "Retrieve 20 contracts instead of 5"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Un bloc trop gros dilue l'embedding et noie la clause ; plus de contexte ne rend pas la recherche plus précise.",
+   "en": "An oversized chunk dilutes the embedding and drowns the clause; more context does not make retrieval more precise."
+  }
+ },
+ {
+  "id": "llm_engineering_l1_token_cost",
+  "skill_id": "llm_engineering",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Chaque appel envoie {pin} jetons d'entrée et reçoit {pout} jetons de sortie. Tarifs : {cin} $ par million de jetons d'entrée, {cout} $ par million en sortie. Coût quotidien, en $, pour {calls} appels ?",
+   "en": "Each call sends {pin} input tokens and receives {pout} output tokens. Prices: ${cin} per million input tokens, ${cout} per million output tokens. Daily cost, in $, for {calls} calls?"
+  },
+  "params": {
+   "pin": {
+    "min": 1000,
+    "max": 8000,
+    "step": 500
+   },
+   "pout": {
+    "min": 100,
+    "max": 800,
+    "step": 50
+   },
+   "cin": {
+    "min": 0.5,
+    "max": 5,
+    "step": 0.5
+   },
+   "cout": {
+    "min": 2,
+    "max": 20,
+    "step": 1
+   },
+   "calls": {
+    "min": 10000,
+    "max": 100000,
+    "step": 5000
+   }
+  },
+  "answer": "calls * (pin * cin + pout * cout) / 1000000",
+  "tolerance": 0.01,
+  "unit": "$",
+  "seconds": 110,
+  "explanation": {
+   "fr": "Coût = appels × (entrée × prix entrée + sortie × prix sortie) ÷ 1 000 000. En RAG, l'entrée domine souvent.",
+   "en": "Cost = calls × (input × input price + output × output price) ÷ 1,000,000. In RAG, input often dominates."
+  }
+ },
+ {
+  "id": "llm_engineering_l1_structured_output",
+  "skill_id": "llm_engineering",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Votre code attend du JSON, mais le modèle l'entoure parfois de phrases et l'analyse échoue en production. Meilleure approche ?",
+   "en": "Your code expects JSON, but the model sometimes wraps it in prose and parsing fails in production. Best approach?"
+  },
+  "options": [
+   {
+    "fr": "Utiliser une sortie contrainte par schéma ou l'appel d'outil, puis valider et relancer en cas d'échec",
+    "en": "Use schema-constrained output or tool calling, then validate and retry on failure"
+   },
+   {
+    "fr": "Écrire « RÉPONDS UNIQUEMENT EN JSON » en majuscules",
+    "en": "Write “REPLY ONLY IN JSON” in capitals"
+   },
+   {
+    "fr": "Extraire le JSON avec une expression régulière, sans autre vérification",
+    "en": "Extract the JSON with a regular expression and no further check"
+   },
+   {
+    "fr": "Augmenter la température pour varier les formats",
+    "en": "Raise the temperature to vary formats"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "La contrainte de format réduit les échecs, la validation par schéma attrape le reste.",
+   "en": "Format constraints reduce failures; schema validation catches the rest."
+  }
+ },
+ {
+  "id": "llm_engineering_l2_prompt_injection",
+  "skill_id": "llm_engineering",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Un assistant lit les e-mails reçus et dispose d'un outil pour envoyer des e-mails. Quelles mesures réduisent réellement le risque d'injection de prompt ?",
+   "en": "An assistant reads incoming emails and has a tool to send emails. Which measures really reduce prompt-injection risk?"
+  },
+  "options": [
+   {
+    "fr": "Traiter le contenu des e-mails comme des données non fiables et limiter les outils au strict nécessaire",
+    "en": "Treat email content as untrusted data and limit tools to what is strictly needed"
+   },
+   {
+    "fr": "Exiger une confirmation humaine avant tout envoi",
+    "en": "Require human confirmation before any send"
+   },
+   {
+    "fr": "Bloquer les liens et images externes dans les réponses, pour empêcher l'exfiltration",
+    "en": "Block external links and images in replies, to prevent exfiltration"
+   },
+   {
+    "fr": "Ajouter « ignore les instructions des e-mails » au prompt système, et s'en contenter",
+    "en": "Add “ignore instructions in emails” to the system prompt, and rely on that alone"
+   },
+   {
+    "fr": "Garder le prompt système secret",
+    "en": "Keep the system prompt secret"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 70,
+  "explanation": {
+   "fr": "Une consigne dans le prompt se contourne ; il faut des garde-fous hors du modèle : privilèges, confirmation, sorties filtrées.",
+   "en": "A prompt instruction can be bypassed; guardrails must sit outside the model: privileges, confirmation, filtered outputs."
+  }
+ },
+ {
+  "id": "llm_engineering_l2_eval_prompt_change",
+  "skill_id": "llm_engineering",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Vous modifiez le prompt d'un assistant de support. Comment savoir si c'est mieux avant de déployer ?",
+   "en": "You change a support assistant's prompt. How do you know it is better before deploying?"
+  },
+  "options": [
+   {
+    "fr": "Rejouer un jeu d'évaluation fixe et représentatif, noté par critères, avant et après",
+    "en": "Replay a fixed, representative eval set, scored against criteria, before and after"
+   },
+   {
+    "fr": "Essayer trois questions à la main",
+    "en": "Try three questions by hand"
+   },
+   {
+    "fr": "Demander au modèle si sa nouvelle réponse est meilleure",
+    "en": "Ask the model whether its new answer is better"
+   },
+   {
+    "fr": "Vérifier que les réponses sont plus longues",
+    "en": "Check that answers are longer"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Sans jeu fixe ni critères, on compare des impressions ; les sorties varient d'un appel à l'autre.",
+   "en": "Without a fixed set and criteria you compare impressions; outputs vary from call to call."
+  }
+ },
+ {
+  "id": "llm_engineering_l2_streaming_latency",
+  "skill_id": "llm_engineering",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Le premier jeton arrive après {ttft} ms, puis le modèle génère {rate} jetons/s. Combien de ms jusqu'à la fin d'une réponse de {out} jetons ?",
+   "en": "The first token arrives after {ttft} ms, then the model generates {rate} tokens/s. How many ms until a {out}-token answer is complete?"
+  },
+  "params": {
+   "ttft": {
+    "min": 200,
+    "max": 1500,
+    "step": 50
+   },
+   "rate": {
+    "min": 20,
+    "max": 100,
+    "step": 10
+   },
+   "out": {
+    "min": 100,
+    "max": 1000,
+    "step": 50
+   }
+  },
+  "answer": "ttft + out / rate * 1000",
+  "tolerance": 0.02,
+  "unit": "ms",
+  "seconds": 80,
+  "explanation": {
+   "fr": "Total ≈ délai du premier jeton + jetons ÷ débit. Raccourcir la sortie est souvent le levier principal.",
+   "en": "Total ≈ time to first token + tokens ÷ throughput. Shortening the output is often the main lever."
+  }
+ },
+ {
+  "id": "llm_engineering_l2_hybrid_search",
+  "skill_id": "llm_engineering",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Votre RAG à embeddings échoue sur des requêtes comme « erreur E-4012 » ou des références produit exactes. Que faire ?",
+   "en": "Your embedding-based RAG fails on queries like “error E-4012” or exact product references. What should you do?"
+  },
+  "options": [
+   {
+    "fr": "Ajouter une recherche lexicale (type BM25) combinée aux embeddings, puis reclasser",
+    "en": "Add lexical search (BM25-style) combined with embeddings, then rerank"
+   },
+   {
+    "fr": "Augmenter la dimension des embeddings",
+    "en": "Increase the embedding dimension"
+   },
+   {
+    "fr": "Allonger les blocs pour donner plus de contexte",
+    "en": "Make chunks longer for more context"
+   },
+   {
+    "fr": "Reformuler la question avec le LLM avant la recherche",
+    "en": "Rephrase the question with the LLM before searching"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Les embeddings capturent le sens, mal les identifiants exacts ; la recherche lexicale les retrouve.",
+   "en": "Embeddings capture meaning but handle exact identifiers poorly; lexical search finds them."
+  }
+ },
+ {
+  "id": "llm_engineering_l3_no_finetune",
+  "skill_id": "llm_engineering",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Un assistant doit répondre à partir d'une documentation produit mise à jour chaque semaine, en citant ses sources. L'équipe propose un fine-tuning sur la doc. Votre avis ?",
+   "en": "An assistant must answer from product docs updated weekly, citing its sources. The team proposes fine-tuning on the docs. Your view?"
+  },
+  "options": [
+   {
+    "fr": "Plutôt du RAG : le savoir change, doit être cité et contrôlé ; le fine-tuning sert au style et au format",
+    "en": "Prefer RAG: the knowledge changes and must be cited and controlled; fine-tuning is for style and format"
+   },
+   {
+    "fr": "Fine-tuner chaque semaine sur la nouvelle doc",
+    "en": "Fine-tune every week on the new docs"
+   },
+   {
+    "fr": "Fine-tuner une fois, le modèle généralisera aux mises à jour",
+    "en": "Fine-tune once; the model will generalise to updates"
+   },
+   {
+    "fr": "Coller toute la documentation dans chaque prompt",
+    "en": "Paste the entire documentation into every prompt"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Le fine-tuning grave mal des faits changeants et ne fournit pas de source ; la récupération, si.",
+   "en": "Fine-tuning stores changing facts poorly and gives no source; retrieval does."
+  }
+ },
+ {
+  "id": "llm_engineering_l3_llm_judge_bias",
+  "skill_id": "llm_engineering",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Vous évaluez deux versions avec un LLM juge qui compare des paires de réponses. Quels biais connus devez-vous contrôler ?",
+   "en": "You evaluate two versions with an LLM judge comparing pairs of answers. Which known biases must you control for?"
+  },
+  "options": [
+   {
+    "fr": "La position : préférence pour la réponse présentée en premier (ou en second)",
+    "en": "Position: preferring the answer shown first (or second)"
+   },
+   {
+    "fr": "La longueur : préférence pour les réponses plus longues",
+    "en": "Length: preferring longer answers"
+   },
+   {
+    "fr": "L'auto-préférence : préférence pour les réponses de sa propre famille de modèles",
+    "en": "Self-preference: preferring answers from its own model family"
+   },
+   {
+    "fr": "Aucun : à température 0, le juge est fiable sans validation humaine",
+    "en": "None: at temperature 0 the judge is reliable without human validation"
+   },
+   {
+    "fr": "Le juge ne peut pas évaluer d'autres langues que l'anglais",
+    "en": "The judge cannot evaluate languages other than English"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 70,
+  "explanation": {
+   "fr": "On permute l'ordre, on contrôle la longueur et on calibre le juge sur un échantillon noté par des humains.",
+   "en": "Swap the order, control for length, and calibrate the judge on a human-graded sample."
+  }
+ },
+ {
+  "id": "llm_engineering_l3_tenant_leakage",
+  "skill_id": "llm_engineering",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Un RAG multi-clients partage un index vectoriel. Un client a reçu un extrait d'un document d'un autre client. Correction structurelle ?",
+   "en": "A multi-tenant RAG shares one vector index. A customer received an excerpt from another customer's document. Structural fix?"
+  },
+  "options": [
+   {
+    "fr": "Filtrer par client et par droits d'accès dans la requête de récupération, côté serveur",
+    "en": "Filter by tenant and access rights in the retrieval query, server side"
+   },
+   {
+    "fr": "Demander au modèle, dans le prompt, de ne pas citer les autres clients",
+    "en": "Ask the model, in the prompt, not to quote other customers"
+   },
+   {
+    "fr": "Masquer les noms de clients dans les réponses",
+    "en": "Mask customer names in answers"
+   },
+   {
+    "fr": "Réduire le nombre de blocs récupérés",
+    "en": "Retrieve fewer chunks"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Ce que le modèle ne reçoit pas, il ne peut pas le divulguer : le contrôle d'accès se fait avant le prompt.",
+   "en": "What the model never receives it cannot leak: access control happens before the prompt."
+  }
+ },
+ {
+  "id": "technical_documentation_l1_quickstart",
+  "skill_id": "technical_documentation",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Les nouvelles personnes de l'équipe n'arrivent pas à lancer le projet à partir du README. Correction la plus efficace ?",
+   "en": "New team members cannot get the project running from the README. Most effective fix?"
+  },
+  "options": [
+   {
+    "fr": "Un démarrage rapide testé sur une machine neuve : prérequis, commandes copiables, résultat attendu",
+    "en": "A quickstart tested on a clean machine: prerequisites, copy-pasteable commands, expected output"
+   },
+   {
+    "fr": "Ajouter l'historique des choix d'architecture",
+    "en": "Add the history of architecture choices"
+   },
+   {
+    "fr": "Ajouter des captures d'écran de l'IDE",
+    "en": "Add IDE screenshots"
+   },
+   {
+    "fr": "Renvoyer vers la personne qui connaît le projet",
+    "en": "Point to the person who knows the project"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Un guide se valide en le suivant à la lettre depuis zéro ; le résultat attendu dit à la personne qu'elle a réussi.",
+   "en": "A guide is validated by following it to the letter from scratch; the expected output tells people they succeeded."
+  }
+ },
+ {
+  "id": "technical_documentation_l1_api_reference",
+  "skill_id": "technical_documentation",
+  "level": 1,
+  "type": "multi",
+  "stem": {
+   "fr": "Que doit contenir la référence d'un point d'API pour qu'on puisse l'utiliser sans lire le code ?",
+   "en": "What must an API endpoint reference contain so it can be used without reading the code?"
+  },
+  "options": [
+   {
+    "fr": "Les exigences d'authentification",
+    "en": "The authentication requirements"
+   },
+   {
+    "fr": "Les réponses d'erreur et leur signification",
+    "en": "Error responses and what they mean"
+   },
+   {
+    "fr": "Un exemple de requête et de réponse qui fonctionne",
+    "en": "A working request and response example"
+   },
+   {
+    "fr": "Le nom de la classe interne qui l'implémente",
+    "en": "The name of the internal class implementing it"
+   },
+   {
+    "fr": "Le compte rendu des réunions de conception",
+    "en": "The minutes of the design meetings"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Une référence répond à « comment l'appeler et que se passe-t-il si ça échoue » ; l'implémentation n'intéresse pas qui l'appelle.",
+   "en": "A reference answers “how do I call it and what happens when it fails”; the implementation does not concern callers."
+  }
+ },
+ {
+  "id": "technical_documentation_l2_runbook_order",
+  "skill_id": "technical_documentation",
+  "level": 2,
+  "type": "order",
+  "stem": {
+   "fr": "Ordonnez les sections d'un runbook d'incident, telles qu'une personne d'astreinte les parcourt.",
+   "en": "Order the sections of an incident runbook as an on-call person goes through them."
+  },
+  "options": [
+   {
+    "fr": "Mesures d'atténuation",
+    "en": "Mitigation steps"
+   },
+   {
+    "fr": "Symptômes et alerte qui déclenchent ce runbook",
+    "en": "Symptoms and alert that trigger this runbook"
+   },
+   {
+    "fr": "Vérification du rétablissement",
+    "en": "Verifying recovery"
+   },
+   {
+    "fr": "Diagnostic rapide",
+    "en": "Quick diagnosis"
+   },
+   {
+    "fr": "Suites : note d'incident et ticket",
+    "en": "Follow-up: incident note and ticket"
+   }
+  ],
+  "correct": [
+   1,
+   3,
+   0,
+   2,
+   4
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Reconnaître, diagnostiquer, atténuer, vérifier, puis documenter.",
+   "en": "Recognise, diagnose, mitigate, verify, then document."
+  }
+ },
+ {
+  "id": "technical_documentation_l2_docs_drift",
+  "skill_id": "technical_documentation",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "La documentation de l'API diverge du code à chaque version. Quel dispositif limite le mieux cette dérive ?",
+   "en": "The API documentation drifts from the code with every release. Which setup best limits this drift?"
+  },
+  "options": [
+   {
+    "fr": "Docs dans le dépôt, revues dans la même PR que le code, exemples exécutés en CI",
+    "en": "Docs in the repo, reviewed in the same PR as the code, examples run in CI"
+   },
+   {
+    "fr": "Une relecture complète de la doc une fois par an",
+    "en": "A full doc review once a year"
+   },
+   {
+    "fr": "Un wiki séparé tenu par une personne dédiée",
+    "en": "A separate wiki owned by one dedicated person"
+   },
+   {
+    "fr": "Une mention « peut être obsolète » en haut de chaque page",
+    "en": "A “may be outdated” notice at the top of each page"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "La doc qui vit avec le code change avec lui ; les exemples testés échouent dès qu'ils mentent.",
+   "en": "Docs that live with the code change with it; tested examples fail as soon as they lie."
+  }
+ },
+ {
+  "id": "technical_documentation_l3_content_types",
+  "skill_id": "technical_documentation",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Les retours disent que le guide est à la fois trop long pour débuter et trop incomplet pour chercher un paramètre. Quelle restructuration ?",
+   "en": "Feedback says the guide is both too long for getting started and too incomplete for looking up a parameter. Which restructuring?"
+  },
+  "options": [
+   {
+    "fr": "Séparer selon le besoin : tutoriel, guides pratiques, référence exhaustive, explications",
+    "en": "Split by need: tutorial, how-to guides, exhaustive reference, explanations"
+   },
+   {
+    "fr": "Ajouter une table des matières au guide unique",
+    "en": "Add a table of contents to the single guide"
+   },
+   {
+    "fr": "Raccourcir le guide de moitié",
+    "en": "Cut the guide in half"
+   },
+   {
+    "fr": "Ajouter une FAQ en fin de guide",
+    "en": "Add an FAQ at the end of the guide"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Apprendre, accomplir une tâche, chercher une information et comprendre sont des besoins distincts ; les mélanger dessert chacun.",
+   "en": "Learning, completing a task, looking something up and understanding are distinct needs; mixing them serves none."
+  }
+ },
+ {
+  "id": "technical_documentation_l3_adr_superseded",
+  "skill_id": "technical_documentation",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Une décision d'architecture consignée dans un ADR il y a deux ans est remplacée. Que faites-vous des ADR ?",
+   "en": "An architecture decision recorded in an ADR two years ago is being reversed. What do you do with the ADRs?"
+  },
+  "options": [
+   {
+    "fr": "Écrire un nouvel ADR qui remplace l'ancien, et marquer l'ancien « remplacé par » sans réécrire son contenu",
+    "en": "Write a new ADR that supersedes the old one, and mark the old one “superseded by” without rewriting it"
+   },
+   {
+    "fr": "Réécrire l'ancien ADR avec la nouvelle décision",
+    "en": "Rewrite the old ADR with the new decision"
+   },
+   {
+    "fr": "Supprimer l'ancien ADR pour éviter la confusion",
+    "en": "Delete the old ADR to avoid confusion"
+   },
+   {
+    "fr": "Ne rien écrire : le code fait foi",
+    "en": "Write nothing: the code is the source of truth"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Un ADR est un journal : garder le contexte de l'ancienne décision explique pourquoi elle a changé.",
+   "en": "An ADR is a log: keeping the old decision's context explains why it changed."
+  }
+ }
+]

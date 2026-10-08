@@ -17,6 +17,14 @@ import {
   ScrollText,
   SearchX,
   ShieldCheck,
+  Fingerprint,
+  Lock,
+  Plug,
+  Shuffle,
+  Smartphone,
+  Timer,
+  UserCheck,
+  Webhook,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "../i18n";
@@ -146,6 +154,55 @@ function Landing() {
               <img src={compareDark} alt="" width={1102} height={620} loading="lazy" />
             </figure>
           </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------- impostors (v0.5) */}
+      <section className="land-section" aria-labelledby="land-impostors">
+        <header className="land-head">
+          <h2 id="land-impostors">{t.landing2.impostorsTitle}</h2>
+          <p>{t.landing2.impostorsLead}</p>
+        </header>
+        <ul className="land-cards cols-3">
+          {t.landing2.impostors.map((it, i) => {
+            const Icon = [UserCheck, Shuffle, Timer, Fingerprint, Lock][i] ?? Check;
+            return (
+              <li key={it.t} className="card land-card">
+                <span className="land-icon">
+                  <Icon size={20} aria-hidden="true" />
+                </span>
+                <h3>{it.t}</h3>
+                <p>{it.d}</p>
+              </li>
+            );
+          })}
+          <li className="card land-card land-honest">
+            <span className="land-icon tone-neutral">
+              <Smartphone size={20} aria-hidden="true" />
+            </span>
+            <p>{t.landing2.honest}</p>
+          </li>
+        </ul>
+      </section>
+
+      {/* ---------------------------------------------------------- ATS (v0.5) */}
+      <section className="land-section" aria-labelledby="land-ats">
+        <div className="card land-compliance">
+          <div>
+            <span className="land-icon">
+              <Plug size={22} aria-hidden="true" />
+            </span>
+            <h2 id="land-ats">{t.landing2.atsTitle}</h2>
+            <p className="muted">{t.landing2.atsLead}</p>
+          </div>
+          <ul className="ats-logos">
+            {t.landing2.atsItems.map((a) => (
+              <li key={a}>
+                <Webhook size={16} aria-hidden="true" />
+                {a}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

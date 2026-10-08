@@ -238,6 +238,8 @@ def analyze_repo(artifact: Artifact) -> list[Signal]:
             f"{len(code)} source files across {len(folders)} folders",
             sorted(layers) or sorted(folders)[:6], ("complex",) if len(layers) >= 3 else ())
 
+    _integration_signals(artifact, add)
+
     # End-to-end ownership: the same repository goes from code to tests, CI and packaging.
     kinds = {s.kind for s in signals}
     lifecycle = kinds & {"tests", "ci_pipeline", "containers", "documentation", "infrastructure_code"}
@@ -246,6 +248,46 @@ def analyze_repo(artifact: Artifact) -> list[Signal]:
             if "ownership" not in s.facets:
                 s.facets.append("ownership")
     return signals
+
+
+_LINK_SKILLS = {"ci_orchestration": ("ci_cd",), "deployment": ("containerization",),
+                "infrastructure_module": ("infrastructure_as_code",), "dependency": ("software_architecture",),
+                "submodule": ("software_architecture",), "documentation": ()}
+_LINK_STRENGTH = {"ci_orchestration": 0.75, "deployment": 0.75, "dependency": 0.7, "infrastructure_module": 0.7,
+                  "submodule": 0.6, "documentation": 0.2}
+
+
+def _integration_signals(artifact: Artifact, add: Callable[..., None]) -> None:
+    """Signals from how this repository works with the candidate's other repositories and tools."""
+    info = artifact.integration
+    if not info:
+        return
+    for link in info.get("links", []):
+        kind = link["kind"]
+        weak = kind == "documentation"
+        add("cross_repo_mention" if weak else "cross_repo_link",
+            ("systems_integration", *_LINK_SKILLS.get(kind, ())), _LINK_STRENGTH.get(kind, 0.3),
+            f"{link['file']}, line {link['line']} → {link['target']}", [link["excerpt"]],
+            () if weak else ("complex", "ownership"))
+    if info.get("linked_from"):
+        add("cross_repo_link", ("systems_integration", "software_architecture"),
+            0.4 + 0.1 * min(4, len(info["linked_from"])),
+            f"used by {', '.join(info['linked_from'])}", [f"reused by {len(info['linked_from'])} other project(s)"],
+            ("complex", "ownership"))
+    tools, needs = info.get("tools", []), info.get("job_dependencies", 0)
+    if len(tools) >= 3 or needs >= 2:
+        add("pipeline_orchestration", ("systems_integration", "ci_cd"),
+            0.25 + 0.05 * len(tools) + 0.08 * min(4, needs),
+            f"{len(info.get('workflow_files', []))} workflow(s): {len(tools)} tools, {needs} job dependencies",
+            [", ".join(tools)], ("control", "complex") if len(tools) >= 6 else ("control",))
+    if info.get("services", 0) >= 3:
+        add("service_orchestration", ("containerization", "systems_integration"),
+            0.35 + 0.08 * min(5, info["services"]), f"{info['compose_file']}: {info['services']} services",
+            [info["compose_file"]], ("complex",))
+    for skill, deps in info.get("stack", {}).items():
+        files = ", ".join(info.get("stack_files", {}).get(skill, []))
+        add("declared_dependency", (skill,), min(0.5, 0.25 + 0.05 * len(deps)), f"{files}: {', '.join(deps)}",
+            deps, ())
 
 
 def select_key_files(paths: list[str], limit: int = 6) -> list[str]:

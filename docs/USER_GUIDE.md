@@ -55,10 +55,34 @@ profiles (DevSecOps, growth marketing, joinery) and eleven fictional candidates.
 | `TE_LLM_MODEL` | `claude-opus-5-5` | Model for the escalation tier (set a local model name with `ollama`). |
 | `TE_LLM_API_KEY` / `TE_LLM_BASE_URL` | empty | Credentials / endpoint of the escalation provider. |
 | `TE_LLM_PRICE_INPUT_PER_MTOK` / `..._OUTPUT_...` | `4.0` / `20.0` | Prices used by the budget guard (USD per million tokens). |
+| `TE_PUBLIC_BASE_URL` | empty | Public URL of the app behind a proxy (e.g. `https://hivey.be/talentengine`); needed for Safe Exam Browser checks and links in ATS notes. |
 | `TE_GITHUB_TOKEN` | empty | Raises the GitHub API limit from 60 to 5,000 requests per hour. |
 | `TE_ENABLE_DEMO` | `true` | Allows `POST /api/demo/seed`. Set to `false` in production. |
 
 Check the audit ledger at any time: `talentengine verify` (exit code 1 if it was tampered with).
+
+### Accounts and roles
+
+Create one account per person; each gets a personal key, shown once:
+
+```bash
+talentengine adduser "Camille Martin" --role recruiter   # or: dpo, admin
+talentengine users                                      # list
+talentengine deluser "Camille Martin"
+```
+
+| Role | Can |
+|---|---|
+| `recruiter` | job profiles, applications, evaluations, decisions, identity reveal after a decision, explanation links |
+| `dpo` | read everything, GDPR exports, erasure, retention sweeps |
+| `admin` | everything, plus accounts and demo data |
+
+Every decision, reveal, export and erasure is signed in the audit ledger with the **authenticated
+account name** — a recruiter cannot sign with someone else's. Admins can also manage accounts in the
+interface. Once named accounts exist, remove the legacy shared `TE_API_KEY`.
+
+Applications whose consented retention period is over are erased automatically every
+`TE_RETENTION_SWEEP_HOURS` (24 by default; `talentengine purge` runs a sweep by hand).
 
 ---
 
@@ -66,12 +90,15 @@ Check the audit ledger at any time: `talentengine verify` (exit code 1 if it was
 
 `/essai` (FR) or `/try` (EN) needs no account and stores nothing. Three steps:
 
-1. **The job** — paste an offer's text or its link (LinkedIn job links, Welcome to the Jungle, Indeed,
-   career pages with structured data), or choose a reference role. The detected criteria are editable:
+1. **The job** — search the 47 reference roles ("IA engineer", "data", "UX", "rénovation"…), or paste an
+   offer's text or its link (LinkedIn job links, Welcome to the Jungle, Indeed,
+   career pages with structured data), The detected criteria are editable:
    importance, required level, add or remove a skill; "why?" shows the offer lines behind each one.
-2. **Your profile** — CV (PDF, Word, Markdown, text), up to 3 documents, GitHub links (a profile link
-   expands to its 3 most recent repositories), up to 3 portfolio links, your name (only used to hide it),
-   and consent.
+2. **Your profile** — CV (PDF, Word, Markdown, text), your **LinkedIn profile as PDF** (LinkedIn →
+   your profile → More → Save to PDF: it often lists experience your CV leaves out), **diplomas** and
+   **certifications** (marked "document provided"), other documents (up to 10 per category), GitHub links
+   (a profile link analyses **all** your public repositories and how they work together), up to 3
+   portfolio links, your name (only used to hide it), and consent.
 3. **The result** — score, what your material proves, what to strengthen, the questions a recruiter
    could ask you.
 
@@ -139,12 +166,51 @@ only change what you look at.
 
 ### 5. Decide — you, not the machine
 
-Record a decision (**shortlist**, **interview**, **hold**, **not retained**) with your name and a
-short justification. After a shortlist or interview decision you can **reveal the identity** to
-contact the person; this action is logged.
+Record a decision (**shortlist**, **interview**, **hold**, **not retained**) with a short
+justification; it is signed with your account name. After a shortlist or interview decision you can
+**reveal the identity** to contact the person; this action is logged. **Export as PDF** prints a clean
+report for a hiring committee.
 
 ### 6. Answer "why did I get this score?"
 
-The **Audit** tab of a report shows every step recorded for that candidate, the evidence used and the
-proof that the record has not been altered. A candidate's request for erasure is handled with
-**Erase (GDPR)**: their data is deleted and the remaining audit trail can no longer be linked to them.
+Send the candidate an **explanation link** (report page): a private page, valid 30 days, showing the
+evidence used, the criteria, what is missing, your decision and its rationale, and a proof that the
+record has not been altered — with no identifier in it (AI Act Art. 86). The link stops working when
+the data is erased.
+
+The **Audit** tab of a report shows every step recorded for that candidate. Requests from candidates
+are handled by the DPO role: **Export (GDPR)** downloads everything held about them (Art. 15/20),
+**Erase (GDPR)** deletes it and leaves an audit trail that can no longer be linked to them (Art. 17).
+
+### 7. Verify the candidate with a test
+
+From a report, **Verification test** creates a link (level junior / confirmed / senior, 4–25 questions,
+questions on the candidate's own work on by default, validity). Send it to the candidate. They see an
+information notice (what is monitored, no camera or microphone), then one question at a time with a
+server-side timer. You see the score per skill, the verified level, the score on their own work and the
+integrity signals; the candidate only sees that the test is complete.
+
+For high-stakes roles, require **Safe Exam Browser** (https://safeexambrowser.org): create an exam
+configuration in the SEB configuration tool, copy its *Config Key*, paste it in the test form, and send the
+candidate the `.seb` file together with the link. Set `TE_PUBLIC_BASE_URL` (e.g.
+`https://hivey.be/talentengine`) when the app runs behind a reverse proxy so the hashes can be verified.
+
+### 8. Connect your ATS
+
+**Settings → ATS integrations** (admin): choose Greenhouse, Lever, Ashby or Generic, map ATS jobs to job
+profiles, enter the credentials, confirm that your job ads inform candidates, and paste the webhook URL in
+the ATS. Notes appear on candidates in your ATS. See [ATS_BRIDGE.md](ATS_BRIDGE.md).
+
+### 9. Compliance and monitoring (DPO, admin)
+
+**Compliance** shows the post-market monitoring figures (score distributions, human decisions departing
+from the ranking, test integrity, AI spend, ledger integrity) and records serious incidents with their
+legal reporting deadline (15 days, 10 in case of death, 2 for widespread infringements). Read
+[AI_ACT_READINESS.md](AI_ACT_READINESS.md) and ship [INSTRUCTIONS_FOR_USE.md](INSTRUCTIONS_FOR_USE.md) with
+every deployment.
+
+### 10. Prepare the DPIA
+
+On a job page, **DPIA draft** downloads a Markdown impact assessment pre-filled from that job's
+configuration and the running settings (data, masking, credential cap, AI provider, logging, AI Act
+deployer duties). Items only your organisation can decide are marked *TO COMPLETE*.

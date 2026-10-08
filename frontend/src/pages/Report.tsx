@@ -15,12 +15,14 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "../api/client";
 import type { DashboardReport, DecisionKind, RevealResult } from "../api/types";
-import { useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
+import { useAccess, useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
 import { dateTime } from "../lib/format";
 import { useCrumbs } from "../components/Shell";
-import { BandChip, DecisionChip, EmptyState, ErrorState, Modal, PageSkeleton } from "../components/feedback";
+import { BandChip, DecisionChip, EmptyState, ErrorState, Gate, Modal, PageSkeleton } from "../components/feedback";
 import { ScoreRing } from "../components/charts";
 import { Segmented } from "../components/controls";
+import { ReportActions, ReportPrintDoc } from "./ReportExtras";
+import { ExplanationLinksPanel, VerificationPanel } from "./ReportVerification";
 import {
   ArtifactsPanel,
   CredentialsPanel,
@@ -49,6 +51,8 @@ export function ReportPage() {
   const explanation = useAsync(() => api.explanation(ref), [ref]);
   const graph = useAsync(() => api.graph(ref).catch(() => null), [ref]);
   const artifacts = useAsync(() => api.artifacts(ref), [ref]);
+  const tests = useAsync(() => api.candidateAssessments(ref).catch(() => []), [ref]);
+  const links = useAsync(() => api.explanationLinks(ref).catch(() => []), [ref]);
 
   const r = report.data;
   const jobId = r?.job_id ?? explanation.data?.job_id;
@@ -96,6 +100,8 @@ export function ReportPage() {
   return (
     <div className="page">
       <ReportHero report={r} />
+      <ReportActions report={r} onLinkCreated={links.reload} />
+      <ReportPrintDoc report={r} tests={tests.data ?? []} />
 
       <div className="tabs no-print" role="tablist" aria-label={t.report.tabsLabel}>
         {TABS.map(({ id, icon: Icon }) => (
@@ -129,11 +135,13 @@ export function ReportPage() {
         {tab === "overview" && (
           <>
             <CriteriaMatrix report={r} />
+            <VerificationPanel candidateRef={r.candidate_ref} tests={tests} />
             <div className="grid-2" style={{ alignItems: "start" }}>
               <GapsPanel report={r} />
               <DecisionPanel report={r} onDecided={onDecided} />
             </div>
             <CredentialsPanel report={r} />
+            <ExplanationLinksPanel candidateRef={r.candidate_ref} links={links} />
             <DangerZone candidateRef={r.candidate_ref} jobId={r.job_id} />
           </>
         )}
@@ -242,8 +250,11 @@ function DecisionPanel({ report, onDecided }: { report: DashboardReport; onDecid
   const [busy, setBusy] = useState(false);
   const [tried, setTried] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
+  const access = useAccess();
+  // Named accounts: the server signs with the account name; the field is shown read-only.
+  const signer = access.signedName ?? reviewer;
 
-  const valid = reviewer.trim().length >= 2 && rationale.trim().length >= 15;
+  const valid = signer.trim().length >= 2 && rationale.trim().length >= 15;
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setTried(true);
@@ -252,7 +263,7 @@ function DecisionPanel({ report, onDecided }: { report: DashboardReport; onDecid
     try {
       const updated = await api.decide(report.candidate_ref, {
         decision,
-        reviewer: reviewer.trim(),
+        reviewer: signer.trim(),
         rationale: rationale.trim(),
       });
       onDecided(updated);
@@ -314,12 +325,19 @@ function DecisionPanel({ report, onDecided }: { report: DashboardReport; onDecid
           <input
             id="dec-rev"
             className="input"
-            value={reviewer}
+            value={signer}
             maxLength={120}
             autoComplete="name"
-            aria-invalid={tried && reviewer.trim().length < 2}
+            readOnly={Boolean(access.signedName)}
+            aria-describedby={access.signedName ? "dec-rev-h" : undefined}
+            aria-invalid={tried && signer.trim().length < 2}
             onChange={(e) => setReviewer(e.target.value)}
           />
+          {access.signedName && (
+            <p id="dec-rev-h" className="hint">
+              {t.ops.signedBy(access.signedName)}
+            </p>
+          )}
         </div>
         <div className="field">
           <label htmlFor="dec-rat">{t.report.rationale}</label>
@@ -338,21 +356,29 @@ function DecisionPanel({ report, onDecided }: { report: DashboardReport; onDecid
           </p>
         </div>
         <div className="row wrap">
-          <button className="btn btn-primary" type="submit" disabled={busy}>
-            {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Handshake size={16} aria-hidden="true" />}
-            {t.report.record}
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={!canReveal}
-            onClick={() => setRevealOpen(true)}
-            title={canReveal ? undefined : t.report.revealHint}
-            aria-describedby={canReveal ? undefined : "reveal-hint"}
-          >
-            <Eye size={16} aria-hidden="true" />
-            {t.report.reveal}
-          </button>
+          <Gate perm="decide">
+            {(ok) => (
+              <button className="btn btn-primary" type="submit" disabled={busy || !ok}>
+                {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Handshake size={16} aria-hidden="true" />}
+                {t.report.record}
+              </button>
+            )}
+          </Gate>
+          <Gate perm="decide">
+            {(ok) => (
+              <button
+                type="button"
+                className="btn"
+                disabled={!canReveal || !ok}
+                onClick={() => setRevealOpen(true)}
+                title={canReveal ? undefined : t.report.revealHint}
+                aria-describedby={canReveal ? undefined : "reveal-hint"}
+              >
+                <Eye size={16} aria-hidden="true" />
+                {t.report.reveal}
+              </button>
+            )}
+          </Gate>
         </div>
         {!canReveal && (
           <p id="reveal-hint" className="hint">
@@ -363,7 +389,8 @@ function DecisionPanel({ report, onDecided }: { report: DashboardReport; onDecid
       {revealOpen && (
         <RevealModal
           candidateRef={report.candidate_ref}
-          defaultReviewer={reviewer}
+          defaultReviewer={signer}
+          locked={Boolean(access.signedName)}
           onClose={() => setRevealOpen(false)}
         />
       )}
@@ -374,10 +401,12 @@ function DecisionPanel({ report, onDecided }: { report: DashboardReport; onDecid
 function RevealModal({
   candidateRef,
   defaultReviewer,
+  locked,
   onClose,
 }: {
   candidateRef: string;
   defaultReviewer: string;
+  locked: boolean;
   onClose: () => void;
 }) {
   const { t } = usePrefs();
@@ -446,7 +475,7 @@ function RevealModal({
         <>
           <div className="field">
             <label htmlFor="rv-rev">{t.report.reviewer}</label>
-            <input id="rv-rev" className="input" value={reviewer} maxLength={120} onChange={(e) => setReviewer(e.target.value)} />
+            <input id="rv-rev" className="input" value={reviewer} maxLength={120} readOnly={locked} onChange={(e) => setReviewer(e.target.value)} />
           </div>
           <div className="field">
             <label htmlFor="rv-reason">{t.report.revealReason}</label>
@@ -473,6 +502,7 @@ function DangerZone({ candidateRef, jobId }: { candidateRef: string; jobId: stri
   const toast = useToast();
   const system = useSystem();
   const navigate = useNavigate();
+  const access = useAccess();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
@@ -480,7 +510,8 @@ function DangerZone({ candidateRef, jobId }: { candidateRef: string; jobId: stri
     if (typed.trim() !== candidateRef) return;
     setBusy(true);
     try {
-      const r = await api.erase(candidateRef, reviewer.trim().length >= 2 ? reviewer.trim() : "recruiter");
+      // the server signs with the account name for named accounts; the actor is only used otherwise
+      const r = await api.erase(candidateRef, access.signedName ?? (reviewer.trim().length >= 2 ? reviewer.trim() : "recruiter"));
       toast.push("success", t.report.erased(r.vault_entries_shredded, r.artifacts_deleted), candidateRef);
       system.refresh();
       navigate(`/jobs/${jobId}`);
@@ -499,10 +530,14 @@ function DangerZone({ candidateRef, jobId }: { candidateRef: string; jobId: stri
           </h2>
           <p className="panel-hint">{t.report.eraseHint}</p>
         </div>
-        <button className="btn btn-danger" onClick={() => setOpen(true)}>
-          <Trash2 size={16} aria-hidden="true" />
-          {t.report.erase}
-        </button>
+        <Gate perm="privacy">
+          {(ok) => (
+            <button className="btn btn-danger" onClick={() => setOpen(true)} disabled={!ok}>
+              <Trash2 size={16} aria-hidden="true" />
+              {t.report.erase}
+            </button>
+          )}
+        </Gate>
       </div>
       {open && (
         <Modal

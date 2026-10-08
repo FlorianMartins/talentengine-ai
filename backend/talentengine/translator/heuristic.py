@@ -27,6 +27,11 @@ _PROFILE: dict[str, tuple[float, float, float]] = {
     "containers": (0.6, 0.6, 0.5),
     "infrastructure_code": (0.7, 0.9, 0.6),
     "cloud_resources": (0.6, 0.8, 0.5),
+    "cross_repo_link": (0.7, 0.9, 0.5),
+    "cross_repo_mention": (0.3, 0.3, 0.1),
+    "pipeline_orchestration": (0.6, 0.8, 0.9),
+    "service_orchestration": (0.5, 0.8, 0.5),
+    "declared_dependency": (0.3, 0.4, 0.2),
     "security_controls": (0.6, 0.8, 0.9),
     "quality_tooling": (0.4, 0.4, 0.8),
     "documentation": (0.6, 0.3, 0.4),
@@ -49,7 +54,7 @@ _FACET_BONUS = {
 # A skill evidenced only by sentences of the CV is capped: the CV says what to look for, the work proves it.
 CV_ONLY_LEVEL_CAP = 2.0
 CV_ONLY_CONFIDENCE_CAP = 0.5
-_CONTROL_KINDS = {"tests", "ci_pipeline", "quality_tooling", "security_controls"}
+_CONTROL_KINDS = {"tests", "ci_pipeline", "quality_tooling", "security_controls", "pipeline_orchestration"}
 
 
 def _level(mass: float) -> float:

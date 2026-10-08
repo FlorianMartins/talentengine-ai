@@ -7,11 +7,6 @@ reports, portfolios, photos of finished work — and explains every point of eve
 [![CI](https://github.com/FlorianMartins/talentengine-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/FlorianMartins/talentengine-ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> 🇫🇷 **En bref** — un ATS nouvelle génération qui évalue les compétences *prouvées* (code GitHub,
-> rapports chiffrés, portfolios, photos de réalisations) plutôt que les mots-clés. Les diplômes et
-> certifications restent dans la balance, mais plafonnés en second plan. Anonymisation à l'entrée,
-> aucun rejet automatique, registre d'audit infalsifiable, coûts d'IA maîtrisés (local d'abord).
-
 ### 👉 Try it now — no account, nothing stored: **https://hivey.be/talentengine/essai**
 
 Paste a job offer (text or a LinkedIn / job-board link) or pick a reference role, add a CV and a GitHub
@@ -22,8 +17,8 @@ questions a recruiter would ask.
 |---|---|
 | ![Sandbox result](docs/images/try-result.png) | ![Recruiters](docs/images/recruiters.png) |
 
-**Recruiters:** read the [recruiter guide](docs/recruteurs/RECRUITER-GUIDE.md)
-([version française](docs/recruteurs/GUIDE-RECRUTEURS.md)) or the [landing page](https://hivey.be/talentengine/recruteurs).
+**Recruiters:** read the [recruiter guide](docs/recruiters/RECRUITER-GUIDE.md) or the
+[landing page](https://hivey.be/talentengine/recruteurs).
 
 ![Candidate report](docs/images/report-dark.png)
 
@@ -99,13 +94,38 @@ Four sealed modules, connected only through typed data (see the
    tests, CI, containers, IaC, security controls, architecture decisions; documents are read for
    *anchored* evidence ("ROAS from 2.1 to 4.3"), not claims ("proficient in Google Ads"). Level 2 sends
    only the densest 5% of profiles, trimmed to a token budget, to a commercial model — if the job opts in.
-3. **Universal Translator** — 31 skills across software, data, design, marketing, sales, crafts,
+3. **Universal Translator** — 37 skills across software, AI, data, design, marketing, sales, crafts,
    cooking, textile and management, scored on **autonomy**, **technical complexity** and
    **reliability** (0–4). An LLM's output is a proposal validated by code: a skill citing evidence that
    was not provided is discarded.
 4. **HR Dashboard** — a compatibility score against *your* criteria, proof statements in plain words,
    gaps to explore, and three interview questions that verify authorship, with the answers a genuine
    author would give.
+
+### Filtering impostors
+
+Evidence can be borrowed, so every candidate can be sent a **verification test** at the level the role
+needs (junior, confirmed, senior): 236 practical questions over all 37 skills, plus **questions generated
+from the candidate's own work** (which tools *their* CI runs, which of *their* projects builds on which,
+the figure in *their* report). Each candidate gets a different test; the server keeps the timer, one
+question at a time, no going back; copy/paste, print-screen, leaving the window and full-screen exits are
+reported to the recruiter as signals, never acted on automatically. An optional Safe Exam Browser mode locks
+the desktop. No web page can stop a phone camera — tight timers, personal questions and a traceable
+watermark make it of little use, and the interview stays the final check. No camera, no microphone.
+
+### An add-on to your ATS
+
+Recruiters keep Greenhouse, Lever, Ashby or their own tool: a signed webhook sends each application, and a
+note with the score, key evidence, gaps, interview questions and the candidate explanation link comes back
+into the ATS ([ATS bridge](docs/ATS_BRIDGE.md)).
+
+### Compliance that works in the real world
+
+Recruitment AI is **high-risk** under the EU AI Act (obligations from 2 December 2027 after the Digital
+Omnibus; GDPR and labour law apply today). Named and signed human decisions, a sealed audit ledger,
+candidate explanation links, automatic retention, GDPR export, a DPIA draft per job, post-market monitoring,
+an incident journal, instructions for use and Annex IV technical documentation are built in; what remains
+for the provider and the deployer is listed article by article in [AI_ACT_READINESS.md](docs/AI_ACT_READINESS.md).
 
 ## Built for the recruiter's exact needs
 
@@ -120,8 +140,8 @@ The configuration studio lets each job define:
   dollar cap;
 * **privacy options** — gender neutralisation, school masking, image quarantine.
 
-Eight presets (DevSecOps, full-stack, UI/UX, growth marketing, account executive, joiner, chef de
-partie, dressmaker) are starting points. Every change is versioned in the audit ledger.
+47 searchable reference roles (software, AI and data, security, design, marketing, sales, management,
+trades, cooking, textile) are starting points. Every change is versioned in the audit ledger.
 
 | Configuration studio | Ranked pipeline |
 |---|---|
@@ -152,10 +172,13 @@ Optional: `docker compose --profile vision up -d` and `ollama pull qwen2.5vl:7b`
 
 * [Architecture manifesto](docs/ARCHITECTURE.md) — modules, data flows, formulas, the system prompt, the report JSON
 * [Measurements](docs/MEASUREMENTS.md) — masking recall per origin, fairness, injection, gaming resistance
-* [Recruiter guide](docs/recruteurs/RECRUITER-GUIDE.md) · [Guide recruteurs (FR)](docs/recruteurs/GUIDE-RECRUTEURS.md) — value, daily use, objections, a 30-day pilot plan
+* [Recruiter guide](docs/recruiters/RECRUITER-GUIDE.md) — value, daily use, objections, a 30-day pilot plan
 * [User guide](docs/USER_GUIDE.md) — installation, configuration, daily use
 * [Deployment](docs/DEPLOYMENT.md) — sub-path behind a reverse proxy, public sandbox security
-* [Compliance mapping](docs/COMPLIANCE.md) — GDPR and EU AI Act, and what remains the deployer's job
+* [AI Act readiness](docs/AI_ACT_READINESS.md) — provider vs deployer obligations, verified timeline, French labour law, go-to-market checklist
+* [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) (Art. 13) · [Technical documentation](docs/TECHNICAL_DOCUMENTATION.md) (Annex IV)
+* [Compliance mapping](docs/COMPLIANCE.md) — GDPR and EU AI Act, feature by feature
+* [ATS bridge](docs/ATS_BRIDGE.md) — Greenhouse, Lever, Ashby and a generic signed webhook
 * [Roadmap](docs/ROADMAP.md) — step-by-step plan to a production MVP by the end of December 2026
 * [Front-end](frontend/README.md) — stack, structure, design tokens
 
@@ -167,6 +190,9 @@ backend/talentengine/
   funnel/      ② repo.py · documents.py · budget.py · llm.py
   translator/  ③ catalog.py · heuristic.py · prompts.py · llm_eval.py
   dashboard/   ④ scoring.py · interview.py · presets.py
+  assessment/  verification tests: bank/*.json · engine.py · personal.py · api.py
+  integrations/ ATS bridge: adapters.py · bridge.py
+  sandbox/     public trial: fetch.py · offer.py · api.py
   pipeline.py  the only place where the modules meet
   api/app.py   FastAPI routes
 frontend/      React + TypeScript + Vite
@@ -175,11 +201,11 @@ docs/          architecture, user guide, compliance, roadmap
 
 ## Status and limits
 
-This is an MVP (v0.3.0): fully working end to end, tested (91 tests, `ruff`, `mypy`, measurements in CI),
+This is an MVP (v0.5.0): fully working end to end, tested (130+ tests, `ruff`, `mypy`, measurements in CI),
 but not production-hardened. The masking figures come from synthetic corpora, not yet from real CVs; storage is SQLite,
-authentication is a single API key, and signal strengths should be reviewed with practitioners of each
-trade before real use. Using it for real recruitment requires a DPIA — see
-[COMPLIANCE.md](docs/COMPLIANCE.md).
+authentication uses named API keys (no SSO yet), and signal strengths should be reviewed with practitioners of each
+trade before real use. Using it for real recruitment requires a DPIA and, for a provider selling it, the
+AI Act conformity steps — see [AI_ACT_READINESS.md](docs/AI_ACT_READINESS.md).
 
 ## License
 

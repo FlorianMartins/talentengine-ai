@@ -8,6 +8,7 @@ Abuse is bounded by per-IP rate limits, a concurrency cap, upload limits and SSR
 from __future__ import annotations
 
 import json
+import random
 import shutil
 import tempfile
 import threading
@@ -20,9 +21,9 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field, ValidationError
 
+from ..assessment.personal import personal_questions
 from ..config import Settings
 from ..dashboard.presets import list_presets, preset_job
-from ..funnel.repo import RepoFetchError
 from ..i18n import localise
 from ..models import ArtifactKind, JobProfile, Locale
 from ..pipeline import Engine, PolicyError, PortfolioItem, RepositoryInput, Submission, TextDocument, extract_text
@@ -30,13 +31,12 @@ from ..shield.vision import NoDetector
 from ..store import Store
 from ..translator.catalog import CATALOG
 from .fetch import FetchError, fetch, fetch_offer
-from .github import expand_github_urls, snapshot_with_git
 from .offer import OfferError, parse_offer
 
 MAX_FILE = 8 * 1024 * 1024
-MAX_REPOS = 5
+MAX_REPOS = 30  # a GitHub profile link expands to all its public repositories
 MAX_LINKS = 3
-MAX_DOCS = 3
+MAX_DOCS = 10  # per category: documents, diplomas, certifications
 
 
 class OfferRequest(BaseModel):
@@ -105,9 +105,9 @@ def _candidate_warnings(artifacts: list[dict[str, Any]], locale: str) -> list[st
             "security, for instance), a recruiter simply sees it flagged."]
 
 
-def build_router(settings: Settings) -> APIRouter:
+def build_router(settings: Settings, seeds: Any = None, limiter: _RateLimiter | None = None) -> APIRouter:
     router = APIRouter(prefix="/api/try", tags=["public sandbox"])
-    limiter = _RateLimiter()
+    limiter = limiter or _RateLimiter()
     slots = threading.BoundedSemaphore(settings.sandbox_concurrency)
 
     def guard(request: Request, bucket: str, per_hour: int) -> None:
@@ -119,12 +119,21 @@ def build_router(settings: Settings) -> APIRouter:
     def config(locale: str = "fr") -> dict[str, Any]:
         loc: Locale = "en" if locale == "en" else "fr"
         presets = [{"id": p["id"], "family": p["family"], "title": p["title"], "summary": p["summary"],
+                    "keywords": p["keywords"],
                     "criteria": [CATALOG[c["skill_id"]].l(loc) for c in p["job"]["criteria"]]}
                    for p in list_presets(loc)]
         return {"enabled": settings.sandbox_enabled, "presets": presets,
                 "limits": {"matches_per_hour": settings.sandbox_matches_per_hour, "max_repos": MAX_REPOS,
                            "max_links": MAX_LINKS, "max_documents": MAX_DOCS, "max_file_mb": MAX_FILE // 1024 // 1024},
                 "skills": [{"id": s.id, "label": s.l(loc), "family": s.family} for s in CATALOG.values()]}
+
+    @router.get("/presets")
+    def presets(q: str = "", locale: str = "fr") -> list[dict[str, Any]]:
+        """Search reference roles: "IA engineer", "ingénieur ia", "UX", "rénovation"…"""
+        loc: Locale = "en" if locale == "en" else "fr"
+        return [{"id": p["id"], "family": p["family"], "title": p["title"], "summary": p["summary"],
+                 "criteria": [CATALOG[c["skill_id"]].l(loc) for c in p["job"]["criteria"]]}
+                for p in list_presets(loc, q[:100])]
 
     @router.post("/offer")
     def offer(body: OfferRequest, request: Request) -> dict[str, Any]:
@@ -161,17 +170,22 @@ def build_router(settings: Settings) -> APIRouter:
         github_urls: Annotated[str, Form()] = "",
         portfolio_urls: Annotated[str, Form()] = "",
         cv: Annotated[UploadFile | None, File()] = None,
+        linkedin: Annotated[UploadFile | None, File(description="LinkedIn profile saved as PDF")] = None,
         documents: Annotated[list[UploadFile] | None, File()] = None,
+        degrees: Annotated[list[UploadFile] | None, File(description="Diplomas or transcripts")] = None,
+        certifications: Annotated[list[UploadFile] | None, File(description="Certificates")] = None,
     ) -> dict[str, Any]:
         try:
             return await _match(request, consent, identity_name, job_json, preset_id, locale, github_urls,
-                                portfolio_urls, cv, documents)
+                                portfolio_urls, cv, linkedin, documents, degrees, certifications)
         except HTTPException as exc:
             raise HTTPException(exc.status_code, localise(str(exc.detail), locale)) from exc
 
     async def _match(
         request: Request, consent: bool, identity_name: str, job_json: str, preset_id: str, locale: str,
-        github_urls: str, portfolio_urls: str, cv: UploadFile | None, documents: list[UploadFile] | None,
+        github_urls: str, portfolio_urls: str, cv: UploadFile | None, linkedin: UploadFile | None,
+        documents: list[UploadFile] | None, degrees: list[UploadFile] | None,
+        certifications: list[UploadFile] | None,
     ) -> dict[str, Any]:
         guard(request, "match", settings.sandbox_matches_per_hour)
         if not consent:
@@ -196,12 +210,14 @@ def build_router(settings: Settings) -> APIRouter:
 
         try:
             docs: list[TextDocument] = []
-            if cv is not None and cv.filename:
-                docs.append(TextDocument(name=cv.filename, content=extract_text(cv.filename, await read(cv)),
-                                         kind=ArtifactKind.cv))
-            for upload in (documents or [])[:MAX_DOCS]:
+            singles = [(cv, ArtifactKind.cv), (linkedin, ArtifactKind.linkedin)]
+            groups = [(documents, ArtifactKind.document), (degrees, ArtifactKind.degree),
+                      (certifications, ArtifactKind.certification)]
+            uploads = [(u, k) for u, k in singles if u is not None] + [
+                (u, k) for files, k in groups for u in (files or [])[:MAX_DOCS]]
+            for upload, kind in uploads:
                 if upload.filename:
-                    docs.append(TextDocument(name=upload.filename,
+                    docs.append(TextDocument(name=upload.filename, kind=kind,
                                              content=extract_text(upload.filename, await read(upload))))
         except PolicyError as exc:
             raise HTTPException(422, str(exc)) from exc
@@ -211,21 +227,18 @@ def build_router(settings: Settings) -> APIRouter:
         tmp = Path(tempfile.mkdtemp(prefix="te-try-"))
         try:
             try:
-                repo_urls = expand_github_urls([u for u in github_urls.splitlines() if u.strip()],
-                                               settings.github_token)[:MAX_REPOS]
-                repos = []
-                for url in repo_urls:
-                    snap = snapshot_with_git(url)
-                    repos.append(RepositoryInput(url=url, paths=snap.paths, files=snap.files))
+                # Repositories (a profile link expands to all its public repositories) are read by the engine.
+                repos = [RepositoryInput(url=u.strip()) for u in github_urls.splitlines() if u.strip()][:MAX_REPOS]
                 portfolio = []
                 for link in [u.strip() for u in portfolio_urls.splitlines() if u.strip()][:MAX_LINKS]:
                     page = fetch(link)
                     portfolio.append(PortfolioItem(title=page.title[:200] or (urlsplit(page.url).hostname or ""),
                                                    description=page.text[:8000]))
-            except (RepoFetchError, FetchError) as exc:
+            except FetchError as exc:
                 raise HTTPException(422, str(exc)) from exc
             sandbox = Settings(data_dir=tmp, vision_detector="none", llm_provider="none", ner=settings.ner,
-                               enable_demo=False)
+                               enable_demo=False, github_token=settings.github_token,
+                               max_repos_per_submission=MAX_REPOS, retention_sweep_hours=0)
             engine = Engine(sandbox, store=Store(":memory:"), detector=NoDetector(), provider=False)
             try:
                 created = engine.create_job(job, actor="sandbox")
@@ -247,7 +260,12 @@ def build_router(settings: Settings) -> APIRouter:
             report_out = report.model_dump(mode="json")
             # The recruiter-facing warnings are rephrased for the person who is testing their own profile.
             report_out["warnings"] = _candidate_warnings(artifacts, loc)
+            seed = ""
+            if seeds is not None:  # optional follow-up test with questions on the visitor's own work
+                l1, arts = engine.level1(cand.ref)
+                seed = seeds.put(personal_questions(l1, arts, random.SystemRandom()))
             return {"report": report_out, "graph": graph_out, "artifacts": artifacts, "tips": _tips(report, loc),
+                    "assessment_seed": seed,
                     "job": created.model_dump(mode="json"), "stored": False}
         finally:
             slots.release()

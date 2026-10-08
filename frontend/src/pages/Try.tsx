@@ -13,16 +13,19 @@ import {
   ClipboardList,
   EyeOff,
   FileSearch,
+  FileCheck2,
   FileText,
   FolderGit2,
   Github,
   GraduationCap,
   Link2,
+  Linkedin,
   Loader2,
   Lock,
   MessageSquareQuote,
   PencilLine,
   Plus,
+  Printer,
   RotateCcw,
   ScanSearch,
   ShieldCheck,
@@ -31,7 +34,6 @@ import {
   TrendingUp,
   UserRound,
   UserX,
-  X,
 } from "lucide-react";
 import { api, ApiError, BASE_PATH } from "../api/client";
 import type {
@@ -46,9 +48,14 @@ import type {
 import { FAMILIES } from "../api/types";
 import { useAsync, usePrefs, useToast } from "../lib/prefs";
 import { cx, levelIndex } from "../lib/format";
+import { printPage } from "../lib/print";
 import { PublicLayout, publicPaths, REPO_URL } from "../components/PublicLayout";
-import { BandChip, ErrorState, FamilyIcon, ImportanceChip, Skeleton, StatusChip } from "../components/feedback";
-import { DropZone, RangeField, Segmented } from "../components/controls";
+import { BandChip, ErrorState, ImportanceChip, Skeleton, StatusChip } from "../components/feedback";
+import { RangeField, Segmented } from "../components/controls";
+import { PresetPicker } from "../components/PresetPicker";
+import { StartTestCard } from "../components/StartTestCard";
+import { CandidateNotice } from "../components/CandidateNotice";
+import { DocumentZones, EMPTY_DOCS, hasAnyDoc, type DocSet } from "../components/DocumentZones";
 import { Meter, ScoreRing } from "../components/charts";
 import { SkillCard } from "./ReportSections";
 import type { Lang } from "../i18n";
@@ -92,8 +99,7 @@ function Sandbox() {
   const [job, setJob] = useState<JobProfile | null>(null);
   const [presetId, setPresetId] = useState("");
   // step 2 — the profile (kept in memory between attempts)
-  const [cv, setCv] = useState<File | null>(null);
-  const [docs, setDocs] = useState<File[]>([]);
+  const [docSet, setDocSet] = useState<DocSet>(EMPTY_DOCS);
   const [github, setGithub] = useState("");
   const [portfolio, setPortfolio] = useState("");
   const [name, setName] = useState("");
@@ -133,20 +139,13 @@ function Sandbox() {
   const portfolioUrls = lines(portfolio);
   const problems = useMemo(() => {
     const p: string[] = [];
-    if (!cv && docs.length === 0 && githubUrls.length === 0 && portfolioUrls.length === 0) p.push(s.profile.needContent);
+    if (!hasAnyDoc(docSet) && githubUrls.length === 0 && portfolioUrls.length === 0) p.push(s.profile.needContent);
     if (githubUrls.length > limits.max_repos) p.push(s.profile.tooMany(s.profile.github, limits.max_repos));
     if (portfolioUrls.length > limits.max_links) p.push(s.profile.tooMany(s.profile.portfolio, limits.max_links));
     if (name.trim().length < 2) p.push(s.profile.needName);
     if (!consent) p.push(s.profile.needConsent);
     return p;
-  }, [cv, docs, githubUrls.length, portfolioUrls.length, name, consent, limits, s]);
-
-  const acceptFiles = (files: File[]) =>
-    files.filter((f) => {
-      if (!DOC_EXT.test(f.name)) return toast.push("warning", s.profile.badType(f.name)), false;
-      if (f.size > limits.max_file_mb * 1024 * 1024) return toast.push("warning", s.profile.tooBig(f.name, limits.max_file_mb)), false;
-      return true;
-    });
+  }, [docSet, githubUrls.length, portfolioUrls.length, name, consent, limits, s]);
 
   const run = async (e: FormEvent) => {
     e.preventDefault();
@@ -163,8 +162,11 @@ function Sandbox() {
         preset_id: mode === "preset" ? presetId : undefined,
         github_urls: githubUrls,
         portfolio_urls: portfolioUrls,
-        cv,
-        documents: docs,
+        cv: docSet.cv,
+        linkedin: docSet.linkedin,
+        degrees: docSet.degrees,
+        certifications: docSet.certifications,
+        documents: docSet.documents,
       });
       setResult(r);
       setStep(3);
@@ -312,33 +314,21 @@ function Sandbox() {
           )}
 
           {mode === "preset" && (
-            <div className="preset-grid try-presets" role="list">
-              {config.presets.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="listitem"
-                  className="preset"
-                  aria-pressed={presetId === p.id}
-                  onClick={() => setPresetId(p.id)}
-                >
-                  <div className="row" style={{ gap: 10 }}>
-                    <FamilyIcon family={p.family} size={16} />
-                    <b style={{ flex: 1 }}>{p.title}</b>
-                    {presetId === p.id && <Check size={16} aria-label={s.job.selected} style={{ color: "var(--accent-text)" }} />}
-                  </div>
-                  <p>{p.summary}</p>
-                  <span className="xs faint">{s.job.evaluatedOn}</span>
-                  <span className="chips">
-                    {p.criteria.map((c) => (
-                      <span key={c} className="chip chip-plain">
-                        <span>{c}</span>
-                      </span>
-                    ))}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <PresetPicker
+              idPrefix="try-presets"
+              items={config.presets}
+              selected={presetId}
+              onSelect={setPresetId}
+              empty={
+                <>
+                  <p>{t.presetsUi.none}</p>
+                  <button type="button" className="btn btn-primary" onClick={() => setMode("offer")}>
+                    <ScanSearch size={16} aria-hidden="true" />
+                    {t.presetsUi.toOffer}
+                  </button>
+                </>
+              }
+            />
           )}
 
           <div className="try-actions">
@@ -349,6 +339,9 @@ function Sandbox() {
               <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
+          {(mode === "preset" || (mode === "offer" && job)) && (
+            <StartTestCard variant="compact" presetId={mode === "preset" ? presetId : undefined} job={mode === "offer" ? job : null} />
+          )}
         </section>
       )}
 
@@ -372,45 +365,13 @@ function Sandbox() {
           </div>
 
           {running ? (
-            <Progress />
+            <Progress github={githubUrls} />
           ) : (
             <>
+              <CandidateNotice />
+              <DocumentZones value={docSet} onChange={setDocSet} maxPerCategory={limits.max_documents} maxMb={limits.max_file_mb} ext={DOC_EXT} accept={DOC_ACCEPT} />
               <div className="grid-2" style={{ alignItems: "start" }}>
-                <section className="panel" aria-labelledby="tp-docs">
-                  <h3 id="tp-docs" className="panel-title" style={{ fontSize: 16 }}>
-                    <FileText size={18} aria-hidden="true" />
-                    {s.profile.cv}
-                  </h3>
-                  {cv ? (
-                    <ul className="file-list">
-                      <FileRow file={cv} onRemove={() => setCv(null)} />
-                    </ul>
-                  ) : (
-                    <DropZone accept={DOC_ACCEPT} label={s.profile.cv} hint={s.profile.cvHint(limits.max_file_mb)} onFiles={(f) => setCv(acceptFiles(f)[0] ?? null)} />
-                  )}
-                  <div className="divider" />
-                  <span className="label">
-                    {s.profile.docs} <span className="opt">({t.common.optional})</span>
-                  </span>
-                  {docs.length < limits.max_documents && (
-                    <DropZone
-                      accept={DOC_ACCEPT}
-                      multiple
-                      label={s.profile.docs}
-                      hint={s.profile.docsHint(limits.max_documents, limits.max_file_mb)}
-                      onFiles={(f) => setDocs((d) => [...d, ...acceptFiles(f)].slice(0, limits.max_documents))}
-                    />
-                  )}
-                  {docs.length > 0 && (
-                    <ul className="file-list">
-                      {docs.map((d, i) => (
-                        <FileRow key={`${d.name}-${i}`} file={d} onRemove={() => setDocs(docs.filter((_, j) => j !== i))} />
-                      ))}
-                    </ul>
-                  )}
-                </section>
-
-                <div className="stack-lg">
+                <>
                   <section className="panel" aria-labelledby="tp-gh">
                     <h3 id="tp-gh" className="panel-title" style={{ fontSize: 16 }}>
                       <Github size={18} aria-hidden="true" />
@@ -427,7 +388,7 @@ function Sandbox() {
                       onChange={(e) => setGithub(e.target.value)}
                     />
                     <p id="tp-gh-h" className="hint">
-                      {s.profile.githubHint(limits.max_repos)}
+                      {t.docs.githubHint(limits.max_repos)}
                     </p>
                   </section>
                   <section className="panel" aria-labelledby="tp-pf">
@@ -449,7 +410,7 @@ function Sandbox() {
                       {s.profile.portfolioHint(limits.max_links)}
                     </p>
                   </section>
-                </div>
+                </>
               </div>
 
               <section className="panel" aria-labelledby="tp-id">
@@ -522,6 +483,7 @@ function Sandbox() {
             setStep(1);
           }}
           onEdit={() => setStep(2)}
+          presetId={mode === "preset" ? presetId : ""}
         />
       )}
     </div>
@@ -723,31 +685,23 @@ function OfferEditor({
   );
 }
 
-function FileRow({ file, onRemove }: { file: File; onRemove: () => void }) {
-  const { t } = usePrefs();
-  const kb = file.size > 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
-  return (
-    <li className="file-item">
-      <FileText size={18} aria-hidden="true" style={{ color: "var(--accent-text)", flex: "none" }} />
-      <span className="truncate" style={{ flex: 1 }}>
-        {file.name}
-      </span>
-      <span className="xs faint num">{kb}</span>
-      <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={t.apply.fileRemove(file.name)} onClick={onRemove}>
-        <X size={15} aria-hidden="true" />
-      </button>
-    </li>
-  );
-}
-
-function Progress() {
+function Progress({ github }: { github: string[] }) {
   const { t } = usePrefs();
   const p = t.pub.sandbox.progress;
+  // a profile link (github.com/user) expands to all public repositories; a repo link is one repository
+  const isProfile = (u: string) => u.replace(/^https?:\/\//, "").replace(/\/+$/, "").split("/").length <= 2;
+  const stages = useMemo(() => {
+    const [docs = "", ...rest] = p.stages;
+    if (!github.length) return p.stages;
+    const n = github.some(isProfile) ? t.docs.stageReposAll : String(github.length);
+    return [docs, t.docs.stageRepos(n), t.docs.stageOrchestration, ...rest];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [github.join("|"), p.stages, t]);
   const [i, setI] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => setI((n) => Math.min(n + 1, p.stages.length - 1)), 2200);
+    const id = window.setInterval(() => setI((n) => Math.min(n + 1, stages.length - 1)), 2600);
     return () => window.clearInterval(id);
-  }, [p.stages.length]);
+  }, [stages.length]);
   return (
     <section className="panel progress-panel" role="status" aria-live="polite" aria-label={p.title}>
       <div className="scan" aria-hidden="true" />
@@ -756,7 +710,7 @@ function Progress() {
         {p.title}
       </h3>
       <ol className="stages">
-        {p.stages.map((label, k) => (
+        {stages.map((label, k) => (
           <li key={label} className={cx(k < i && "is-done", k === i && "is-current")}>
             <span className="stage-dot">{k < i ? <Check size={12} aria-hidden="true" /> : null}</span>
             <span>{label}</span>
@@ -764,7 +718,7 @@ function Progress() {
         ))}
       </ol>
       <div className="progress-bar" aria-hidden="true">
-        <span style={{ width: `${((i + 1) / p.stages.length) * 92}%` }} />
+        <span style={{ width: `${((i + 1) / stages.length) * 92}%` }} />
       </div>
       <p className="hint">{p.hint}</p>
     </section>
@@ -773,7 +727,17 @@ function Progress() {
 
 // ------------------------------------------------------------------ result
 
-function Result({ result, onAgain, onEdit }: { result: TryMatchResult; onAgain: () => void; onEdit: () => void }) {
+function Result({
+  result,
+  onAgain,
+  onEdit,
+  presetId,
+}: {
+  result: TryMatchResult;
+  onAgain: () => void;
+  onEdit: () => void;
+  presetId: string;
+}) {
   const { t, lang } = usePrefs();
   const toast = useToast();
   const r: DashboardReport = result.report;
@@ -789,7 +753,7 @@ function Result({ result, onAgain, onEdit }: { result: TryMatchResult; onAgain: 
       .catch(() => toast.push("info", url));
   };
   const actions = (
-    <div className="row wrap" style={{ gap: 8 }}>
+    <div className="row wrap no-print" style={{ gap: 8 }}>
       <button type="button" className="btn btn-primary" onClick={onAgain}>
         <RotateCcw size={16} aria-hidden="true" />
         {s.again}
@@ -797,6 +761,10 @@ function Result({ result, onAgain, onEdit }: { result: TryMatchResult; onAgain: 
       <button type="button" className="btn" onClick={onEdit}>
         <PencilLine size={16} aria-hidden="true" />
         {s.editProfile}
+      </button>
+      <button type="button" className="btn" onClick={printPage}>
+        <Printer size={16} aria-hidden="true" />
+        {s.pdf}
       </button>
       <button type="button" className="btn btn-ghost" onClick={copyLink}>
         <ClipboardCopy size={16} aria-hidden="true" />
@@ -851,6 +819,8 @@ function Result({ result, onAgain, onEdit }: { result: TryMatchResult; onAgain: 
         </p>
         <div style={{ marginTop: 20 }}>{actions}</div>
       </section>
+
+      <StartTestCard variant="hero" presetId={presetId || undefined} job={result.job ?? null} seed={result.assessment_seed} />
 
       {r.warnings.length > 0 && (
         <div className="callout callout-warn" role="note">
@@ -969,11 +939,23 @@ function Result({ result, onAgain, onEdit }: { result: TryMatchResult; onAgain: 
             <FolderGit2 size={18} aria-hidden="true" />
             {s.analysed}
           </h2>
-          <ul className="file-list">
+          {result.artifacts.some((a) => a.kind === "repository") && <p className="xs faint">{t.docs.blindRepos}</p>}
+          <ul className="file-list analysed-list">
             {result.artifacts.map((a, i) => (
               <li key={`${a.label}-${i}`} className="file-item" style={{ flexWrap: "wrap" }}>
-                {a.kind === "repository" ? <Github size={16} aria-hidden="true" /> : <FileText size={16} aria-hidden="true" />}
+                {a.kind === "repository" ? (
+                  <Github size={16} aria-hidden="true" />
+                ) : a.kind === "linkedin" ? (
+                  <Linkedin size={16} aria-hidden="true" />
+                ) : a.kind === "degree" || a.kind === "certification" ? (
+                  <GraduationCap size={16} aria-hidden="true" />
+                ) : (
+                  <FileText size={16} aria-hidden="true" />
+                )}
                 <b className="small">{a.label}</b>
+                {a.kind !== "repository" && a.label !== (t.docs.kinds[a.kind] ?? a.kind) && (
+                  <span className="xs faint">{t.docs.kinds[a.kind] ?? a.kind}</span>
+                )}
                 {a.status === "quarantined" && (
                   <span className="chip chip-warn">
                     <span>{s.quarantined}</span>
@@ -1054,13 +1036,18 @@ function Result({ result, onAgain, onEdit }: { result: TryMatchResult; onAgain: 
             {r.credentials.items.map((c, i) => (
               <li key={`${c.label}-${i}`} className={cx("chip", c.kind === "degree" ? "chip-plain" : "chip-violet")}>
                 <span>{c.label}</span>
+                {c.supported_by_document && (
+                  <span className="cred-proof" title={t.docs.supported}>
+                    <FileCheck2 size={12} aria-hidden="true" /> {t.docs.supported}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="hero try-end">
+      <section className="hero try-end no-print">
         {actions}
         <Link to={paths.recruiters} className="recruiter-cta">
           {s.recruiterCta}

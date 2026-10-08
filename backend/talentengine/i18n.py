@@ -27,6 +27,10 @@ _FR: list[tuple[re.Pattern[str], str]] = [
      r"contexte de \1 tokens au-delà du budget par requête"),
     (re.compile(r"^escalation failed, Level-1 assessment kept: "),
      "échec de l'approfondissement, évaluation de niveau 1 conservée : "),
+    (re.compile(r"^(.+), line (\d+) → (\S+)$"), r"\1, ligne \2 → \3"),
+    (re.compile(r"^used by (.+)$"), r"utilisé par \1"),
+    (re.compile(r"^(\d+) workflow\(s\): (\d+) tools, (\d+) job dependencies$"),
+     r"\1 workflow(s) : \2 outils, \3 dépendances entre jobs"),
     # Public sandbox messages
     (re.compile(r"^could not read this link: "), "impossible de lire ce lien : "),
     (re.compile(r"the page answered HTTP (\d+)"), r"la page a répondu HTTP \1"),

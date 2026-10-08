@@ -137,6 +137,72 @@ SKILLS: list[SkillDef] = [
         },
     ),
     SkillDef(
+        "llm_engineering", Family.data,
+        {"fr": "Ingénierie LLM et IA générative", "en": "LLM & generative AI engineering"},
+        {"fr": "sait construire des applications fondées sur des modèles de langage (RAG, agents, évaluations)",
+         "en": "can build applications on top of language models (RAG, agents, evaluations)"},
+        {
+            "fr": _t("Dans {artifact} ({locator}), comment avez-vous mesuré que les réponses du modèle étaient "
+                     "bonnes, et qu'avez-vous changé quand elles ne l'étaient pas ?",
+                     "Distinguer une démo d'appel d'API d'une vraie démarche d'ingénierie IA.",
+                     ("Décrit un jeu d'évaluation ou des critères de qualité", "Parle de récupération de contexte "
+                      "(RAG, découpage, embeddings) ou d'outils d'agent", "Évoque coûts, latence ou garde-fous "
+                      "(injection de prompt, données sensibles)", "Cite une amélioration mesurée"),
+                     _GENERIC_WARNINGS_FR),
+            "en": _t("In {artifact} ({locator}), how did you measure that the model's answers were good, and what "
+                     "did you change when they were not?",
+                     "Tell an API-call demo from real AI engineering.",
+                     ("Describes an evaluation set or quality criteria", "Talks about retrieval (RAG, chunking, "
+                      "embeddings) or agent tools", "Mentions cost, latency or guardrails (prompt injection, "
+                      "sensitive data)", "Gives a measured improvement"),
+                     _GENERIC_WARNINGS_EN),
+        },
+    ),
+    SkillDef(
+        "mobile_development", Family.software,
+        {"fr": "Développement mobile", "en": "Mobile development"},
+        {"fr": "sait développer et publier des applications mobiles (iOS, Android, multiplateforme)",
+         "en": "can build and ship mobile apps (iOS, Android, cross-platform)"},
+        {
+            "fr": _t("Pour l'application de {artifact} ({locator}), comment gérez-vous le hors-ligne, les "
+                     "différentes tailles d'écran et la publication sur les stores ?",
+                     "Vérifier l'expérience réelle du mobile.",
+                     ("Parle de cycle de vie de l'application ou de gestion d'état", "Évoque les tests sur "
+                      "appareils ou simulateurs", "Décrit la publication (signature, revue des stores)"),
+                     _GENERIC_WARNINGS_FR),
+            "en": _t("For the app in {artifact} ({locator}), how do you handle offline use, screen sizes and store "
+                     "releases?",
+                     "Check real mobile experience.",
+                     ("Talks about app lifecycle or state management", "Mentions testing on devices or "
+                      "simulators", "Describes releasing (signing, store review)"),
+                     _GENERIC_WARNINGS_EN),
+        },
+    ),
+    SkillDef(
+        "systems_integration", Family.software,
+        {"fr": "Intégration et orchestration de systèmes", "en": "Systems integration & orchestration"},
+        {"fr": "sait faire fonctionner ensemble plusieurs outils, services ou projets (dépendances, pipelines, "
+               "déploiement coordonné)",
+         "en": "can make several tools, services or projects work together (dependencies, pipelines, "
+               "coordinated deployment)"},
+        {
+            "fr": _t("{artifact} s'appuie sur un autre de vos projets ou orchestre plusieurs outils ({locator}). "
+                     "Pourquoi les avoir séparés, et que se passe-t-il quand l'un des deux change ?",
+                     "Vérifier une vraie pensée système, au-delà d'un projet isolé.",
+                     ("Explique le rôle de chaque projet ou outil et leur frontière", "Parle de versions, de "
+                      "compatibilité ou de contrat d'interface", "Décrit l'ordre d'exécution ou de déploiement",
+                      "Sait ce qui casse quand une brique change"),
+                     _GENERIC_WARNINGS_FR),
+            "en": _t("{artifact} builds on another of your projects or orchestrates several tools ({locator}). Why "
+                     "keep them separate, and what happens when one of them changes?",
+                     "Check real systems thinking, beyond a single project.",
+                     ("Explains each project's or tool's role and boundary", "Talks about versions, "
+                      "compatibility or interface contracts", "Describes the execution or deployment order",
+                      "Knows what breaks when one piece changes"),
+                     _GENERIC_WARNINGS_EN),
+        },
+    ),
+    SkillDef(
         "cloud_infrastructure", Family.software,
         {"fr": "Infrastructure cloud", "en": "Cloud infrastructure"},
         {"fr": "sait concevoir et exploiter des services sur un cloud public (Azure, AWS, GCP...)",

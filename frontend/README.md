@@ -71,12 +71,99 @@ curl -X POST localhost:8000/api/demo/seed   # or use the "Load demo data" button
 | `/audit` | **Audit ledger**: paginated table with filters (application ref, role, kind), prev→entry hash chaining, expandable payloads, and a verify-chain banner |
 | `/settings` | Theme, language, reviewer name (sent as `X-Actor`), API key (sent as `X-API-Key`, kept in `localStorage`), read-only runtime info |
 
+### Accounts, roles and privacy operations (v0.4)
+
+- **Identity.** On load the app calls `GET /api/me` (and the public `GET /api/health`). The top bar shows who is
+  acting: *name · role* for a personal key (`te_…`), "Shared key" for the legacy `TE_API_KEY`, "Open development
+  mode" when the server has no key at all, or "Enter my key" when a key is required. Settings shows an identity card
+  (role, permissions, role description). The key field is "Your personal key". The free-text reviewer name only
+  appears for the shared key or dev mode, because named accounts are signed server-side.
+- **Permission gating.** `useAccess()` (`src/lib/prefs.tsx`) exposes `can(permission)`. The `<Gate perm="…">` component
+  disables an action and explains in a tooltip (and screen-reader text) which roles may do it. A server `403`
+  becomes a "Access denied — required permission: …" toast. Permissions follow the backend: read (everyone),
+  write + decide (recruiter, admin), privacy (DPO, admin), admin (admin).
+- **Accounts** `/settings/accounts` (admin): list, create (the key is shown **once** in a modal with a copy button
+  and a strong warning), delete with confirmation, and the roles explained.
+- **Report.** The decision form shows the account name read-only. The action bar has "Explanation link for the
+  candidate" (decide → modal with the full `origin + base + /explication/<token>` URL, expiry and copy),
+  "Export data (GDPR)" (privacy → `export-<ref>.json`) and "Export as PDF". GDPR erasure needs the privacy permission.
+- **PDF export.** `printDoc()` (`src/lib/print.ts`) flags `<html data-print="doc">` so the print stylesheet only shows
+  a dedicated report document (`ReportPrintDoc`). That document has a header (job, reference, date, score), the
+  criteria table, every skill with its excerpts, gaps, the interview guide with checkboxes, credentials, the
+  decision, and a footer with the AI Act notice and the score entry hash. Print always uses the light palette.
+  Public pages print themselves; collapsed evidence is forced visible in print.
+- **DPIA draft** (job page and studio): downloads the Markdown draft in the role's report language.
+- **Audit**: "Run the purge of expired data" (privacy) with a confirmation and a result banner. New ledger kinds
+  have FR/EN labels, colours and timeline icons.
+
+### Verification tests, compliance and ATS (v0.5)
+
+- **Test player** `/test/:token` (also `/en/test/:token`; the UI language follows the session's `locale`). It is
+  distraction-free, with no app shell.
+  - **Intro**: job, level, number of questions, approximate time, the rules ("one question at a time, no going back,
+    the timer runs on the server"), exactly what is recorded, "no camera or microphone", and the full candidate
+    information notice. "Commencer" asks for full screen.
+  - **Questions**: single, multi, numeric (comma decimals) and order (drag and drop *or* up/down buttons). The
+    countdown is driven by the server's `remaining`; at 0 the client posts `/timeout` and loads the next question.
+    Reloading resumes the same question with the server's remaining time.
+  - **End**: the sandbox shows results (overall, verified level per skill, authorship %, integrity, per-question
+    table, no correct answers). A candidate link only shows "Merci, vos réponses ont été transmises".
+- **Anti-cheat layer** (`src/lib/integrity.ts`). Everything is a signal journalled to `/events` (batched every 3 s,
+  `sendBeacon` on page hide); nothing blocks the candidate from finishing.
+  - **Blocked and recorded**: paste, copy, cut, external drops, the context menu, text selection, Ctrl/Cmd +
+    C/V/X/A/P/S/U, F12 and devtools shortcuts.
+  - **PrintScreen and macOS capture shortcuts**: recorded, the question is veiled for 2 s and the clipboard is cleared.
+  - **Window blur or hidden tab**: the question is blurred behind "Revenez sur le test — l'absence est enregistrée".
+  - **Leaving full screen**: recorded, with a banner offering to go back.
+  - **Other signals**: multiple screens (`screen.isExtended`) and window resizes, except those caused by entering or
+    leaving full screen.
+  - **Watermark**: a dynamic, drifting watermark (session id + live clock) is drawn over the question.
+  - **Printing**: shows only "Impression désactivée".
+  - **Privacy**: no camera, microphone or screen-capture permission is ever requested.
+- **Safe Exam Browser**: when `seb_required` and SEB's JavaScript API is present, every `/api/assess` call carries
+  `X-SEB-Page-Url` and `X-SEB-Config-Key-Hash` (after `SafeExamBrowser.security.updateKeys`). Outside SEB, the page
+  explains how to get it instead of showing questions.
+- **Sandbox entry points**:
+  - On the result step, "Prouvez que vous maîtrisez" starts a test with the match's `assessment_seed`, which adds
+    questions about the visitor's own work.
+  - On step 1, a test can be started directly on a typical role (or an analysed offer).
+- **Report**: a "Test de vérification" panel and an explanation-links panel.
+  - The test panel creates a link (level, 4–25 questions, questions on the candidate's own work, optional Safe Exam
+    Browser config keys, validity) and lists results with the integrity panel: "signal à examiner, jamais un motif
+    de rejet automatique". Results are also in the PDF.
+  - The explanation-links panel lists links and lets you revoke them.
+- **Compliance** `/compliance` (DPO, admin): KPIs, human oversight (including decisions departing from the ranking,
+  explained as proof of oversight), evidence-band and integrity-risk distributions, a min/median/max score range
+  per role, an incident form with the legal reporting deadline, and documentation links.
+- **ATS integrations** `/settings/integrations` (admin): Greenhouse, Lever, Ashby and generic webhook.
+  - Each connection has a job mapping, per-provider secrets, a required candidate-notice confirmation, notes and an
+    explanation-link validity.
+  - The webhook URL (`origin + base + /api/integrations/{id}/webhook`) and the one-time generated secret are shown at
+    creation; the page also has a how-to per provider.
+- **Other changes**: the candidate information notice (short + "learn more") is shown on the Apply page and on the
+  sandbox profile step. A 403 uses the `X-Required-Permission` header. Apply limits come from
+  `runtime.upload_limits`.
+
 ### Public pages (no app shell, no API key)
 
 | Route | Screen |
 |---|---|
 | `/essai` (FR), `/try` (EN) | **Public sandbox**, the shareable showcase for candidates. A three-step stepper: **1. The role**: paste an offer (text, or a link to LinkedIn, Welcome to the Jungle, Indeed or a careers page) → `POST /api/try/offer`, then edit the detected criteria (importance, expected level, add from the catalogue, remove, "why?" shows the offer lines that triggered each skill); or pick a typical role (`/api/try/config` presets). **2. Your profile**: CV and documents (drag and drop), GitHub links (a profile link expands to its 3 latest repositories), portfolio links, the required name (only used to mask it), and plain-language consent. **3. Result**: `POST /api/try/match`, with staged progress while it runs. Shows the animated score ring, a notice reframed for candidates ("not a verdict on you"), criterion bars, what the files prove (exact excerpts), things to strengthen (tips + gaps), questions a recruiter might ask (self-check list), what was analysed (masked items, repository files, injection flag) and credentials in a secondary panel. Actions: try another offer, edit my profile (inputs kept in memory), copy the tool's link (the canonical `/essai` URL: there is no stored result to share). Handles 422 (with a "paste the text instead" hint), 429 and 503 |
+| `/explication/:token` (FR), `/explanation/:token` (EN) | **Candidate explanation** (AI Act Art. 86), reached through a link a recruiter creates. Shows the job, score ring, skills vs credentials split, criterion bars, what the material proves (statements + exact excerpts), gaps phrased for the candidate, the human decision and rationale, an integrity block (ledger intact, score entry hash, dates, versions) explained in plain words, the expiry date, "How to contest?", a CTA to the sandbox and "Download as PDF". Invalid or expired tokens get a friendly 404 page |
 | `/recruteurs` (FR), `/recruiters` (EN) | **Recruiter landing**: hero with two CTAs, the problem, how it works in 4 steps, what you get (with theme-aware screenshots), "Measured, not promised" (only figures published in `docs/MEASUREMENTS.md`), compliance, FAQ, final CTA |
+
+**Document categories** (sandbox step 2 and the recruiter Apply page, `components/DocumentZones.tsx`): CV,
+**LinkedIn profile** (PDF, with a how-to and the note that it is a self-description), **diplomas** and
+**certifications** (shown as "document provided" in reports), and **other documents**. Each category accepts files
+incrementally, up to `limits.max_documents`, and each file can be removed. A GitHub **profile** link analyses all
+public repositories; the progress steps say so. Repositories are blind-labelled `repo-1…N` and the UI explains why.
+Evidence made of comma-separated tool lists renders as chips, and cross-repository locators (`… → repo-12`) are
+highlighted.
+
+**Reference roles** (`components/PresetPicker.tsx`, used by the sandbox and the studio): the 47 presets come with
+instant search (`lib/presetSearch.ts`, the backend rule: accent/case-insensitive, every word must match, words of
+≤ 2 letters whole-word, longer words prefix, title hits first), family chips with counts, and an empty state that
+offers to paste an offer instead.
 
 The EN aliases open in English unless the visitor already picked a language. Both pages are lazy-loaded chunks
 (the sandbox is about 8 kB gzipped on top of the shared core), so a candidate opening the shared link does not
@@ -103,8 +190,19 @@ src/
     feedback.tsx        toasts, Modal (focus trap, Esc), skeletons, empty/error states, semantic chips
     StatusStrip.tsx
   components/PublicLayout.tsx  header/footer for the public pages (no sidebar), localised public paths
+  components/DocumentZones.tsx upload zones by category (CV, LinkedIn, diplomas, certifications, other documents)
+  components/PresetPicker.tsx  searchable gallery of the 47 reference roles
+  components/DpiaButton.tsx    DPIA draft download
+  lib/print.ts          printDoc() / printPage() for PDF export
+  lib/integrity.ts      anti-cheat layer of the test player (signals → /events)
+  components/AssessResultsView.tsx  test results + integrity panel (sandbox and recruiter)
+  components/StartTestCard.tsx      starts a sandbox test (POST /api/assess/start)
+  components/CandidateNotice.tsx    candidate information notice
+  lib/presetSearch.ts   client-side preset search (same rule as the backend)
   pages/                Overview, Studio, Pipeline, Apply, Report (+ ReportSections), Audit, Settings, NotFound,
-                        Try (public sandbox), Recruiters (public landing)
+                        Try (public sandbox), Recruiters (public landing), Explanation (candidate view),
+                        Accounts (admin), ReportExtras (report actions + print document),
+                        TestPlayer, ReportVerification, Compliance, Integrations
   assets/landing/       compressed WebP screenshots used by the landing page
   styles/
     tokens.css          design tokens, dark (default) + light
@@ -148,4 +246,8 @@ See `../docs/images/`: `overview-{dark,light}`, `studio-dark`, `studio-full-dark
 `compare-dark`, `report-{dark,light}`, `report-evidence-dark`, `report-interview-light`, `report-glassbox-dark`,
 `audit-dark`, `settings-light-en`, `mobile-{overview,report,pipeline-light}`, and for the public pages `try-offer`,
 `try-progress`, `try-result`, `try-result-mobile`, `try-presets-mobile`, `recruiters`, `recruiters-light`,
-`recruiters-mobile`.
+`recruiters-mobile`; v0.4: `accounts`, `accounts-key`, `explanation-link-modal`, `explanation-public`,
+`explanation-public-light`, `explanation-public-mobile`, `report-print` (print-emulated), `try-result-print`,
+`audit-retention`, `try-presets-search`, `try-documents`, `try-result-github-profile`, `evidence-orchestration`,
+`apply-categories`; v0.5: `test-intro`, `test-question`, `test-question-mobile`, `test-blurred`, `test-results`,
+`test-print-blocked`, `report-verification`, `report-print-verification`, `compliance`, `integrations`.

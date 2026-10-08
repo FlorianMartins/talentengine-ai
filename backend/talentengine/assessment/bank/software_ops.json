@@ -1,0 +1,1797 @@
+[
+ {
+  "id": "ci_cd_l1_dependency_cache",
+  "skill_id": "ci_cd",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Un job de CI réinstalle toutes les dépendances à chaque exécution (4 min), alors que le fichier de verrouillage change rarement. Que faites-vous ?",
+   "en": "A CI job reinstalls all dependencies on every run (4 min), while the lockfile rarely changes. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Mettre en cache le répertoire des dépendances avec une clé fondée sur le nom de la branche",
+    "en": "Cache the dependency directory keyed on the branch name"
+   },
+   {
+    "fr": "Mettre en cache le répertoire des dépendances avec une clé fondée sur l'empreinte du fichier de verrouillage",
+    "en": "Cache the dependency directory keyed on a hash of the lockfile"
+   },
+   {
+    "fr": "Supprimer le fichier de verrouillage pour accélérer la résolution",
+    "en": "Delete the lockfile to speed up resolution"
+   },
+   {
+    "fr": "N'installer les dépendances que sur la branche principale",
+    "en": "Install dependencies only on the main branch"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "La clé doit changer exactement quand les dépendances changent : l'empreinte du fichier de verrouillage. Une clé par branche sert des dépendances périmées.",
+   "en": "The key must change exactly when dependencies change: the lockfile hash. A per-branch key serves stale dependencies."
+  }
+ },
+ {
+  "id": "ci_cd_l1_promote_artifact",
+  "skill_id": "ci_cd",
+  "level": 1,
+  "type": "order",
+  "stem": {
+   "fr": "Remettez dans l'ordre les étapes d'une livraison qui promeut un seul artefact immuable jusqu'en production.",
+   "en": "Put in order the steps of a delivery that promotes a single immutable artifact to production."
+  },
+  "options": [
+   {
+    "fr": "Déployer en production",
+    "en": "Deploy to production"
+   },
+   {
+    "fr": "Construire l'image, étiquetée avec le SHA du commit",
+    "en": "Build the image, tagged with the commit SHA"
+   },
+   {
+    "fr": "Lancer les tests de fumée sur la préproduction",
+    "en": "Run smoke tests against staging"
+   },
+   {
+    "fr": "Pousser l'image dans le registre",
+    "en": "Push the image to the registry"
+   },
+   {
+    "fr": "Surveiller le taux d'erreur et la latence en production",
+    "en": "Watch production error rate and latency"
+   },
+   {
+    "fr": "Déployer cette même image en préproduction",
+    "en": "Deploy that same image to staging"
+   }
+  ],
+  "correct": [
+   1,
+   3,
+   5,
+   2,
+   0,
+   4
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "On construit une fois, on publie, on valide en préproduction, puis on promeut le même artefact et on vérifie après le déploiement.",
+   "en": "Build once, publish, validate on staging, then promote the same artifact and verify after deploying."
+  }
+ },
+ {
+  "id": "ci_cd_l2_sharded_duration",
+  "skill_id": "ci_cd",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "La construction prend {b} min. Les tests prennent {t} min en série ; vous les répartissez à parts égales sur {k} jobs parallèles, chacun ajoutant {o} min de mise en place. Durée minimale du pipeline ?",
+   "en": "The build takes {b} min. Tests take {t} min serially; you split them evenly across {k} parallel jobs, each adding {o} min of setup. Minimum pipeline duration?"
+  },
+  "params": {
+   "b": {
+    "min": 3,
+    "max": 8,
+    "step": 1
+   },
+   "t": {
+    "min": 40,
+    "max": 120,
+    "step": 10
+   },
+   "k": {
+    "min": 2,
+    "max": 8,
+    "step": 1
+   },
+   "o": {
+    "min": 1,
+    "max": 3,
+    "step": 1
+   }
+  },
+  "answer": "b + t / k + o",
+  "tolerance": 0.02,
+  "unit": "min",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Construction puis tests en parallèle : b + t/k + o (la mise en place se paie dans chaque job, en parallèle).",
+   "en": "Build then parallel tests: b + t/k + o (setup is paid in every job, in parallel)."
+  }
+ },
+ {
+  "id": "ci_cd_l2_deploy_race",
+  "skill_id": "ci_cd",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Deux fusions arrivent à quelques minutes d'écart. Le pipeline de la plus ancienne finit en dernier et redéploie l'ancienne version en production. Correctif ?",
+   "en": "Two merges land minutes apart. The older one's pipeline finishes last and redeploys the old version to production. Fix?"
+  },
+  "options": [
+   {
+    "fr": "Ajouter des relances automatiques au job de déploiement",
+    "en": "Add automatic retries to the deploy job"
+   },
+   {
+    "fr": "Ajouter des runners pour que les pipelines finissent plus vite",
+    "en": "Add runners so pipelines finish faster"
+   },
+   {
+    "fr": "Sérialiser les déploiements par environnement et annuler ceux qu'un commit plus récent rend obsolètes",
+    "en": "Serialise deploys per environment and cancel those superseded by a newer commit"
+   },
+   {
+    "fr": "Déployer chaque service dans un job séparé",
+    "en": "Deploy each service in a separate job"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Une course entre pipelines se règle par un verrou de concurrence par environnement qui écarte les versions dépassées ; la vitesse ne fait que déplacer la course.",
+   "en": "A race between pipelines is fixed with a per-environment concurrency lock that drops outdated versions; speed only moves the race."
+  }
+ },
+ {
+  "id": "ci_cd_l3_monorepo_feedback",
+  "skill_id": "ci_cd",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Monodépôt de 30 projets, pipeline de 40 min sur chaque merge request. Quel changement raccourcit le plus le retour sans perdre en sécurité ?",
+   "en": "Monorepo with 30 projects, 40-min pipeline on every merge request. Which change shortens feedback most without losing safety?"
+  },
+  "options": [
+   {
+    "fr": "Ne tester que les cibles affectées d'après le graphe de dépendances, avec une exécution complète dans la file de fusion",
+    "en": "Test only targets affected per the dependency graph, with a full run in the merge queue"
+   },
+   {
+    "fr": "Fusionner dès que les tests unitaires passent et lancer le reste après la fusion",
+    "en": "Merge once unit tests pass and run the rest after merging"
+   },
+   {
+    "fr": "Relancer automatiquement trois fois les tests en échec",
+    "en": "Automatically retry failing tests three times"
+   },
+   {
+    "fr": "Autoriser l'échec des tests les plus lents",
+    "en": "Allow the slowest tests to fail"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "L'analyse d'impact réduit le travail sans rien sauter de ce qui est concerné, et la file de fusion garde un filet complet avant la branche principale.",
+   "en": "Impact analysis cuts work without skipping anything relevant, and the merge queue keeps a full safety net before main."
+  }
+ },
+ {
+  "id": "ci_cd_l3_pipeline_secrets",
+  "skill_id": "ci_cd",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Votre pipeline déploie dans le cloud. Quelles mesures réduisent l'impact d'un pipeline compromis ?",
+   "en": "Your pipeline deploys to the cloud. Which measures reduce the blast radius of a compromised pipeline?"
+  },
+  "options": [
+   {
+    "fr": "Identifiants courts obtenus par fédération OIDC, limités au dépôt et à la branche",
+    "en": "Short-lived credentials via OIDC federation, scoped to repo and branch"
+   },
+   {
+    "fr": "Clés longue durée stockées en variables masquées",
+    "en": "Long-lived keys stored as masked variables"
+   },
+   {
+    "fr": "Environnement de production protégé, avec approbation requise pour le job de déploiement",
+    "en": "Protected production environment requiring approval for the deploy job"
+   },
+   {
+    "fr": "Aucun secret de production exposé aux pipelines des pull requests venant de forks",
+    "en": "No production secrets exposed to pipelines of pull requests from forks"
+   },
+   {
+    "fr": "Secrets encodés en base64 dans le dépôt",
+    "en": "Secrets base64-encoded in the repository"
+   }
+  ],
+  "correct": [
+   0,
+   2,
+   3
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Le masquage cache l'affichage, pas l'usage : une clé longue durée volée reste valable. Le base64 n'est pas un chiffrement.",
+   "en": "Masking hides display, not use: a stolen long-lived key stays valid. Base64 is not encryption."
+  }
+ },
+ {
+  "id": "automated_testing_l1_midnight_flake",
+  "skill_id": "automated_testing",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Un test vérifiant qu'un objet est « créé aujourd'hui » échoue de temps en temps en CI, autour de minuit UTC. Meilleur correctif ?",
+   "en": "A test checking an object is \"created today\" fails occasionally in CI, around midnight UTC. Best fix?"
+  },
+  "options": [
+   {
+    "fr": "Ajouter une relance automatique au test",
+    "en": "Add an automatic retry to the test"
+   },
+   {
+    "fr": "Accepter aussi la date d'hier dans l'assertion",
+    "en": "Also accept yesterday's date in the assertion"
+   },
+   {
+    "fr": "Injecter une horloge contrôlable dans le code testé et la figer dans le test",
+    "en": "Inject a controllable clock into the code under test and freeze it in the test"
+   },
+   {
+    "fr": "Programmer la CI pour ne jamais tourner la nuit",
+    "en": "Schedule CI never to run at night"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Le test dépend de l'heure réelle : on rend le temps déterministe. Les autres options masquent le problème.",
+   "en": "The test depends on wall-clock time: make time deterministic. The other options hide the problem."
+  }
+ },
+ {
+  "id": "automated_testing_l1_payment_double",
+  "skill_id": "automated_testing",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Vous écrivez un test unitaire pour une fonction qui appelle l'API de paiement d'un prestataire. Que faites-vous ?",
+   "en": "You write a unit test for a function that calls a payment provider's API. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Appeler le bac à sable du prestataire dans chaque test unitaire",
+    "en": "Call the provider's sandbox in every unit test"
+   },
+   {
+    "fr": "Remplacer le client HTTP par une doublure et vérifier la requête construite et la gestion des réponses",
+    "en": "Replace the HTTP client with a test double and check the request built and response handling"
+   },
+   {
+    "fr": "Simuler la fonction testée elle-même",
+    "en": "Mock the function under test itself"
+   },
+   {
+    "fr": "Ne pas tester cette fonction, elle dépend d'un tiers",
+    "en": "Not test this function, it depends on a third party"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Un test unitaire isole la frontière externe ; le bac à sable sert aux tests d'intégration, moins nombreux.",
+   "en": "A unit test isolates the external boundary; the sandbox belongs in fewer integration tests."
+  }
+ },
+ {
+  "id": "automated_testing_l2_suite_duration",
+  "skill_id": "automated_testing",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Suite exécutée en série : {u} tests unitaires à {a} ms, {i} tests d'intégration à {b} s et {e} tests de bout en bout à {c} s. Durée totale en minutes ?",
+   "en": "Suite run serially: {u} unit tests at {a} ms, {i} integration tests at {b} s and {e} end-to-end tests at {c} s. Total duration in minutes?"
+  },
+  "params": {
+   "u": {
+    "min": 1000,
+    "max": 5000,
+    "step": 500
+   },
+   "a": {
+    "min": 5,
+    "max": 20,
+    "step": 1
+   },
+   "i": {
+    "min": 50,
+    "max": 200,
+    "step": 10
+   },
+   "b": {
+    "min": 1,
+    "max": 3,
+    "step": 1
+   },
+   "e": {
+    "min": 10,
+    "max": 40,
+    "step": 5
+   },
+   "c": {
+    "min": 20,
+    "max": 60,
+    "step": 5
+   }
+  },
+  "answer": "(u * a / 1000 + i * b + e * c) / 60",
+  "tolerance": 0.02,
+  "unit": "min",
+  "seconds": 90,
+  "explanation": {
+   "fr": "Somme des durées en secondes divisée par 60 ; on voit vite que les quelques tests de bout en bout dominent.",
+   "en": "Sum of durations in seconds divided by 60; the few end-to-end tests quickly dominate."
+  }
+ },
+ {
+  "id": "automated_testing_l2_shared_db",
+  "skill_id": "automated_testing",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Vos tests d'intégration partagent une base de données et échouent au hasard depuis qu'ils tournent en parallèle. Quels correctifs sont sains ?",
+   "en": "Your integration tests share one database and fail randomly since they run in parallel. Which fixes are sound?"
+  },
+  "options": [
+   {
+    "fr": "Exécuter chaque test dans une transaction annulée à la fin",
+    "en": "Run each test in a transaction rolled back at the end"
+   },
+   {
+    "fr": "Ajouter une pause entre les tests",
+    "en": "Add a sleep between tests"
+   },
+   {
+    "fr": "Donner à chaque processus de test son propre schéma ou sa propre base éphémère",
+    "en": "Give each test worker its own schema or ephemeral database"
+   },
+   {
+    "fr": "Générer des données uniques par test au lieu d'identifiants fixes",
+    "en": "Generate unique data per test instead of fixed identifiers"
+   },
+   {
+    "fr": "Exécuter les tests dans l'ordre alphabétique",
+    "en": "Run tests in alphabetical order"
+   }
+  ],
+  "correct": [
+   0,
+   2,
+   3
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Il faut isoler l'état entre tests. Une pause ou un ordre fixe rendent l'échec plus rare, pas impossible.",
+   "en": "State must be isolated between tests. A sleep or a fixed order makes failure rarer, not impossible."
+  }
+ },
+ {
+  "id": "automated_testing_l3_e2e_suite",
+  "skill_id": "automated_testing",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "300 tests navigateur de bout en bout, 50 min, 5 % instables ; l'équipe ignore les échecs. Que faites-vous ?",
+   "en": "300 browser end-to-end tests, 50 min, 5% flaky; the team ignores failures. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Relancer chaque échec trois fois et tout garder",
+    "en": "Retry each failure three times and keep everything"
+   },
+   {
+    "fr": "Supprimer tous les tests instables",
+    "en": "Delete every flaky test"
+   },
+   {
+    "fr": "Ne lancer la suite qu'avant chaque version",
+    "en": "Run the suite only before each release"
+   },
+   {
+    "fr": "Descendre la plupart des vérifications au niveau API ou composant, garder quelques parcours critiques, mettre les instables en quarantaine avec un responsable",
+    "en": "Push most checks down to API or component level, keep a few critical journeys, quarantine flaky ones with an owner"
+   }
+  ],
+  "correct": [
+   3
+  ],
+  "seconds": 55,
+  "explanation": {
+   "fr": "Le problème est la forme de la suite : trop de bout en bout. Les relances cachent de vrais défauts ; supprimer ou espacer fait perdre la détection.",
+   "en": "The issue is the suite's shape: too much end-to-end. Retries hide real defects; deleting or running rarely loses detection."
+  }
+ },
+ {
+  "id": "automated_testing_l3_contract",
+  "skill_id": "automated_testing",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Le service de l'équipe A consomme l'API de l'équipe B. Chaque semaine, un changement de B casse A en préproduction ; l'environnement complet est lent. Meilleure approche ?",
+   "en": "Team A's service consumes team B's API. Every week a change by B breaks A in staging; the full environment is slow. Best approach?"
+  },
+  "options": [
+   {
+    "fr": "Que A simule B dans ses propres tests",
+    "en": "Have A mock B in its own tests"
+   },
+   {
+    "fr": "Des tests de contrat pilotés par le consommateur, vérifiés dans le pipeline de B",
+    "en": "Consumer-driven contract tests verified in B's pipeline"
+   },
+   {
+    "fr": "Geler l'API de B",
+    "en": "Freeze B's API"
+   },
+   {
+    "fr": "Lancer plus souvent les tests de bout en bout en préproduction",
+    "en": "Run end-to-end tests in staging more often"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Le contrat attendu par A échoue dans le pipeline de B avant la fusion. Une simulation côté A ne voit jamais les changements de B.",
+   "en": "A's expected contract fails in B's pipeline before merging. A mock on A's side never sees B's changes."
+  }
+ },
+ {
+  "id": "containerization_l1_layer_order",
+  "skill_id": "containerization",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "À chaque modification du code, la construction de l'image réinstalle toutes les dépendances. Que changez-vous dans le Dockerfile ?",
+   "en": "On every code change, the image build reinstalls all dependencies. What do you change in the Dockerfile?"
+  },
+  "options": [
+   {
+    "fr": "Copier le manifeste et le fichier de verrouillage, installer, puis copier le reste du code",
+    "en": "Copy the manifest and lockfile, install, then copy the rest of the code"
+   },
+   {
+    "fr": "Construire avec l'option qui désactive le cache",
+    "en": "Build with the no-cache option"
+   },
+   {
+    "fr": "Regrouper toutes les instructions dans un seul RUN",
+    "en": "Merge all instructions into a single RUN"
+   },
+   {
+    "fr": "Changer d'image de base pour une image plus légère",
+    "en": "Switch to a lighter base image"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Une couche est invalidée dès qu'une couche précédente change : on place ce qui change rarement avant le code.",
+   "en": "A layer is invalidated as soon as an earlier layer changes: put what rarely changes before the code."
+  }
+ },
+ {
+  "id": "containerization_l1_exec_format",
+  "skill_id": "containerization",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une image construite sur un portable fonctionne en local, mais en production le conteneur s'arrête aussitôt avec « exec format error ». Cause la plus probable ?",
+   "en": "An image built on a laptop works locally, but in production the container stops immediately with \"exec format error\". Most likely cause?"
+  },
+  "options": [
+   {
+    "fr": "Une variable d'environnement manquante",
+    "en": "A missing environment variable"
+   },
+   {
+    "fr": "Un conflit de port sur le serveur",
+    "en": "A port conflict on the server"
+   },
+   {
+    "fr": "L'image a été construite pour une autre architecture de processeur",
+    "en": "The image was built for a different CPU architecture"
+   },
+   {
+    "fr": "Le conteneur manque de mémoire",
+    "en": "The container is out of memory"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Ce message vient du noyau qui ne sait pas exécuter le binaire : typiquement une image arm64 sur un hôte amd64. On construit pour la plateforme cible.",
+   "en": "The message comes from the kernel unable to run the binary: typically an arm64 image on an amd64 host. Build for the target platform."
+  }
+ },
+ {
+  "id": "containerization_l2_rollout_pull",
+  "skill_id": "containerization",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Le Dockerfile copie tout le code avant d'installer les dépendances. Couches : base {b} Mo, dépendances {d} Mo, application {a} Mo. Après une modification d'une ligne, combien de Mo au total tirent {n} nœuds qui ont déjà l'image précédente ?",
+   "en": "The Dockerfile copies all the code before installing dependencies. Layers: base {b} MB, dependencies {d} MB, application {a} MB. After a one-line change, how many MB in total do {n} nodes that already have the previous image pull?"
+  },
+  "params": {
+   "b": {
+    "min": 50,
+    "max": 200,
+    "step": 10
+   },
+   "d": {
+    "min": 150,
+    "max": 600,
+    "step": 50
+   },
+   "a": {
+    "min": 5,
+    "max": 40,
+    "step": 5
+   },
+   "n": {
+    "min": 3,
+    "max": 20,
+    "step": 1
+   }
+  },
+  "answer": "(d + a) * n",
+  "tolerance": 0.01,
+  "unit": "MB",
+  "seconds": 90,
+  "explanation": {
+   "fr": "La base est en cache ; la couche de dépendances, placée après la copie du code, est reconstruite, donc retirée avec l'application : (d + a) × n.",
+   "en": "The base is cached; the dependency layer, placed after the code copy, is rebuilt and thus pulled along with the app: (d + a) × n."
+  }
+ },
+ {
+  "id": "containerization_l2_exit_137",
+  "skill_id": "containerization",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Sous charge, un conteneur redémarre en boucle avec le code de sortie 137. Première piste ?",
+   "en": "Under load, a container keeps restarting with exit code 137. First lead?"
+  },
+  "options": [
+   {
+    "fr": "Une erreur de segmentation dans l'application",
+    "en": "A segmentation fault in the application"
+   },
+   {
+    "fr": "Il a été tué par SIGKILL, typiquement en dépassant sa limite mémoire",
+    "en": "It was killed by SIGKILL, typically for exceeding its memory limit"
+   },
+   {
+    "fr": "L'application a renvoyé elle-même le code 137 après une erreur métier",
+    "en": "The application itself returned 137 after a business error"
+   },
+   {
+    "fr": "Le tirage de l'image a échoué",
+    "en": "The image pull failed"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "137 = 128 + 9 (SIGKILL), le plus souvent le tueur OOM. Une erreur de segmentation donne 139 ; un échec de tirage n'a pas de code de sortie.",
+   "en": "137 = 128 + 9 (SIGKILL), most often the OOM killer. A segfault gives 139; a pull failure has no exit code."
+  }
+ },
+ {
+  "id": "containerization_l3_pid1_signals",
+  "skill_id": "containerization",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "À chaque mise à jour progressive, les requêtes en cours sont coupées : le conteneur attend 30 s puis est tué. Le point d'entrée est `sh -c \"node server.js\"`. Cause ?",
+   "en": "On every rolling update, in-flight requests are cut: the container waits 30 s then is killed. The entrypoint is `sh -c \"node server.js\"`. Cause?"
+  },
+  "options": [
+   {
+    "fr": "Le délai de grâce de 30 s est trop court",
+    "en": "The 30 s grace period is too short"
+   },
+   {
+    "fr": "La sonde de disponibilité est mal configurée",
+    "en": "The readiness probe is misconfigured"
+   },
+   {
+    "fr": "Le shell est le PID 1 et ne transmet pas SIGTERM : l'application n'entend jamais l'arrêt",
+    "en": "The shell is PID 1 and does not forward SIGTERM: the app never hears the stop"
+   },
+   {
+    "fr": "Node ne sait pas gérer les signaux",
+    "en": "Node cannot handle signals"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Il faut la forme exec (ou `exec` dans le script, ou un mini-init) pour que l'application reçoive SIGTERM et se vide proprement.",
+   "en": "Use exec form (or `exec` in the script, or a tiny init) so the app receives SIGTERM and drains cleanly."
+  }
+ },
+ {
+  "id": "containerization_l3_runtime_hardening",
+  "skill_id": "containerization",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Quelles mesures réduisent ce qu'un attaquant peut faire après avoir compromis l'application dans un conteneur ?",
+   "en": "Which measures limit what an attacker can do after compromising the application inside a container?"
+  },
+  "options": [
+   {
+    "fr": "Exécuter sous un utilisateur non root",
+    "en": "Run as a non-root user"
+   },
+   {
+    "fr": "Système de fichiers racine en lecture seule",
+    "en": "Read-only root filesystem"
+   },
+   {
+    "fr": "Retirer toutes les capacités Linux et n'ajouter que celles nécessaires",
+    "en": "Drop all Linux capabilities and add back only those needed"
+   },
+   {
+    "fr": "Monter le socket du démon Docker pour la supervision",
+    "en": "Mount the Docker daemon socket for monitoring"
+   },
+   {
+    "fr": "Lancer en mode privilégié pour simplifier le débogage",
+    "en": "Run in privileged mode to ease debugging"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Le socket Docker ou le mode privilégié donnent pratiquement la main sur l'hôte : ils agrandissent la surface au lieu de la réduire.",
+   "en": "The Docker socket or privileged mode practically hand over the host: they widen the surface instead of shrinking it."
+  }
+ },
+ {
+  "id": "infrastructure_as_code_l1_drift",
+  "skill_id": "infrastructure_as_code",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Quelqu'un a modifié à la main, dans la console, une règle de pare-feu gérée par Terraform. Que montre le prochain `terraform plan` ?",
+   "en": "Someone changed by hand, in the console, a firewall rule managed by Terraform. What does the next `terraform plan` show?"
+  },
+  "options": [
+   {
+    "fr": "Rien : Terraform ignore les changements faits hors de son code",
+    "en": "Nothing: Terraform ignores changes made outside its code"
+   },
+   {
+    "fr": "Une modification pour remettre la valeur décrite dans le code",
+    "en": "A change to restore the value described in the code"
+   },
+   {
+    "fr": "Une erreur bloquante tant que l'état n'est pas réparé",
+    "en": "A blocking error until the state is repaired"
+   },
+   {
+    "fr": "Le code est réécrit automatiquement avec la valeur de la console",
+    "en": "The code is rewritten automatically with the console value"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Le plan compare la réalité rafraîchie au code et propose de corriger la dérive ; à vous de reporter le changement dans le code s'il doit rester.",
+   "en": "The plan compares refreshed reality to the code and proposes fixing the drift; port the change into the code if it should stay."
+  }
+ },
+ {
+  "id": "infrastructure_as_code_l1_state_lock",
+  "skill_id": "infrastructure_as_code",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Deux personnes lancent `terraform apply` en même temps depuis leur poste, chacune avec un état local. Que mettez-vous en place ?",
+   "en": "Two people run `terraform apply` at the same time from their laptops, each with local state. What do you set up?"
+  },
+  "options": [
+   {
+    "fr": "Un backend distant partagé avec verrouillage de l'état",
+    "en": "A shared remote backend with state locking"
+   },
+   {
+    "fr": "Versionner le fichier d'état dans Git",
+    "en": "Commit the state file to Git"
+   },
+   {
+    "fr": "Lancer `terraform refresh` avant chaque apply",
+    "en": "Run `terraform refresh` before each apply"
+   },
+   {
+    "fr": "Diviser le code en deux dossiers, un par personne",
+    "en": "Split the code into two folders, one per person"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Un seul état partagé et verrouillé empêche deux applications concurrentes ; un état dans Git diverge et expose des secrets.",
+   "en": "A single shared, locked state prevents concurrent applies; state in Git diverges and leaks secrets."
+  }
+ },
+ {
+  "id": "infrastructure_as_code_l2_resource_count",
+  "skill_id": "infrastructure_as_code",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Un module est appelé avec for_each sur {m} environnements. Dedans : une ressource instance avec count = {n}, une ressource volume avec count = {n} * {k}, et un groupe de sécurité unique. Combien de ressources au total ?",
+   "en": "A module is called with for_each over {m} environments. Inside: an instance resource with count = {n}, a volume resource with count = {n} * {k}, and one security group. How many resources in total?"
+  },
+  "params": {
+   "m": {
+    "min": 2,
+    "max": 5,
+    "step": 1
+   },
+   "n": {
+    "min": 2,
+    "max": 6,
+    "step": 1
+   },
+   "k": {
+    "min": 1,
+    "max": 3,
+    "step": 1
+   }
+  },
+  "answer": "m * (n + n * k + 1)",
+  "tolerance": 0.001,
+  "unit": "",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Par appel de module : n instances + n·k volumes + 1 groupe ; multiplié par m appels.",
+   "en": "Per module call: n instances + n·k volumes + 1 group; times m calls."
+  }
+ },
+ {
+  "id": "infrastructure_as_code_l2_moved_block",
+  "skill_id": "infrastructure_as_code",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Vous avez déplacé une base de données existante dans un module. Le plan annonce sa destruction puis sa recréation. Que faites-vous ?",
+   "en": "You moved an existing database into a module. The plan announces it will be destroyed then recreated. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Ajouter `ignore_changes` sur la ressource",
+    "en": "Add `ignore_changes` to the resource"
+   },
+   {
+    "fr": "Appliquer avec `-parallelism=1`",
+    "en": "Apply with `-parallelism=1`"
+   },
+   {
+    "fr": "Lancer `terraform refresh` puis replanifier",
+    "en": "Run `terraform refresh` and plan again"
+   },
+   {
+    "fr": "Déclarer l'ancienne adresse vers la nouvelle (bloc `moved` ou `state mv`)",
+    "en": "Map the old address to the new one (`moved` block or `state mv`)"
+   }
+  ],
+  "correct": [
+   3
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Terraform suit les ressources par adresse : sans correspondance, il croit à une suppression plus une création.",
+   "en": "Terraform tracks resources by address: without a mapping it sees a deletion plus a creation."
+  }
+ },
+ {
+  "id": "infrastructure_as_code_l3_count_shift",
+  "skill_id": "infrastructure_as_code",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Cinq comptes utilisateurs sont créés avec count sur une liste. Vous retirez le 2e élément. Que propose le plan ?",
+   "en": "Five user accounts are created with count over a list. You remove the 2nd element. What does the plan propose?"
+  },
+  "options": [
+   {
+    "fr": "Supprimer uniquement le 2e compte",
+    "en": "Delete only the 2nd account"
+   },
+   {
+    "fr": "Modifier ou remplacer les comptes suivants, décalés d'un indice, et supprimer le dernier",
+    "en": "Modify or replace the following accounts, shifted by one index, and delete the last"
+   },
+   {
+    "fr": "Une erreur : on ne peut pas retirer un élément d'une liste avec count",
+    "en": "An error: you cannot remove an element of a list used by count"
+   },
+   {
+    "fr": "Rien tant que la liste n'est pas triée",
+    "en": "Nothing until the list is sorted"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Avec count, l'identité est l'indice : tout ce qui suit glisse. for_each sur une clé stable évite ce piège.",
+   "en": "With count, identity is the index: everything after shifts. for_each over a stable key avoids the trap."
+  }
+ },
+ {
+  "id": "infrastructure_as_code_l3_blast_radius",
+  "skill_id": "infrastructure_as_code",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Toute l'infrastructure tient dans un seul état ; le plan prend 15 min et un apply a déjà supprimé un réseau partagé. Quelles mesures sont saines ?",
+   "en": "All infrastructure lives in a single state; plan takes 15 min and an apply once deleted a shared network. Which measures are sound?"
+  },
+  "options": [
+   {
+    "fr": "Découper l'état par composant et cycle de vie, reliés par des sorties ou des sources de données",
+    "en": "Split state by component and lifecycle, linked via outputs or data sources"
+   },
+   {
+    "fr": "Désactiver le verrouillage de l'état pour aller plus vite",
+    "en": "Disable state locking to go faster"
+   },
+   {
+    "fr": "Mettre `prevent_destroy` sur les ressources critiques",
+    "en": "Set `prevent_destroy` on critical resources"
+   },
+   {
+    "fr": "N'appliquer en CI que le plan relu et enregistré",
+    "en": "In CI, apply only the reviewed, saved plan"
+   },
+   {
+    "fr": "Utiliser `-target` à chaque apply",
+    "en": "Use `-target` on every apply"
+   }
+  ],
+  "correct": [
+   0,
+   2,
+   3
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Découper réduit le rayon d'impact et la durée ; `-target` en routine contourne le graphe et laisse l'état incohérent.",
+   "en": "Splitting reduces blast radius and duration; routine `-target` bypasses the graph and leaves state inconsistent."
+  }
+ },
+ {
+  "id": "cloud_infrastructure_l1_private_egress",
+  "skill_id": "cloud_infrastructure",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une VM dans un sous-réseau privé, sans IP publique, ne peut pas télécharger de paquets sur Internet. Que faites-vous ?",
+   "en": "A VM in a private subnet, without a public IP, cannot download packages from the internet. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Ouvrir le port 443 en entrée dans son groupe de sécurité",
+    "en": "Open inbound port 443 in its security group"
+   },
+   {
+    "fr": "Router 0.0.0.0/0 du sous-réseau privé vers une passerelle NAT",
+    "en": "Route 0.0.0.0/0 from the private subnet to a NAT gateway"
+   },
+   {
+    "fr": "Router 0.0.0.0/0 du sous-réseau privé directement vers la passerelle Internet",
+    "en": "Route 0.0.0.0/0 from the private subnet straight to the internet gateway"
+   },
+   {
+    "fr": "Changer le DNS de la VM",
+    "en": "Change the VM's DNS"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Sans IP publique, la sortie passe par une NAT. La passerelle Internet directe ne marche pas sans IP publique ; l'entrée n'a rien à voir.",
+   "en": "Without a public IP, egress goes through NAT. A direct internet gateway route fails without a public IP; inbound rules are unrelated."
+  }
+ },
+ {
+  "id": "cloud_infrastructure_l1_schedule_savings",
+  "skill_id": "cloud_infrastructure",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "{n} VM de développement à {p} $/h tournent 24 h/24 (730 h/mois). Vous ne les allumez plus que {h} h par jour ouvré, 22 jours par mois. Économie mensuelle ?",
+   "en": "{n} dev VMs at ${p}/h run 24/7 (730 h/month). You now run them only {h} h per working day, 22 days a month. Monthly savings?"
+  },
+  "params": {
+   "n": {
+    "min": 2,
+    "max": 20,
+    "step": 1
+   },
+   "p": {
+    "min": 0.05,
+    "max": 0.8,
+    "step": 0.05
+   },
+   "h": {
+    "min": 8,
+    "max": 14,
+    "step": 1
+   }
+  },
+  "answer": "n * p * (730 - 22 * h)",
+  "tolerance": 0.01,
+  "unit": "$",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Heures économisées par VM : 730 − 22·h ; multipliées par le prix et le nombre de VM.",
+   "en": "Hours saved per VM: 730 − 22·h; times price and number of VMs."
+  }
+ },
+ {
+  "id": "cloud_infrastructure_l2_error_budget",
+  "skill_id": "cloud_infrastructure",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "SLO de disponibilité : {slo} % sur 30 jours. Les incidents du mois ont déjà consommé {used} min d'indisponibilité. Combien de minutes de budget d'erreur reste-t-il ?",
+   "en": "Availability SLO: {slo}% over 30 days. This month's incidents already used {used} min of downtime. How many minutes of error budget remain?"
+  },
+  "params": {
+   "slo": {
+    "min": 99.5,
+    "max": 99.95,
+    "step": 0.05
+   },
+   "used": {
+    "min": 5,
+    "max": 20,
+    "step": 1
+   }
+  },
+  "answer": "43200 * (1 - slo / 100) - used",
+  "tolerance": 0.01,
+  "unit": "min",
+  "seconds": 90,
+  "explanation": {
+   "fr": "30 j = 43 200 min ; budget = 43 200 × (1 − SLO) ; on retire ce qui est consommé.",
+   "en": "30 d = 43,200 min; budget = 43,200 × (1 − SLO); subtract what was used."
+  }
+ },
+ {
+  "id": "cloud_infrastructure_l2_scaling_signal",
+  "skill_id": "cloud_infrastructure",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "La latence explose sous charge, le CPU reste à 30 % et les requêtes attendent une connexion à la base. L'autoscaling sur le CPU ne se déclenche pas. Que faites-vous ?",
+   "en": "Latency explodes under load, CPU stays at 30% and requests wait for a database connection. CPU-based autoscaling doesn't trigger. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Baisser le seuil CPU à 20 % pour ajouter des instances",
+    "en": "Lower the CPU threshold to 20% to add instances"
+   },
+   {
+    "fr": "Passer à des instances plus grosses",
+    "en": "Move to bigger instances"
+   },
+   {
+    "fr": "Traiter le goulot de la base (pool, requêtes, proxy de connexions) avant d'ajouter des instances",
+    "en": "Fix the database bottleneck (pool, queries, connection proxy) before adding instances"
+   },
+   {
+    "fr": "Augmenter la mémoire des instances applicatives",
+    "en": "Increase app instance memory"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Le goulot est la base : plus d'instances ouvrent plus de connexions et aggravent l'attente.",
+   "en": "The bottleneck is the database: more instances open more connections and worsen the wait."
+  }
+ },
+ {
+  "id": "cloud_infrastructure_l3_zonal_outage",
+  "skill_id": "cloud_infrastructure",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Vos 6 instances applicatives sont réparties sur 3 zones, pourtant la panne d'une zone a arrêté le service. Cause la plus probable ?",
+   "en": "Your 6 app instances are spread over 3 zones, yet one zone's outage took the service down. Most likely cause?"
+  },
+  "options": [
+   {
+    "fr": "La base principale tournait sans réplique de secours dans une autre zone",
+    "en": "The primary database ran without a standby in another zone"
+   },
+   {
+    "fr": "Les instances étaient trop petites",
+    "en": "The instances were too small"
+   },
+   {
+    "fr": "Les sondes de santé du répartiteur étaient trop sensibles",
+    "en": "Load balancer health checks were too sensitive"
+   },
+   {
+    "fr": "Le TTL DNS du domaine était trop court",
+    "en": "The domain's DNS TTL was too short"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "La redondance se juge au maillon le plus faible : un composant à état dans une seule zone annule la répartition des instances.",
+   "en": "Redundancy is judged by the weakest link: a stateful component in one zone cancels the spread of instances."
+  }
+ },
+ {
+  "id": "cloud_infrastructure_l3_cost_tradeoffs",
+  "skill_id": "cloud_infrastructure",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Vous devez réduire la facture cloud sans dégrader la fiabilité. Quels choix sont sains ?",
+   "en": "You must cut the cloud bill without hurting reliability. Which choices are sound?"
+  },
+  "options": [
+   {
+    "fr": "Instances préemptibles (spot) pour les traitements par lots qui reprennent depuis un point de sauvegarde",
+    "en": "Spot/preemptible instances for batch jobs that resume from a checkpoint"
+   },
+   {
+    "fr": "Instances préemptibles pour la base de données principale",
+    "en": "Spot/preemptible instances for the primary database"
+   },
+   {
+    "fr": "Redimensionner d'après l'utilisation mesurée sur plusieurs semaines",
+    "en": "Right-size from utilisation measured over several weeks"
+   },
+   {
+    "fr": "Engagement d'usage sur la charge de base stable",
+    "en": "Committed-use pricing for the steady baseline"
+   },
+   {
+    "fr": "Ne garder qu'un jour de sauvegardes",
+    "en": "Keep only one day of backups"
+   }
+  ],
+  "correct": [
+   0,
+   2,
+   3
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Le préemptible convient à ce qui supporte l'interruption ; une base principale ou des sauvegardes réduites échangent de la fiabilité contre de l'argent.",
+   "en": "Spot suits what tolerates interruption; a spot primary database or minimal backups trade reliability for money."
+  }
+ },
+ {
+  "id": "security_engineering_l1_sql_injection",
+  "skill_id": "security_engineering",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une recherche construit sa requête SQL en concaténant le texte saisi. Correctif à appliquer ?",
+   "en": "A search builds its SQL query by concatenating user input. Which fix do you apply?"
+  },
+  "options": [
+   {
+    "fr": "Échapper les apostrophes dans la saisie",
+    "en": "Escape quotes in the input"
+   },
+   {
+    "fr": "Ajouter un pare-feu applicatif devant le site",
+    "en": "Add a web application firewall in front"
+   },
+   {
+    "fr": "Utiliser une requête paramétrée",
+    "en": "Use a parameterised query"
+   },
+   {
+    "fr": "Limiter la longueur de la saisie",
+    "en": "Limit input length"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 30,
+  "explanation": {
+   "fr": "Les paramètres séparent données et code SQL. Échapper à la main ou filtrer en amont laisse des contournements.",
+   "en": "Parameters separate data from SQL code. Hand-escaping or upstream filtering leaves bypasses."
+  }
+ },
+ {
+  "id": "security_engineering_l1_leaked_key",
+  "skill_id": "security_engineering",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une clé d'API de production a été poussée dans un dépôt public il y a une heure. Première action ?",
+   "en": "A production API key was pushed to a public repository an hour ago. First action?"
+  },
+  "options": [
+   {
+    "fr": "Révoquer la clé et en émettre une nouvelle",
+    "en": "Revoke the key and issue a new one"
+   },
+   {
+    "fr": "Réécrire l'historique Git pour supprimer le commit",
+    "en": "Rewrite Git history to remove the commit"
+   },
+   {
+    "fr": "Passer le dépôt en privé",
+    "en": "Make the repository private"
+   },
+   {
+    "fr": "Ajouter le fichier au .gitignore",
+    "en": "Add the file to .gitignore"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 30,
+  "explanation": {
+   "fr": "Une clé publiée doit être considérée comme compromise : des robots scannent les dépôts en minutes. Nettoyer l'historique vient ensuite.",
+   "en": "A published key must be treated as compromised: bots scan repositories within minutes. Cleaning history comes after."
+  }
+ },
+ {
+  "id": "security_engineering_l2_token_revocation",
+  "skill_id": "security_engineering",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Vos jetons d'accès JWT sont valides 30 jours et vérifiés sans appel serveur. Une personne signale le vol de son portable. Quelle conception aurait permis de couper l'accès vite ?",
+   "en": "Your JWT access tokens are valid for 30 days and verified without a server call. Someone reports a stolen laptop. Which design would have cut access quickly?"
+  },
+  "options": [
+   {
+    "fr": "Chiffrer le contenu du JWT",
+    "en": "Encrypt the JWT payload"
+   },
+   {
+    "fr": "Jetons d'accès courts (minutes) et jeton de rafraîchissement révocable côté serveur",
+    "en": "Short-lived access tokens (minutes) and a server-side revocable refresh token"
+   },
+   {
+    "fr": "Changer l'algorithme de signature",
+    "en": "Change the signing algorithm"
+   },
+   {
+    "fr": "Stocker le JWT en localStorage plutôt qu'en cookie",
+    "en": "Store the JWT in localStorage rather than a cookie"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Un jeton autoportant ne se révoque pas ; on borne sa durée et on garde la révocation sur le rafraîchissement.",
+   "en": "A self-contained token can't be revoked; bound its lifetime and keep revocation on the refresh."
+  }
+ },
+ {
+  "id": "security_engineering_l2_ssrf",
+  "skill_id": "security_engineering",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Une fonctionnalité télécharge l'URL fournie par l'utilisateur pour en afficher un aperçu. Quelles protections sont efficaces ?",
+   "en": "A feature fetches a user-supplied URL to show a preview. Which protections are effective?"
+  },
+  "options": [
+   {
+    "fr": "Bloquer les adresses privées et link-local (dont 169.254.169.254) après résolution DNS",
+    "en": "Block private and link-local addresses (including 169.254.169.254) after DNS resolution"
+   },
+   {
+    "fr": "Refuser les URL contenant le mot « localhost »",
+    "en": "Reject URLs containing the word \"localhost\""
+   },
+   {
+    "fr": "Désactiver les redirections ou revalider chaque saut",
+    "en": "Disable redirects or revalidate every hop"
+   },
+   {
+    "fr": "Faire sortir les requêtes par un proxy dédié sans accès au réseau interne",
+    "en": "Send requests out through a dedicated proxy with no internal network access"
+   },
+   {
+    "fr": "N'accepter que le HTTPS",
+    "en": "Accept HTTPS only"
+   }
+  ],
+  "correct": [
+   0,
+   2,
+   3
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Les filtres sur le texte de l'URL se contournent (IP décimale, DNS qui pointe en interne) ; HTTPS n'empêche pas de viser une cible interne.",
+   "en": "Filters on URL text are bypassed (decimal IPs, DNS pointing inside); HTTPS doesn't stop targeting an internal host."
+  }
+ },
+ {
+  "id": "security_engineering_l3_cve_triage",
+  "skill_id": "security_engineering",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Le scanner trouve 400 CVE dans vos images ; l'équipe ne lit plus ses alertes. Que mettez-vous en place ?",
+   "en": "The scanner reports 400 CVEs in your images; the team no longer reads its alerts. What do you set up?"
+  },
+  "options": [
+   {
+    "fr": "Bloquer toute construction tant qu'il reste une CVE",
+    "en": "Block every build while any CVE remains"
+   },
+   {
+    "fr": "Prioriser selon l'exploitabilité, l'atteignabilité et l'exposition, réduire les images de base, et ne bloquer que les nouvelles failles critiques exploitables",
+    "en": "Prioritise by exploitability, reachability and exposure, slim base images, and block only new exploitable critical ones"
+   },
+   {
+    "fr": "Ignorer toutes les CVE sans correctif disponible",
+    "en": "Suppress every CVE that has no fix available"
+   },
+   {
+    "fr": "Une revue manuelle de toutes les CVE chaque trimestre",
+    "en": "A manual review of all CVEs every quarter"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 55,
+  "explanation": {
+   "fr": "Le but est un signal actionnable : un blocage total est contourné, une revue trimestrielle arrive trop tard.",
+   "en": "The goal is an actionable signal: a total block gets bypassed, a quarterly review comes too late."
+  }
+ },
+ {
+  "id": "security_engineering_l3_internal_trust",
+  "skill_id": "security_engineering",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Vos services internes acceptent toute requête venant du réseau privé, sans authentification. Quel risque principal et quelle réponse ?",
+   "en": "Your internal services accept any request from the private network, without authentication. Main risk and response?"
+  },
+  "options": [
+   {
+    "fr": "Un seul service compromis (ou une SSRF) atteint tout le reste ; identité de service (mTLS) et autorisation par appel",
+    "en": "One compromised service (or an SSRF) reaches everything else; service identity (mTLS) and per-call authorisation"
+   },
+   {
+    "fr": "Les performances réseau ; ajouter un cache",
+    "en": "Network performance; add a cache"
+   },
+   {
+    "fr": "Une attaque DDoS externe ; ajouter un CDN",
+    "en": "An external DDoS; add a CDN"
+   },
+   {
+    "fr": "Aucun, le réseau privé suffit si le pare-feu périmétrique est bon",
+    "en": "None, the private network is enough if the perimeter firewall is good"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "La confiance par réseau transforme une brèche en déplacement latéral libre ; chaque appel doit prouver qui l'émet.",
+   "en": "Network-based trust turns one breach into free lateral movement; every call must prove who makes it."
+  }
+ },
+ {
+  "id": "systems_integration_l1_rate_limit",
+  "skill_id": "systems_integration",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "L'API d'un partenaire répond 429 lors de votre synchronisation de nuit. Que faites-vous ?",
+   "en": "A partner's API returns 429 during your nightly sync. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Relancer aussitôt, en boucle, jusqu'au succès",
+    "en": "Retry immediately, in a loop, until success"
+   },
+   {
+    "fr": "Ralentir et réessayer après le délai indiqué (Retry-After) ou avec un backoff",
+    "en": "Slow down and retry after the indicated delay (Retry-After) or with backoff"
+   },
+   {
+    "fr": "Considérer l'API comme en panne et arrêter la synchronisation",
+    "en": "Treat the API as down and stop the sync"
+   },
+   {
+    "fr": "Renouveler le jeton d'authentification",
+    "en": "Renew the authentication token"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 30,
+  "explanation": {
+   "fr": "429 = trop de requêtes : le partenaire demande de ralentir. Relancer en boucle aggrave et peut mener au blocage.",
+   "en": "429 = too many requests: the partner asks you to slow down. Hammering makes it worse and may get you blocked."
+  }
+ },
+ {
+  "id": "systems_integration_l1_webhook_ack",
+  "skill_id": "systems_integration",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Un partenaire relance son webhook si vous ne répondez pas 2xx en 5 s ; votre traitement prend 20 s et vous recevez des doublons. Que faites-vous ?",
+   "en": "A partner retries its webhook unless you answer 2xx within 5 s; your processing takes 20 s and you get duplicates. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Vérifier la signature, enregistrer l'événement, répondre 2xx, puis traiter en asynchrone",
+    "en": "Verify the signature, store the event, answer 2xx, then process asynchronously"
+   },
+   {
+    "fr": "Demander au partenaire d'allonger son délai",
+    "en": "Ask the partner to extend its timeout"
+   },
+   {
+    "fr": "Répondre 2xx avant même de vérifier la signature",
+    "en": "Answer 2xx before even verifying the signature"
+   },
+   {
+    "fr": "Optimiser le traitement pour qu'il passe sous 5 s",
+    "en": "Optimise processing to fit under 5 s"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "On accuse réception vite et de façon fiable, et le travail lourd part en file. On garde la vérification avant d'accepter.",
+   "en": "Acknowledge quickly and durably, and queue the heavy work. Keep verification before accepting."
+  }
+ },
+ {
+  "id": "systems_integration_l2_idempotency",
+  "skill_id": "systems_integration",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Un appel de paiement expire côté client ; le client réessaie et la personne est débitée deux fois. Correctif ?",
+   "en": "A payment call times out on the client side; the client retries and the customer is charged twice. Fix?"
+  },
+  "options": [
+   {
+    "fr": "Supprimer les relances côté client",
+    "en": "Remove client-side retries"
+   },
+   {
+    "fr": "Allonger le délai d'expiration du client",
+    "en": "Lengthen the client timeout"
+   },
+   {
+    "fr": "Une clé d'idempotence envoyée par le client et mémorisée côté serveur avec le résultat",
+    "en": "An idempotency key sent by the client and stored server-side with the result"
+   },
+   {
+    "fr": "Vérifier qu'aucun paiement du même montant n'existe dans la minute",
+    "en": "Check no payment of the same amount exists within the minute"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Une expiration ne dit pas si l'opération a eu lieu : la clé rend la relance sûre. Un contrôle par montant bloque aussi des achats légitimes.",
+   "en": "A timeout doesn't say whether the operation happened: the key makes retrying safe. An amount check also blocks legitimate purchases."
+  }
+ },
+ {
+  "id": "systems_integration_l2_backoff_worst_case",
+  "skill_id": "systems_integration",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Un client réessaie jusqu'à {n} fois avec un backoff exponentiel : {b} s avant la 1re relance, puis le double à chaque fois. Chaque tentative expire après {t} s. Durée maximale avant abandon, toutes les tentatives expirant ?",
+   "en": "A client retries up to {n} times with exponential backoff: {b} s before the 1st retry, then doubling each time. Each attempt times out after {t} s. Maximum duration before giving up, with every attempt timing out?"
+  },
+  "params": {
+   "n": {
+    "min": 3,
+    "max": 6,
+    "step": 1
+   },
+   "b": {
+    "min": 0.5,
+    "max": 2,
+    "step": 0.5
+   },
+   "t": {
+    "min": 2,
+    "max": 10,
+    "step": 1
+   }
+  },
+  "answer": "(n + 1) * t + b * (2 ** n - 1)",
+  "tolerance": 0.01,
+  "unit": "s",
+  "seconds": 110,
+  "explanation": {
+   "fr": "n + 1 tentatives de t secondes, plus les attentes b + 2b + … + 2^(n−1)·b = b·(2^n − 1).",
+   "en": "n + 1 attempts of t seconds, plus waits b + 2b + … + 2^(n−1)·b = b·(2^n − 1)."
+  }
+ },
+ {
+  "id": "systems_integration_l3_dual_write",
+  "skill_id": "systems_integration",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Un service écrit en base puis publie un événement sur le bus. Après un plantage entre les deux, l'événement manque. Solution robuste ?",
+   "en": "A service writes to its database then publishes an event to the bus. After a crash between the two, the event is missing. Robust solution?"
+  },
+  "options": [
+   {
+    "fr": "Publier l'événement avant d'écrire en base",
+    "en": "Publish the event before writing to the database"
+   },
+   {
+    "fr": "Réessayer la publication trois fois",
+    "en": "Retry publishing three times"
+   },
+   {
+    "fr": "Une transaction distribuée en deux phases entre la base et le bus, toujours",
+    "en": "Always use a two-phase distributed transaction between database and bus"
+   },
+   {
+    "fr": "Écrire l'événement dans une table « outbox » dans la même transaction, puis le relayer",
+    "en": "Write the event to an outbox table in the same transaction, then relay it"
+   }
+  ],
+  "correct": [
+   3
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "L'outbox rend l'écriture et l'intention de publier atomiques ; le relais publie au moins une fois. Inverser l'ordre crée l'erreur inverse.",
+   "en": "The outbox makes the write and the intent to publish atomic; the relay publishes at least once. Reversing the order creates the opposite bug."
+  }
+ },
+ {
+  "id": "systems_integration_l3_at_least_once",
+  "skill_id": "systems_integration",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Votre consommateur lit une file à livraison « au moins une fois ». Que lui faut-il ?",
+   "en": "Your consumer reads a queue with at-least-once delivery. What does it need?"
+  },
+  "options": [
+   {
+    "fr": "Un traitement idempotent ou une déduplication par identifiant de message",
+    "en": "Idempotent processing or deduplication by message id"
+   },
+   {
+    "fr": "Accuser réception avant le traitement pour éviter les doublons",
+    "en": "Acknowledge before processing to avoid duplicates"
+   },
+   {
+    "fr": "Une file de lettres mortes après N échecs",
+    "en": "A dead-letter queue after N failures"
+   },
+   {
+    "fr": "Gérer le désordre, par exemple avec un numéro de version par entité",
+    "en": "Handle out-of-order delivery, e.g. with a per-entity version number"
+   },
+   {
+    "fr": "Faire confiance au broker pour ne jamais livrer deux fois",
+    "en": "Trust the broker never to deliver twice"
+   }
+  ],
+  "correct": [
+   0,
+   2,
+   3
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Accuser réception avant de traiter perd des messages en cas de plantage ; « au moins une fois » implique des doublons.",
+   "en": "Acknowledging before processing loses messages on a crash; at-least-once implies duplicates."
+  }
+ },
+ {
+  "id": "code_quality_l1_split_pr",
+  "skill_id": "code_quality",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Votre pull request fait 2 000 lignes et mélange un renommage massif et une nouvelle fonctionnalité. Que faites-vous avant la relecture ?",
+   "en": "Your pull request is 2,000 lines and mixes a large rename with a new feature. What do you do before review?"
+  },
+  "options": [
+   {
+    "fr": "La découper : d'abord le renommage sans changement de comportement, puis la fonctionnalité",
+    "en": "Split it: first the rename with no behaviour change, then the feature"
+   },
+   {
+    "fr": "Demander plus de relecteurs",
+    "en": "Ask for more reviewers"
+   },
+   {
+    "fr": "Écrire une longue description et garder une seule PR",
+    "en": "Write a long description and keep a single PR"
+   },
+   {
+    "fr": "Fusionner sans relecture, puisque c'est surtout du renommage",
+    "en": "Merge without review, since it is mostly renaming"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 30,
+  "explanation": {
+   "fr": "Séparer le mécanique du fonctionnel rend chaque relecture rapide et chaque retour arrière ciblé.",
+   "en": "Separating mechanical from functional changes makes each review fast and each revert targeted."
+  }
+ },
+ {
+  "id": "code_quality_l1_boolean_flag",
+  "skill_id": "code_quality",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Les appels ressemblent à `export(data, true, false)` et le premier booléen bascule entre deux comportements sans rapport. Meilleure amélioration ?",
+   "en": "Calls look like `export(data, true, false)` and the first boolean switches between two unrelated behaviours. Best improvement?"
+  },
+  "options": [
+   {
+    "fr": "Ajouter un commentaire à chaque appel",
+    "en": "Add a comment at each call"
+   },
+   {
+    "fr": "Remplacer les booléens par des entiers 0/1",
+    "en": "Replace the booleans with 0/1 integers"
+   },
+   {
+    "fr": "Scinder en deux fonctions aux noms explicites",
+    "en": "Split into two explicitly named functions"
+   },
+   {
+    "fr": "Passer les booléens dans une variable globale",
+    "en": "Move the booleans into a global variable"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Un drapeau qui choisit entre deux comportements cache deux fonctions ; les noms rendent l'appel lisible sans commentaire.",
+   "en": "A flag choosing between two behaviours hides two functions; names make the call readable without comments."
+  }
+ },
+ {
+  "id": "code_quality_l2_coverage_after_change",
+  "skill_id": "code_quality",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Un module compte {s} instructions, couvertes à {c} %. Vous ajoutez {n} instructions, toutes couvertes par vos nouveaux tests. Nouvelle couverture en % ?",
+   "en": "A module has {s} statements, {c}% covered. You add {n} statements, all covered by your new tests. New coverage in %?"
+  },
+  "params": {
+   "s": {
+    "min": 1000,
+    "max": 5000,
+    "step": 500
+   },
+   "c": {
+    "min": 50,
+    "max": 80,
+    "step": 5
+   },
+   "n": {
+    "min": 100,
+    "max": 500,
+    "step": 50
+   }
+  },
+  "answer": "(s * c / 100 + n) / (s + n) * 100",
+  "tolerance": 0.005,
+  "unit": "%",
+  "seconds": 80,
+  "explanation": {
+   "fr": "Instructions couvertes (s·c/100 + n) sur le total (s + n).",
+   "en": "Covered statements (s·c/100 + n) over the total (s + n)."
+  }
+ },
+ {
+  "id": "code_quality_l2_lint_baseline",
+  "skill_id": "code_quality",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Activer une nouvelle règle de lint révèle 300 violations dans le code existant. Approche la plus efficace ?",
+   "en": "Enabling a new lint rule reveals 300 violations in existing code. Most effective approach?"
+  },
+  "options": [
+   {
+    "fr": "Ne pas activer la règle",
+    "en": "Don't enable the rule"
+   },
+   {
+    "fr": "Tout corriger dans une seule PR avant d'activer",
+    "en": "Fix everything in one PR before enabling"
+   },
+   {
+    "fr": "L'activer en avertissement seulement, partout et pour toujours",
+    "en": "Enable it as a warning only, everywhere, forever"
+   },
+   {
+    "fr": "Figer les violations existantes dans une base de référence et bloquer les nouvelles",
+    "en": "Freeze existing violations in a baseline and block new ones"
+   }
+  ],
+  "correct": [
+   3
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "La base de référence arrête l'aggravation tout de suite et laisse résorber l'existant au fil des modifications ; un avertissement permanent est ignoré.",
+   "en": "A baseline stops things getting worse immediately and lets the backlog shrink as code is touched; a permanent warning gets ignored."
+  }
+ },
+ {
+  "id": "code_quality_l3_legacy_refactor",
+  "skill_id": "code_quality",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Vous devez restructurer un module critique de 3 000 lignes, sans aucun test. Première étape ?",
+   "en": "You must restructure a critical 3,000-line module that has no tests. First step?"
+  },
+  "options": [
+   {
+    "fr": "Le réécrire proprement à partir des spécifications",
+    "en": "Rewrite it cleanly from the specification"
+   },
+   {
+    "fr": "Écrire des tests de caractérisation qui figent le comportement actuel aux points d'entrée",
+    "en": "Write characterisation tests that pin current behaviour at its entry points"
+   },
+   {
+    "fr": "Écrire des tests du comportement attendu selon la documentation",
+    "en": "Write tests of the expected behaviour per the documentation"
+   },
+   {
+    "fr": "Refactorer par petites étapes en comptant sur la relecture",
+    "en": "Refactor in small steps relying on code review"
+   }
+  ],
+  "correct": [
+   1
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Le comportement réel, bugs compris, est ce que la production attend : on le fige d'abord, puis on refactore sous cette protection.",
+   "en": "Actual behaviour, bugs included, is what production relies on: pin it first, then refactor under that protection."
+  }
+ },
+ {
+  "id": "code_quality_l3_wrong_abstraction",
+  "skill_id": "code_quality",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Deux modules contiennent 40 lignes presque identiques de calcul de remise. Le produit confirme que les deux règles vont évoluer indépendamment. Que faites-vous ?",
+   "en": "Two modules contain 40 nearly identical lines of discount calculation. Product confirms both rules will evolve independently. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Extraire tout de suite une classe de base commune",
+    "en": "Extract a shared base class right away"
+   },
+   {
+    "fr": "Factoriser dans une fonction avec des paramètres pour chaque différence future",
+    "en": "Factor into one function with parameters for each future difference"
+   },
+   {
+    "fr": "Garder les deux copies, chacune possédée par son module",
+    "en": "Keep both copies, each owned by its module"
+   },
+   {
+    "fr": "Les déplacer dans une bibliothèque partagée versionnée",
+    "en": "Move them into a versioned shared library"
+   }
+  ],
+  "correct": [
+   2
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Une ressemblance de code n'est pas un concept partagé : factoriser couplerait deux règles qui divergent, et l'abstraction se remplirait de cas particuliers.",
+   "en": "Similar code isn't a shared concept: factoring would couple two diverging rules, and the abstraction would fill with special cases."
+  }
+ }
+]

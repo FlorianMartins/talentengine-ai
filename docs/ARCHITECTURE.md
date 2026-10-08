@@ -190,6 +190,21 @@ flowchart TB
   covers code → tests → CI → packaging → docs, every signal gets the `ownership` facet. Up to six *key
   files* (CI config, Dockerfile, a test, the entry point…) are fetched, pseudonymised and kept aside
   for Level 2.
+* **Every repository of a profile** (`funnel/github.py`, `funnel/crossrepo.py`): a profile link expands
+  to all public, non-fork repositories (up to 30), read in parallel with git partial clones (no REST
+  quota). Integration files (manifests, workflows, compose, Terraform, `.gitmodules`) reveal how the
+  projects and tools work together:
+  * **cross-repository links** — a package dependency on another of the candidate's repositories, a CI
+    step installing or running it, a deployed image, a submodule, a Terraform module source; a README link
+    is kept as a weak *mention* (mentioning is not integrating). Comment lines and non-dependency fields
+    are ignored — both produced false positives on a real profile;
+  * **pipeline orchestration** — the tools a workflow chains (tests, linters, scanners, SBOM, signing,
+    deployment) and job dependencies (`needs:`); compose files with several services;
+  * **declared stack** — dependencies such as `anthropic`, `langchain`, `torch`, `fastapi`: weak leads,
+    corroborated by the rest of the tree.
+  These feed the *Systems integration & orchestration* skill. Repositories are labelled `repo-1…repo-N`
+  everywhere — in excerpts, key files and the candidate's own documents — because a repository name can be
+  searched online and would break blind review; the GitHub user name is masked like a person's name.
 * **Documents, CVs, notes** (`funnel/documents.py`): line-based structure extraction with sections.
   **A claim is not a proof**: a line in a “Skills” section or starting with “proficient in” is recorded
   as `declared` with strength 0 (it becomes an interview topic). A line becomes evidence only when it
@@ -197,7 +212,11 @@ flowchart TB
   (“built”, “piloté”, “réalisé”).
 * **Images**: the local VLM caption (plus the candidate's own caption) is analysed like a document,
   with a higher base strength — a photo of finished work is tangible in itself.
-* **Credentials** are extracted separately, only from education sections or lines that name a
+* **LinkedIn profile** (exported as PDF) is read like a CV, with its plain section titles; it often lists
+  experience a two-page CV leaves out. It is a self-description, capped like the CV.
+* **Credentials** are extracted separately; diploma and certificate files are categories of their own,
+  marked *supported by a document*, and merged with the same credential named in the CV or on LinkedIn.
+  Credentials are, only from education sections or lines that name a
   certificate: mentioning a tool (“ran Google Ads campaigns”) is not a certification.
 
 ### Factual density
@@ -228,7 +247,7 @@ server-side refusal fallback), `openai_compatible` (Mistral, vLLM, OpenRouter…
 
 ## 5. Module 3 — The Universal Skills Translator
 
-The catalogue (`translator/catalog.py`) holds 31 skills across software, data, design, marketing,
+The catalogue (`translator/catalog.py`) holds 37 skills across software, AI (LLM engineering), data, design, marketing,
 sales, craft, culinary, textile, management and transversal families — each defined by what can be
 **observed in work**, with an HR statement and an interview template in French and English.
 
@@ -299,26 +318,26 @@ describe the solidity of the *evidence*, not the person.
   "criteria": [ { "skill_id": "ci_cd", "importance": "essential", "required_level": 2.5,
                   "observed_level": 2.71, "match": 0.83, "status": "demonstrated" } ],
   "validated_skills": [ {
-      "label": "Intégration et déploiement continus",
-      "statement": "Prouvé par les pièces : sait automatiser la vérification et la livraison d'un logiciel (voir CV, repo-1).",
-      "level": 2.71, "level_label": "Confirmé",
+      "label": "Continuous integration & delivery",
+      "statement": "Proven by the material: can automate how software is checked and shipped (see CV, repo-1).",
+      "level": 2.71, "level_label": "Advanced",
       "axes": { "autonomy": 2.9, "complexity": 2.1, "reliability": 3.2 },
       "evidence": [ { "artifact_label": "repo-1", "locator": "3 file(s) in .github",
                       "excerpt": ".github/workflows/ci.yml\n…" } ],
       "source": "heuristic" } ],
-  "gaps": [ { "label": "Conteneurisation", "suggestion": "Preuves partielles : …" } ],
+  "gaps": [ { "label": "Containerisation", "suggestion": "Partial evidence: …" } ],
   "interview_guide": [ {
-      "question": "Le projet repo-1 contient un pipeline automatique (…). Que se passe-t-il, étape par étape, quand vous envoyez une modification ?",
-      "purpose": "Vérifier la compréhension de bout en bout de l'automatisation.",
-      "expected_key_points": ["Décrit des étapes dans l'ordre…", "Explique ce qui bloque une livraison…"],
-      "warning_signs": ["Réponse générale qui pourrait s'appliquer à n'importe quel projet"],
+      "question": "repo-1 ships an automated pipeline (.github/workflows/ci.yml). Walk me through what happens, step by step, when you push a change. What do you do when it fails?",
+      "purpose": "Check end-to-end understanding of the automation.",
+      "expected_key_points": ["Describes ordered stages…", "Explains what blocks a release…"],
+      "warning_signs": ["Generic answer that would fit any project"],
       "evidence": { "artifact_label": "repo-1", "locator": ".github/workflows/ci.yml" } } ],
   "credentials": { "items": [], "weight_applied": 0.1, "component_pct": 0.0 },
   "warnings": [],
   "audit": { "ledger_entry_id": "LED-…", "entry_hash": "…", "job_config_version": 1,
              "escalation": { "escalated": false, "reason": "no escalation provider configured (local-only mode)" } },
   "decision": null,
-  "notice": "Aide à la décision uniquement. Ce score ne rejette personne…"
+  "notice": "Decision support only. This score rejects no one…"
 }
 ```
 
@@ -380,13 +399,61 @@ flowchart LR
 * **Bounded**: per-IP hourly limits, a concurrency cap, file and link limits, SSRF guard on every fetched
   URL and redirect. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
-## 9. Security posture (MVP)
+## 9. Verification tests — filtering impostors (`assessment/`)
+
+Evidence can be copied: a CV can be invented, a repository can belong to someone else, empty `tests/`
+folders can be created. The verification test checks that the person **knows the craft and knows their own
+work**, at the level they claim.
+
+```mermaid
+flowchart LR
+    J[Job profile or reference role + chosen level] --> S[select: questions spread over the job's skills by importance,<br/>2/3 at the level, 1/3 around it]
+    E[Candidate's Level-1 evidence] --> P[personal questions:<br/>CI tools of repo-n, which project builds on which,<br/>libraries used, folders, figures in their own report]
+    S & P --> I[instantiate per candidate:<br/>numbers re-drawn, options shuffled, answers kept server-side]
+    I --> Q[server serves one question at a time<br/>deadline set when served, no going back]
+    Q --> R[results: score per skill, verified level,<br/>authorship %, integrity signals]
+```
+
+* **Question bank**: 236 questions (`assessment/bank/*.json`) over all 37 skills × 3 levels (junior,
+  confirmed, senior): scenario-based single and multiple choice, ordering, and 53 numeric questions whose
+  numbers are drawn per candidate and evaluated by a safe arithmetic evaluator (no `eval`).
+* **What is guaranteed by design**: answers never reach the browser; the deadline is set by the server when
+  a question is first served and survives reloads; late answers score zero; no going back; every candidate
+  gets a different selection, different numbers and a different option order, so leaked answer keys or
+  screenshots do not transfer; selection uses the OS random source.
+* **What is detected and reported** (never acted on automatically): copy/paste/cut/drop attempts, context
+  menu, print-screen key, developer-tools shortcuts, the window losing focus or becoming hidden, leaving
+  full screen, extended displays, answers faster than reading time, late answers → a risk level with
+  neutral notes for the recruiter.
+* **What no web page can prevent**: a phone photographing the screen or a second device. The design makes
+  it slow and of little value (tight per-question timers, per-candidate variants, a moving watermark that
+  makes leaks traceable, questions about the candidate's own work), the optional **Safe Exam Browser** mode
+  locks the desktop (screenshots, other applications, virtual machines; verified server-side with the SEB
+  config-key hash), and the live interview with the generated guide remains the final check.
+* **No biometrics**: no camera, no microphone, no emotion inference (prohibited by AI Act Art. 5(1)(f)).
+* Recruiter tests are stored with the application and journalled (`assessment_created`,
+  `assessment_completed`); the candidate sees only that the test is complete. Sandbox tests live in memory
+  for two hours and show the results to the visitor.
+
+## 10. ATS bridge (`integrations/`)
+
+TalentEngine-AI also works as an **add-on** to Greenhouse, Lever, Ashby or any tool through a signed generic
+webhook: applications are pulled from the ATS, evaluated, and a note with the score, key evidence, gaps,
+interview questions and the candidate explanation link is written back. Details and provider specifics:
+[ATS_BRIDGE.md](ATS_BRIDGE.md).
+
+## 11. Security posture (MVP)
 
 * Local-first by default: no candidate data leaves the machine unless a job explicitly opts into
   escalation, and even then only pseudonymised Level-1 excerpts are sent.
-* Optional API key (`TE_API_KEY`, constant-time comparison); security headers on every response;
-  upload size (15 MB) and type limits; images re-encoded server-side.
+* Named accounts with roles (`recruiter`, `dpo`, `admin`): personal keys stored as SHA-256 hashes
+  (`users.json`, mode 0600), permission checked on every route, and every decision, reveal, export and
+  erasure signed server-side with the authenticated name. The legacy shared `TE_API_KEY` maps to an
+  admin. Security headers on every response; upload size (15 MB) and type limits; images re-encoded.
+* GDPR in code: automatic retention sweeps, full data export (Art. 15/20), erasure with
+  crypto-shredding (Art. 17), candidate explanation links (AI Act Art. 86) stored as token hashes,
+  logged when opened, invalidated by erasure; a DPIA draft generated from the live configuration.
 * Secrets: vault and seal keys from the environment in production (`talentengine keygen`); in
   development they are generated once with `0600` permissions.
-* Known MVP limits: single-tenant, no per-user RBAC yet (the `X-Actor` header is trusted), rule-based
-  name detection can miss unusual names without the optional NER. See the roadmap.
+* Known MVP limits: single-tenant, API keys rather than SSO (OIDC is on the roadmap), SQLite. See the
+  roadmap.

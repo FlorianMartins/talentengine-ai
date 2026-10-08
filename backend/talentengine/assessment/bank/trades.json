@@ -1,0 +1,1156 @@
+[
+  {
+    "id": "woodworking_l1_planing_tearout",
+    "skill_id": "woodworking",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "En rabotant une planche, la surface s'arrache par plaques au lieu de sortir lisse. Que faites-vous en premier ?",
+      "en": "While planing a board, the surface tears out in patches instead of coming out smooth. What do you try first?"
+    },
+    "options": [
+      {"fr": "Retourner la planche pour raboter dans l'autre sens, dans le sens du fil", "en": "Turn the board round and plane the other way, with the grain"},
+      {"fr": "Augmenter la profondeur de passe pour enlever l'arrachement d'un coup", "en": "Increase the depth of cut to remove the tear-out in one pass"},
+      {"fr": "Pousser plus vite la planche", "en": "Feed the board faster"},
+      {"fr": "Humidifier la surface avant de raboter", "en": "Wet the surface before planing"}
+    ],
+    "correct": [0],
+    "seconds": 40,
+    "explanation": {
+      "fr": "L'arrachement vient presque toujours d'un rabotage à contre-fil : on retourne la pièce, on réduit la passe et on vérifie l'affûtage.",
+      "en": "Tear-out almost always comes from planing against the grain: turn the piece round, take a lighter cut and check the edge is sharp."
+    }
+  },
+  {
+    "id": "woodworking_l1_timber_volume",
+    "skill_id": "woodworking",
+    "level": 1,
+    "type": "numeric",
+    "stem": {
+      "fr": "Vous commandez {n} planches de {L} m de long, {W} mm de large et {T} mm d'épaisseur. Quel volume de bois en m³ ?",
+      "en": "You order {n} boards, each {L} m long, {W} mm wide and {T} mm thick. What volume of timber is that in m³?"
+    },
+    "params": {
+      "n": {"min": 5, "max": 20, "step": 1},
+      "L": {"min": 2, "max": 5, "step": 0.5},
+      "W": {"min": 100, "max": 250, "step": 25},
+      "T": {"min": 20, "max": 50, "step": 5}
+    },
+    "answer": "n * L * W * T / 1000000",
+    "tolerance": 0.02,
+    "unit": "m³",
+    "seconds": 90,
+    "explanation": {
+      "fr": "Tout en mètres : n × L × (W/1000) × (T/1000).",
+      "en": "Convert everything to metres: n × L × (W/1000) × (T/1000)."
+    }
+  },
+  {
+    "id": "woodworking_l2_stair_going",
+    "skill_id": "woodworking",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "Escalier droit : hauteur à monter {H} mm, répartie en {n} hauteurs de marche égales. Avec la règle de confort 2h + g = 630 mm, quel giron g (en mm) ?",
+      "en": "Straight stair: total rise {H} mm, split into {n} equal risers. Using the comfort rule 2r + g = 630 mm, what going g (in mm)?"
+    },
+    "params": {
+      "H": {"min": 2600, "max": 2900, "step": 10},
+      "n": {"min": 15, "max": 16, "step": 1}
+    },
+    "answer": "630 - 2 * H / n",
+    "tolerance": 0.01,
+    "unit": "mm",
+    "seconds": 90,
+    "explanation": {
+      "fr": "Hauteur de marche h = H / n, puis g = 630 − 2h.",
+      "en": "Riser height r = H / n, then g = 630 − 2r."
+    }
+  },
+  {
+    "id": "woodworking_l2_tabletop_crack",
+    "skill_id": "woodworking",
+    "level": 2,
+    "type": "single",
+    "stem": {
+      "fr": "Un plateau en chêne massif, vissé sur sa ceinture par des trous ajustés, se fend au milieu après un hiver de chauffage. Cause la plus probable ?",
+      "en": "A solid oak tabletop, screwed to its apron through tight holes, splits down the middle after a winter of central heating. Most likely cause?"
+    },
+    "options": [
+      {"fr": "Le plateau ne pouvait pas bouger en largeur en séchant : il fallait des taquets ou des trous oblongs", "en": "The top could not move across its width as it dried: it needed buttons or slotted holes"},
+      {"fr": "Les vis étaient trop courtes et le plateau a vibré", "en": "The screws were too short and the top vibrated"},
+      {"fr": "Le vernis était trop épais et a tiré sur le bois", "en": "The varnish was too thick and pulled on the wood"},
+      {"fr": "Le chêne se rétracte surtout dans sa longueur", "en": "Oak shrinks mainly along its length"}
+    ],
+    "correct": [0],
+    "seconds": 45,
+    "explanation": {
+      "fr": "Le bois travaille surtout en travers du fil. Bridé, il se fend en se rétractant ; on le fixe pour qu'il puisse glisser.",
+      "en": "Wood moves mostly across the grain. Restrained, it splits as it shrinks, so it must be fixed in a way that lets it slide."
+    }
+  },
+  {
+    "id": "woodworking_l2_frame_door_order",
+    "skill_id": "woodworking",
+    "level": 2,
+    "type": "order",
+    "stem": {
+      "fr": "Mettez dans l'ordre la fabrication d'une porte à cadre et panneau en bois massif.",
+      "en": "Put the making of a solid-wood frame-and-panel door in order."
+    },
+    "options": [
+      {"fr": "Tailler les assemblages et faire un montage à blanc", "en": "Cut the joints and dry-fit"},
+      {"fr": "Laisser le bois se stabiliser dans l'atelier", "en": "Let the timber acclimatise in the workshop"},
+      {"fr": "Ponçage final et finition", "en": "Final sanding and finishing"},
+      {"fr": "Tracer les assemblages depuis les faces de référence", "en": "Mark out the joints from the reference faces"},
+      {"fr": "Coller et serrer en contrôlant l'équerrage et le gauche", "en": "Glue up and clamp, checking for square and wind"},
+      {"fr": "Corroyer : dégauchir, dresser, mettre d'épaisseur et de largeur", "en": "Dress the stock: face, edge, thickness and width"}
+    ],
+    "correct": [1, 5, 3, 0, 4, 2],
+    "seconds": 75,
+    "explanation": {
+      "fr": "Bois stabilisé, puis corroyé ; le traçage part des faces de référence ; on monte à blanc avant de coller ; la finition vient en dernier.",
+      "en": "Acclimatised timber, then dressed; marking out works from reference faces; dry-fit before glue-up; finishing comes last."
+    }
+  },
+  {
+    "id": "woodworking_l3_panel_clearance",
+    "skill_id": "woodworking",
+    "level": 3,
+    "type": "numeric",
+    "stem": {
+      "fr": "Un panneau massif de {W} mm de large est posé à {M1} % d'humidité ; en service il montera à {M2} %. Retrait/gonflement : 0,25 % de la largeur par point d'humidité. Gonflement à prévoir dans les rainures (mm) ?",
+      "en": "A solid panel {W} mm wide is fitted at {M1}% moisture content; in service it will rise to {M2}%. Movement: 0.25% of width per 1% moisture change. How much expansion (mm) must the grooves allow?"
+    },
+    "params": {
+      "W": {"min": 300, "max": 500, "step": 10},
+      "M1": {"min": 8, "max": 11, "step": 1},
+      "M2": {"min": 14, "max": 17, "step": 1}
+    },
+    "answer": "W * 0.0025 * (M2 - M1)",
+    "tolerance": 0.02,
+    "unit": "mm",
+    "seconds": 100,
+    "explanation": {
+      "fr": "Variation = largeur × 0,0025 × écart d'humidité. Le panneau est posé flottant, sans colle, avec ce jeu réparti dans les rainures.",
+      "en": "Movement = width × 0.0025 × moisture difference. The panel floats, unglued, with that clearance split between the grooves."
+    }
+  },
+  {
+    "id": "woodworking_l3_site_swelling",
+    "skill_id": "woodworking",
+    "level": 3,
+    "type": "multi",
+    "stem": {
+      "fr": "Des portes intérieures livrées en hiver sur un chantier fraîchement plâtré gonflent et frottent quelques semaines plus tard. Quelles causes ou préventions sont pertinentes ?",
+      "en": "Interior doors delivered in winter to a freshly plastered site swell and bind a few weeks later. Which causes or preventions are relevant?"
+    },
+    "options": [
+      {"fr": "L'humidité dégagée par les enduits et chapes pas encore secs", "en": "Moisture released by plaster and screeds that had not dried yet"},
+      {"fr": "Une humidité du bois non adaptée aux conditions de service", "en": "Timber moisture content not matched to service conditions"},
+      {"fr": "Des chants et bois de bout laissés sans finition avant la pose", "en": "Edges and end grain left unsealed before installation"},
+      {"fr": "Un ponçage final avec un grain trop fin", "en": "Final sanding with too fine a grit"},
+      {"fr": "Des paumelles trop petites pour le poids des portes", "en": "Hinges too small for the weight of the doors"}
+    ],
+    "correct": [0, 1, 2],
+    "seconds": 60,
+    "explanation": {
+      "fr": "Les menuiseries se posent après le séchage des corps d'état humides, avec un bois à la bonne humidité et toutes les faces protégées.",
+      "en": "Joinery goes in after the wet trades have dried, with timber at the right moisture content and every face sealed."
+    }
+  },
+
+  {
+    "id": "construction_works_l1_partition_checks",
+    "skill_id": "construction_works",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Avant d'abattre une cloison intérieure dans un logement ancien, que vérifiez-vous d'abord ?",
+      "en": "Before knocking down an interior partition in an old dwelling, what do you check first?"
+    },
+    "options": [
+      {"fr": "Qu'elle n'est pas porteuse et qu'aucun réseau sous tension ou en charge ne la traverse", "en": "That it is not load-bearing and that no live cable or pressurised pipe runs through it"},
+      {"fr": "Que la benne à gravats est bien commandée", "en": "That the rubble skip has been ordered"},
+      {"fr": "Que le sol de la pièce est de niveau", "en": "That the floor of the room is level"},
+      {"fr": "La teinte de peinture choisie pour la pièce agrandie", "en": "The paint colour chosen for the enlarged room"}
+    ],
+    "correct": [0],
+    "seconds": 35,
+    "explanation": {
+      "fr": "Un mur porteur ou un réseau oublié transforme une démolition simple en accident. Le reste vient ensuite.",
+      "en": "A load-bearing wall or a forgotten service turns a simple demolition into an accident. Everything else comes after."
+    }
+  },
+  {
+    "id": "construction_works_l1_paint_quantity",
+    "skill_id": "construction_works",
+    "level": 1,
+    "type": "numeric",
+    "stem": {
+      "fr": "Pièce de {P} m de périmètre et {h} m sous plafond, {O} m² d'ouvertures. Deux couches sur les murs, rendement {c} m²/L par couche. Combien de litres de peinture ?",
+      "en": "Room with a {P} m perimeter and {h} m ceiling height, {O} m² of openings. Two coats on the walls, coverage {c} m²/L per coat. How many litres of paint?"
+    },
+    "params": {
+      "P": {"min": 12, "max": 24, "step": 1},
+      "h": {"min": 2.4, "max": 2.7, "step": 0.1},
+      "O": {"min": 2, "max": 6, "step": 0.5},
+      "c": {"min": 8, "max": 12, "step": 1}
+    },
+    "answer": "(P * h - O) * 2 / c",
+    "tolerance": 0.02,
+    "unit": "L",
+    "seconds": 90,
+    "explanation": {
+      "fr": "Surface nette = périmètre × hauteur − ouvertures ; × 2 couches ; ÷ rendement.",
+      "en": "Net area = perimeter × height − openings; × 2 coats; ÷ coverage."
+    }
+  },
+  {
+    "id": "construction_works_l2_trade_sequence",
+    "skill_id": "construction_works",
+    "level": 2,
+    "type": "order",
+    "stem": {
+      "fr": "Rénovation d'une pièce : mettez les interventions dans l'ordre.",
+      "en": "Renovating a room: put the work in order."
+    },
+    "options": [
+      {"fr": "Doublages en plaques de plâtre et traitement des joints", "en": "Plasterboard lining and joint finishing"},
+      {"fr": "Appareillage : prises, interrupteurs, luminaires", "en": "Second fix: sockets, switches, light fittings"},
+      {"fr": "Dépose et curage", "en": "Strip-out and demolition"},
+      {"fr": "Peinture (impression puis finition)", "en": "Painting (primer then finish coats)"},
+      {"fr": "Passage des gaines et canalisations (premier œuvre réseaux)", "en": "First fix: running cables, conduits and pipes"}
+    ],
+    "correct": [2, 4, 0, 3, 1],
+    "seconds": 60,
+    "explanation": {
+      "fr": "On cure, on passe les réseaux avant de fermer les murs, on peint sur des joints secs, et l'appareillage se pose en dernier pour ne pas être sali.",
+      "en": "Strip out, run services before closing the walls, paint over dry joints, and fit sockets and fittings last so they are not spoiled."
+    }
+  },
+  {
+    "id": "construction_works_l2_plaster_quantity",
+    "skill_id": "construction_works",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "Enduit plâtre sur {A} m² en {e} mm d'épaisseur moyenne. Consommation : 0,9 kg/m² par mm. Avec 10 % de perte, combien de kg prévoir ?",
+      "en": "Gypsum plaster over {A} m² at an average {e} mm thickness. Consumption: 0.9 kg/m² per mm. Allowing 10% waste, how many kg do you plan for?"
+    },
+    "params": {
+      "A": {"min": 10, "max": 40, "step": 1},
+      "e": {"min": 5, "max": 15, "step": 1}
+    },
+    "answer": "A * e * 0.9 * 1.1",
+    "tolerance": 0.02,
+    "unit": "kg",
+    "seconds": 90,
+    "explanation": {
+      "fr": "Surface × épaisseur × consommation unitaire, puis × 1,1 pour la perte.",
+      "en": "Area × thickness × unit consumption, then × 1.1 for waste."
+    }
+  },
+  {
+    "id": "construction_works_l2_paint_on_fresh_plaster",
+    "skill_id": "construction_works",
+    "level": 2,
+    "type": "single",
+    "stem": {
+      "fr": "Un enduit plâtre épais a été posé il y a trois jours en hiver. Le client veut peindre demain. Que répondez-vous ?",
+      "en": "A thick gypsum plaster coat went on three days ago in winter. The client wants it painted tomorrow. What do you say?"
+    },
+    "options": [
+      {"fr": "Attendre le séchage complet (contrôle d'humidité), puis une impression adaptée : sinon cloques, taches et décollement", "en": "Wait until it is fully dry (moisture check), then use a suitable primer: otherwise blistering, staining and peeling"},
+      {"fr": "Peindre tout de suite avec une peinture glycéro, plus étanche", "en": "Paint right away with an oil-based paint, which seals better"},
+      {"fr": "Chauffer la pièce à fond une nuit puis peindre", "en": "Turn the heating to maximum overnight, then paint"},
+      {"fr": "Peindre sans impression, la peinture laissera respirer l'enduit", "en": "Paint without primer, the paint will let the plaster breathe"}
+    ],
+    "correct": [0],
+    "seconds": 45,
+    "explanation": {
+      "fr": "Une peinture sur support humide piège l'eau. Un séchage forcé brutal fissure l'enduit. On mesure, on attend, on imprime.",
+      "en": "Paint on a damp substrate traps the water, and force-drying cracks the plaster. Measure, wait, prime."
+    }
+  },
+  {
+    "id": "construction_works_l3_heated_screed_tiles",
+    "skill_id": "construction_works",
+    "level": 3,
+    "type": "single",
+    "stem": {
+      "fr": "Un carrelage posé sur une chape neuve chauffante se fissure et se décolle au premier hiver. Cause la plus probable ?",
+      "en": "Tiles laid on a new heated screed crack and come loose during the first winter. Most likely cause?"
+    },
+    "options": [
+      {"fr": "Carrelage posé avant séchage de la chape et sans première mise en chauffe progressive", "en": "Tiles laid before the screed had dried and before its first gradual heating cycle"},
+      {"fr": "Joints trop foncés qui absorbent la chaleur", "en": "Grout too dark, absorbing the heat"},
+      {"fr": "Colle appliquée au peigne cranté", "en": "Adhesive spread with a notched trowel"},
+      {"fr": "Carreaux trop épais pour un plancher chauffant", "en": "Tiles too thick for underfloor heating"}
+    ],
+    "correct": [0],
+    "seconds": 50,
+    "explanation": {
+      "fr": "Une chape chauffante doit sécher puis subir sa mise en chauffe avant revêtement ; sinon retrait et dilatation cassent l'adhérence. Les joints de fractionnement comptent aussi.",
+      "en": "A heated screed must dry and go through its commissioning heat-up before covering; otherwise shrinkage and expansion break the bond. Movement joints matter too."
+    }
+  },
+  {
+    "id": "construction_works_l3_handover_snags",
+    "skill_id": "construction_works",
+    "level": 3,
+    "type": "multi",
+    "stem": {
+      "fr": "À la réception des travaux, le client relève plusieurs défauts. Quelles pratiques sont correctes ?",
+      "en": "At the handover of works, the client spots several defects. Which practices are correct?"
+    },
+    "options": [
+      {"fr": "Inscrire chaque défaut comme réserve écrite dans le procès-verbal de réception", "en": "Record each defect as a written reservation in the handover report"},
+      {"fr": "Fixer avec l'entreprise concernée un délai pour lever chaque réserve", "en": "Agree a deadline with the responsible contractor to clear each reservation"},
+      {"fr": "Constater la levée des réserves par écrit une fois les reprises faites", "en": "Confirm in writing that reservations are cleared once the remedial work is done"},
+      {"fr": "Signer sans réserve pour tenir le planning, les garanties couvriront", "en": "Sign without reservations to keep to the schedule, the warranties will cover it"},
+      {"fr": "Faire reprendre les défauts par une autre entreprise sans prévenir la première", "en": "Have another contractor fix the defects without telling the original one"}
+    ],
+    "correct": [0, 1, 2],
+    "seconds": 60,
+    "explanation": {
+      "fr": "Un défaut apparent non réservé à la réception est en principe considéré comme accepté. Réserves écrites, délais, levée constatée.",
+      "en": "A visible defect not recorded at handover is generally deemed accepted. Written reservations, deadlines, documented clearance."
+    }
+  },
+
+  {
+    "id": "metalwork_l1_galvanised_welding",
+    "skill_id": "metalwork",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Vous devez souder une pièce en acier galvanisé. Que faites-vous avant d'amorcer ?",
+      "en": "You have to weld a galvanised steel part. What do you do before striking an arc?"
+    },
+    "options": [
+      {"fr": "Retirer le zinc localement sur la zone de soudure et travailler avec une aspiration des fumées", "en": "Remove the zinc locally at the weld area and work with fume extraction"},
+      {"fr": "Rien, le zinc protège la soudure de l'oxydation", "en": "Nothing, the zinc protects the weld from oxidation"},
+      {"fr": "Augmenter fortement l'intensité pour brûler le zinc", "en": "Turn the current right up to burn off the zinc"},
+      {"fr": "Mouiller la pièce pour limiter les fumées", "en": "Wet the part to reduce fumes"}
+    ],
+    "correct": [0],
+    "seconds": 35,
+    "explanation": {
+      "fr": "Le zinc vaporisé donne porosités et fumées toxiques (fièvre des fondeurs). On meule la zone et on aspire.",
+      "en": "Vaporised zinc causes porosity and toxic fumes (metal fume fever). Grind the area back and extract."
+    }
+  },
+  {
+    "id": "metalwork_l1_mig_porosity_wind",
+    "skill_id": "metalwork",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Dehors par vent fort, vos cordons MIG/MAG sont criblés de petits trous. Cause la plus probable ?",
+      "en": "Outdoors on a windy day, your MIG/MAG beads are full of small holes. Most likely cause?"
+    },
+    "options": [
+      {"fr": "Le vent chasse le gaz de protection", "en": "The wind is blowing the shielding gas away"},
+      {"fr": "La vitesse de fil est trop faible", "en": "The wire feed speed is too low"},
+      {"fr": "La pince de masse est trop loin de la soudure", "en": "The earth clamp is too far from the weld"},
+      {"fr": "Le fil est d'un diamètre trop fort", "en": "The wire diameter is too large"}
+    ],
+    "correct": [0],
+    "seconds": 30,
+    "explanation": {
+      "fr": "Sans gaz, le bain absorbe l'air : porosités. On abrite la zone (écrans), on vérifie débit, buse et bouteille.",
+      "en": "Without gas, the pool absorbs air: porosity. Screen the area and check flow rate, nozzle and cylinder."
+    }
+  },
+  {
+    "id": "metalwork_l2_fillet_mass",
+    "skill_id": "metalwork",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "Soudure d'angle à côtés égaux z = {z} mm sur {L} m de long. Acier : 7,85 kg/dm³. Masse de métal déposé en kg (section triangulaire, sans surépaisseur ni pertes) ?",
+      "en": "Equal-leg fillet weld, leg z = {z} mm, {L} m long. Steel: 7.85 kg/dm³. Mass of deposited metal in kg (triangular section, no reinforcement, no losses)?"
+    },
+    "params": {
+      "z": {"min": 4, "max": 10, "step": 1},
+      "L": {"min": 2, "max": 10, "step": 1}
+    },
+    "answer": "z * z / 2 * L * 0.00785",
+    "tolerance": 0.02,
+    "unit": "kg",
+    "seconds": 110,
+    "explanation": {
+      "fr": "Section = z²/2 mm² ; volume = section × L × 1000 mm³ ; masse = volume × 7,85×10⁻⁶ kg/mm³.",
+      "en": "Section = z²/2 mm²; volume = section × L × 1000 mm³; mass = volume × 7.85×10⁻⁶ kg/mm³."
+    }
+  },
+  {
+    "id": "metalwork_l2_distortion_control",
+    "skill_id": "metalwork",
+    "level": 2,
+    "type": "single",
+    "stem": {
+      "fr": "En soudant d'un seul côté un long raidisseur en T, la semelle se cintre. Quelle méthode limite le mieux la déformation ?",
+      "en": "Welding a long T-stiffener from one side only, the flange bows. Which method best limits distortion?"
+    },
+    "options": [
+      {"fr": "Pointer d'abord, puis souder par passes alternées des deux côtés ou à pas de pèlerin", "en": "Tack first, then weld in alternating runs on both sides or by backstepping"},
+      {"fr": "Un seul cordon continu à forte intensité pour aller vite", "en": "One continuous high-current run to get it done quickly"},
+      {"fr": "Refroidir chaque cordon à l'eau aussitôt soudé", "en": "Quench each run with water as soon as it is welded"},
+      {"fr": "Augmenter la taille de gorge pour rigidifier", "en": "Increase the throat size to stiffen it"}
+    ],
+    "correct": [0],
+    "seconds": 45,
+    "explanation": {
+      "fr": "Équilibrer l'apport de chaleur autour de l'axe neutre, pointer, séquencer (et éventuellement pré-cintrer). Plus de métal = plus de retrait.",
+      "en": "Balance heat input around the neutral axis, tack, sequence (and possibly preset). More weld metal means more shrinkage."
+    }
+  },
+  {
+    "id": "metalwork_l2_butt_weld_order",
+    "skill_id": "metalwork",
+    "level": 2,
+    "type": "order",
+    "stem": {
+      "fr": "Soudure bout à bout multipasse à l'électrode enrobée sur tôle épaisse : remettez les étapes dans l'ordre.",
+      "en": "Multi-pass stick (MMA) butt weld on thick plate: put the steps in order."
+    },
+    "options": [
+      {"fr": "Passe de racine", "en": "Root pass"},
+      {"fr": "Contrôler alignement et écartement, corriger si besoin", "en": "Check alignment and gap, correct if needed"},
+      {"fr": "Passes de remplissage et de finition", "en": "Fill and capping passes"},
+      {"fr": "Chanfreiner et nettoyer les bords", "en": "Bevel and clean the edges"},
+      {"fr": "Piquer le laitier et brosser la racine", "en": "Chip the slag and wire-brush the root"},
+      {"fr": "Positionner avec l'écartement prévu et pointer", "en": "Set up with the specified gap and tack"}
+    ],
+    "correct": [3, 5, 1, 0, 4, 2],
+    "seconds": 70,
+    "explanation": {
+      "fr": "Préparation, pointage, contrôle de l'accostage, racine, nettoyage entre passes (sinon inclusions de laitier), puis remplissage et finition.",
+      "en": "Preparation, tacking, fit-up check, root, cleaning between passes (otherwise slag inclusions), then fill and cap."
+    }
+  },
+  {
+    "id": "metalwork_l3_carbon_equivalent",
+    "skill_id": "metalwork",
+    "level": 3,
+    "type": "numeric",
+    "stem": {
+      "fr": "Analyse d'un acier : C {C} %, Mn {Mn} %, Cr {Cr} %, Ni {Ni} % (Mo, V, Cu négligeables). Calculez le carbone équivalent IIW (en %), base du choix de préchauffage.",
+      "en": "Steel analysis: C {C}%, Mn {Mn}%, Cr {Cr}%, Ni {Ni}% (Mo, V, Cu negligible). Compute the IIW carbon equivalent (in %), the basis for choosing preheat."
+    },
+    "params": {
+      "C": {"min": 0.1, "max": 0.25, "step": 0.01},
+      "Mn": {"min": 0.6, "max": 1.6, "step": 0.1},
+      "Cr": {"min": 0, "max": 1, "step": 0.1},
+      "Ni": {"min": 0, "max": 1, "step": 0.1}
+    },
+    "answer": "C + Mn / 6 + Cr / 5 + Ni / 15",
+    "tolerance": 0.02,
+    "unit": "%",
+    "seconds": 120,
+    "explanation": {
+      "fr": "CE(IIW) = C + Mn/6 + (Cr+Mo+V)/5 + (Ni+Cu)/15. Plus il est élevé (et plus la pièce est épaisse), plus le préchauffage s'impose.",
+      "en": "CE(IIW) = C + Mn/6 + (Cr+Mo+V)/5 + (Ni+Cu)/15. The higher it is (and the thicker the part), the more preheat is needed."
+    }
+  },
+  {
+    "id": "metalwork_l3_cold_cracking",
+    "skill_id": "metalwork",
+    "level": 3,
+    "type": "single",
+    "stem": {
+      "fr": "Sur de l'acier haute limite de 40 mm, des fissures apparaissent au pied des cordons quelques heures après soudage. Diagnostic et remède ?",
+      "en": "On 40 mm high-strength steel, cracks appear at the weld toes a few hours after welding. Diagnosis and remedy?"
+    },
+    "options": [
+      {"fr": "Fissuration à froid par l'hydrogène : préchauffage, produits basse teneur en hydrogène étuvés, refroidissement maîtrisé", "en": "Hydrogen (cold) cracking: preheat, baked low-hydrogen consumables, controlled cooling"},
+      {"fr": "Fissuration à chaud due à un préchauffage excessif : souder à froid", "en": "Hot cracking caused by too much preheat: weld cold instead"},
+      {"fr": "Porosités dues à un débit de gaz trop fort : réduire le débit", "en": "Porosity from too much gas flow: reduce the flow"},
+      {"fr": "Manque de fusion dû à une vitesse trop lente : souder plus vite", "en": "Lack of fusion from travelling too slowly: weld faster"}
+    ],
+    "correct": [0],
+    "seconds": 50,
+    "explanation": {
+      "fr": "Fissures différées en ZAT sur pièce épaisse et acier trempant : signature de l'hydrogène. On joue sur l'hydrogène, la vitesse de refroidissement et les contraintes.",
+      "en": "Delayed cracks in the HAZ of thick, hardenable steel are the signature of hydrogen. Act on hydrogen, cooling rate and restraint."
+    }
+  },
+
+  {
+    "id": "culinary_technique_l1_split_mayonnaise",
+    "skill_id": "culinary_technique",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Votre mayonnaise a tourné : l'huile se sépare. Comment la rattraper ?",
+      "en": "Your mayonnaise has split: the oil is separating. How do you rescue it?"
+    },
+    "options": [
+      {"fr": "Repartir d'un jaune (ou d'un peu d'eau ou de moutarde) dans un bol propre et y incorporer la sauce ratée petit à petit", "en": "Start again with a fresh yolk (or a little water or mustard) in a clean bowl and whisk the split sauce in gradually"},
+      {"fr": "Ajouter d'un coup le reste de l'huile et fouetter plus fort", "en": "Add the rest of the oil at once and whisk harder"},
+      {"fr": "La chauffer doucement au bain-marie", "en": "Warm it gently over a bain-marie"},
+      {"fr": "Ajouter de la farine pour la lier", "en": "Add flour to bind it"}
+    ],
+    "correct": [0],
+    "seconds": 35,
+    "explanation": {
+      "fr": "L'émulsion se reforme sur une nouvelle base, en versant la sauce tournée en filet comme on le ferait avec l'huile.",
+      "en": "The emulsion re-forms on a fresh base, adding the split sauce in a thin stream as you would the oil."
+    }
+  },
+  {
+    "id": "culinary_technique_l1_grey_meat",
+    "skill_id": "culinary_technique",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Vous saisissez des dés de bœuf : ils rendent de l'eau, bouillent et grisaillent au lieu de colorer. Pourquoi ?",
+      "en": "You are searing diced beef: it releases water, boils and turns grey instead of browning. Why?"
+    },
+    "options": [
+      {"fr": "Poêle trop chargée ou pas assez chaude : l'eau ne s'évapore pas", "en": "Pan overcrowded or not hot enough: the water cannot evaporate"},
+      {"fr": "La viande n'a pas été salée assez tôt", "en": "The meat was not salted early enough"},
+      {"fr": "La poêle est trop chaude", "en": "The pan is too hot"},
+      {"fr": "Il manque un couvercle", "en": "There is no lid on the pan"}
+    ],
+    "correct": [0],
+    "seconds": 30,
+    "explanation": {
+      "fr": "On saisit par petites quantités dans une poêle bien chaude, viande épongée, pour obtenir la réaction de Maillard.",
+      "en": "Sear in small batches in a very hot pan with dried meat to get the Maillard reaction."
+    }
+  },
+  {
+    "id": "culinary_technique_l1_recipe_scaling",
+    "skill_id": "culinary_technique",
+    "level": 1,
+    "type": "numeric",
+    "stem": {
+      "fr": "Une recette pour {p1} couverts demande {q} g de farine. Combien de grammes pour {p2} couverts ?",
+      "en": "A recipe for {p1} covers uses {q} g of flour. How many grams for {p2} covers?"
+    },
+    "params": {
+      "p1": {"min": 4, "max": 10, "step": 1},
+      "q": {"min": 200, "max": 800, "step": 50},
+      "p2": {"min": 20, "max": 80, "step": 5}
+    },
+    "answer": "q * p2 / p1",
+    "tolerance": 0.01,
+    "unit": "g",
+    "seconds": 60,
+    "explanation": {
+      "fr": "Coefficient multiplicateur = nouveaux couverts ÷ couverts de base.",
+      "en": "Scaling factor = new covers ÷ base covers."
+    }
+  },
+  {
+    "id": "culinary_technique_l2_green_vegetables",
+    "skill_id": "culinary_technique",
+    "level": 2,
+    "type": "single",
+    "stem": {
+      "fr": "Haricots verts préparés le matin pour le service du soir : comment les garder bien verts et croquants ?",
+      "en": "Green beans prepared in the morning for evening service: how do you keep them bright green and crisp?"
+    },
+    "options": [
+      {"fr": "Cuire à grande eau bouillante salée sans couvrir, puis rafraîchir aussitôt dans l'eau glacée", "en": "Cook uncovered in plenty of boiling salted water, then refresh straight away in iced water"},
+      {"fr": "Cuire à couvert dans peu d'eau à petit feu", "en": "Cook covered in a little water over a low heat"},
+      {"fr": "Ajouter du vinaigre à l'eau de cuisson", "en": "Add vinegar to the cooking water"},
+      {"fr": "Les laisser refroidir à température ambiante dans leur eau", "en": "Let them cool at room temperature in their cooking water"}
+    ],
+    "correct": [0],
+    "seconds": 40,
+    "explanation": {
+      "fr": "Ébullition franche et rapide, couvercle ôté (les acides volatils s'échappent), puis choc thermique pour stopper la cuisson.",
+      "en": "Fast rolling boil with no lid (volatile acids escape), then an ice bath to stop the cooking."
+    }
+  },
+  {
+    "id": "culinary_technique_l2_bechamel_order",
+    "skill_id": "culinary_technique",
+    "level": 2,
+    "type": "order",
+    "stem": {
+      "fr": "Mettez dans l'ordre la réalisation d'une béchamel.",
+      "en": "Put the steps of making a béchamel in order."
+    },
+    "options": [
+      {"fr": "Verser le lait progressivement en fouettant", "en": "Add the milk gradually while whisking"},
+      {"fr": "Faire fondre le beurre", "en": "Melt the butter"},
+      {"fr": "Assaisonner (sel, poivre, muscade) et rectifier", "en": "Season (salt, pepper, nutmeg) and adjust"},
+      {"fr": "Porter à ébullition et cuire quelques minutes en remuant", "en": "Bring to the boil and cook for a few minutes, stirring"},
+      {"fr": "Ajouter la farine et cuire le roux sans coloration", "en": "Add the flour and cook the roux without colouring"}
+    ],
+    "correct": [1, 4, 0, 3, 2],
+    "seconds": 50,
+    "explanation": {
+      "fr": "Roux blanc, mouillement progressif pour éviter les grumeaux, cuisson pour supprimer le goût de farine, assaisonnement à la fin.",
+      "en": "White roux, gradual liquid to avoid lumps, simmering to cook out the flour, seasoning at the end."
+    }
+  },
+  {
+    "id": "culinary_technique_l2_trim_yield_cost",
+    "skill_id": "culinary_technique",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "Vous achetez un poisson entier à {price} €/kg. Après levée des filets, le rendement est de {y} %. Coût réel d'un kg de filet (€) ?",
+      "en": "You buy whole fish at €{price}/kg. After filleting, the usable yield is {y}%. What is the real cost of one kg of fillet (€)?"
+    },
+    "params": {
+      "price": {"min": 12, "max": 30, "step": 1},
+      "y": {"min": 35, "max": 55, "step": 5}
+    },
+    "answer": "price * 100 / y",
+    "tolerance": 0.01,
+    "unit": "€/kg",
+    "seconds": 75,
+    "explanation": {
+      "fr": "Coût net = prix brut ÷ rendement. Le prix d'achat seul sous-estime fortement le coût portion.",
+      "en": "Net cost = gross price ÷ yield. The purchase price alone badly underestimates the portion cost."
+    }
+  },
+  {
+    "id": "culinary_technique_l3_selling_price",
+    "skill_id": "culinary_technique",
+    "level": 3,
+    "type": "numeric",
+    "stem": {
+      "fr": "Le coût matière d'une assiette est de {c} €. La maison vise un ratio coût matière de {t} % du prix de vente HT. Quel prix de vente HT (€) ?",
+      "en": "The ingredient cost of a plate is €{c}. The house targets a food cost of {t}% of the selling price excluding VAT. What selling price excluding VAT (€)?"
+    },
+    "params": {
+      "c": {"min": 2.5, "max": 8, "step": 0.1},
+      "t": {"min": 25, "max": 35, "step": 1}
+    },
+    "answer": "c * 100 / t",
+    "tolerance": 0.01,
+    "unit": "€",
+    "seconds": 75,
+    "explanation": {
+      "fr": "Prix HT = coût matière ÷ ratio visé (par ex. 3 € à 30 % → 10 €).",
+      "en": "Price excl. VAT = ingredient cost ÷ target ratio (e.g. €3 at 30% → €10)."
+    }
+  },
+  {
+    "id": "culinary_technique_l3_banquet_planning",
+    "skill_id": "culinary_technique",
+    "level": 3,
+    "type": "multi",
+    "stem": {
+      "fr": "Banquet de 120 couverts avec un bœuf braisé en plat. Quelles décisions vous permettent de servir à l'heure et au niveau ?",
+      "en": "A 120-cover banquet with braised beef as the main course. Which decisions let you serve on time and to standard?"
+    },
+    "options": [
+      {"fr": "Braiser la veille, refroidir rapidement, puis portionner et remettre en température", "en": "Braise the day before, cool rapidly, then portion and reheat"},
+      {"fr": "Établir un rétroplanning de production à partir de l'heure d'envoi", "en": "Draw up a production timetable working back from service time"},
+      {"fr": "Tester la recette et les grammages sur une petite série avant de multiplier", "en": "Test the recipe and portion weights on a small batch before scaling up"},
+      {"fr": "Multiplier sel et épices strictement par le même coefficient, sans goûter", "en": "Multiply salt and spices by exactly the same factor, without tasting"},
+      {"fr": "Cuire toutes les garnitures à la minute au moment de l'envoi", "en": "Cook every garnish à la minute at the moment of service"}
+    ],
+    "correct": [0, 1, 2],
+    "seconds": 60,
+    "explanation": {
+      "fr": "Un braisé gagne à être préparé la veille ; l'assaisonnement ne se multiplie pas linéairement ; rien à la minute pour 120 couverts.",
+      "en": "A braise improves when made the day before; seasoning does not scale linearly; nothing à la minute for 120 covers."
+    }
+  },
+
+  {
+    "id": "food_safety_l1_delivery_reception",
+    "skill_id": "food_safety",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Une livraison de produits réfrigérés arrive pendant le coup de feu. Que faites-vous ?",
+      "en": "A delivery of chilled products arrives in the middle of service. What do you do?"
+    },
+    "options": [
+      {"fr": "Contrôler température, emballages et dates, noter, puis ranger aussitôt au froid ; refuser ce qui n'est pas conforme", "en": "Check temperature, packaging and dates, record it, then put it straight into cold storage; refuse anything non-compliant"},
+      {"fr": "Laisser les cartons en cuisine et contrôler après le service", "en": "Leave the boxes in the kitchen and check them after service"},
+      {"fr": "Tout ranger en chambre froide et contrôler le lendemain", "en": "Put everything in the cold room and check it the next day"},
+      {"fr": "Signer le bon sans contrôle si le fournisseur est habituel", "en": "Sign the delivery note without checking if it is a regular supplier"}
+    ],
+    "correct": [0],
+    "seconds": 40,
+    "explanation": {
+      "fr": "La réception est un point de contrôle : on vérifie, on trace, on range vite pour ne pas rompre la chaîne du froid.",
+      "en": "Receiving is a control point: check, record, and store quickly so the cold chain is not broken."
+    }
+  },
+  {
+    "id": "food_safety_l1_leftover_cooling",
+    "skill_id": "food_safety",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Fin de service : il reste une grande marmite de sauce bolognaise chaude à conserver. Que faites-vous ?",
+      "en": "End of service: a large pot of hot bolognese sauce is left over to keep. What do you do?"
+    },
+    "options": [
+      {"fr": "La répartir en bacs peu profonds, refroidir en cellule de refroidissement rapide, filmer, étiqueter, stocker au froid", "en": "Split it into shallow trays, cool it in a blast chiller, cover, label and store chilled"},
+      {"fr": "La laisser refroidir sur le plan de travail jusqu'au lendemain", "en": "Leave it to cool on the worktop until the next day"},
+      {"fr": "Mettre la marmite pleine, couvercle fermé, directement en chambre froide", "en": "Put the full pot, lid on, straight into the cold room"},
+      {"fr": "La garder sur le feu éteint pour la resservir demain", "en": "Keep it on the switched-off stove to serve tomorrow"}
+    ],
+    "correct": [0],
+    "seconds": 40,
+    "explanation": {
+      "fr": "Il faut traverser vite la zone où les bactéries se multiplient. Une grosse masse refroidit lentement et réchauffe la chambre froide.",
+      "en": "The food must pass quickly through the zone where bacteria multiply. A large mass cools slowly and warms up the cold room."
+    }
+  },
+  {
+    "id": "food_safety_l1_handwashing",
+    "skill_id": "food_safety",
+    "level": 1,
+    "type": "multi",
+    "stem": {
+      "fr": "En cuisine, quand devez-vous vous laver les mains ?",
+      "en": "In the kitchen, when must you wash your hands?"
+    },
+    "options": [
+      {"fr": "Après avoir manipulé de la viande crue ou des œufs coquille", "en": "After handling raw meat or shell eggs"},
+      {"fr": "En sortant des toilettes", "en": "After using the toilet"},
+      {"fr": "Après avoir sorti les poubelles", "en": "After taking out the bins"},
+      {"fr": "Seulement en début de poste si vous portez des gants ensuite", "en": "Only at the start of the shift if you then wear gloves"}
+    ],
+    "correct": [0, 1, 2],
+    "seconds": 35,
+    "explanation": {
+      "fr": "Les gants ne remplacent pas le lavage : ils se contaminent comme des mains et se changent aux mêmes moments.",
+      "en": "Gloves do not replace handwashing: they get contaminated just like hands and must be changed at the same moments."
+    }
+  },
+  {
+    "id": "food_safety_l2_cold_room_failure",
+    "skill_id": "food_safety",
+    "level": 2,
+    "type": "single",
+    "stem": {
+      "fr": "À l'ouverture, le thermomètre de la chambre froide positive affiche +9 °C : la porte est restée entrouverte la nuit. Que faites-vous ?",
+      "en": "At opening, the chilled cold room thermometer reads +9 °C: the door was left ajar overnight. What do you do?"
+    },
+    "options": [
+      {"fr": "Noter l'écart, évaluer chaque produit (nature, température à cœur, durée), écarter les produits sensibles douteux, corriger la cause et tracer l'action", "en": "Record the deviation, assess each product (type, core temperature, duration), discard doubtful high-risk items, fix the cause and log the action"},
+      {"fr": "Baisser le thermostat et continuer normalement", "en": "Turn the thermostat down and carry on as normal"},
+      {"fr": "Tout jeter sans rien noter", "en": "Throw everything away without recording anything"},
+      {"fr": "Cuire tous les produits pour les assainir et les servir au déjeuner", "en": "Cook all the products to make them safe and serve them at lunch"}
+    ],
+    "correct": [0],
+    "seconds": 50,
+    "explanation": {
+      "fr": "Une action corrective HACCP : décision produit par produit, correction de la cause, enregistrement. La cuisson ne détruit pas toutes les toxines.",
+      "en": "A HACCP corrective action: product-by-product decision, cause fixed, everything recorded. Cooking does not destroy every toxin."
+    }
+  },
+  {
+    "id": "food_safety_l2_sanitiser_dilution",
+    "skill_id": "food_safety",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "Le désinfectant s'utilise dilué à {c} %. Combien de mL de produit pur pour préparer {v} L de solution ?",
+      "en": "The sanitiser is used at a {c}% dilution. How many mL of concentrate do you need to make {v} L of solution?"
+    },
+    "params": {
+      "c": {"min": 0.5, "max": 3, "step": 0.5},
+      "v": {"min": 2, "max": 10, "step": 1}
+    },
+    "answer": "c / 100 * v * 1000",
+    "tolerance": 0.01,
+    "unit": "mL",
+    "seconds": 60,
+    "explanation": {
+      "fr": "Volume en mL × concentration/100. Sous-dosé, le produit n'agit pas ; surdosé, il laisse des résidus.",
+      "en": "Volume in mL × concentration/100. Under-dosed, it does not work; over-dosed, it leaves residues."
+    }
+  },
+  {
+    "id": "food_safety_l2_cooling_time",
+    "skill_id": "food_safety",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "En cellule, le cœur d'une préparation descend de +63 °C à raison de {r} °C toutes les 10 minutes (supposé constant). En combien de minutes atteint-il +10 °C ?",
+      "en": "In the blast chiller, the core of a dish drops from +63 °C at {r} °C every 10 minutes (assumed steady). How many minutes until it reaches +10 °C?"
+    },
+    "params": {
+      "r": {"min": 3, "max": 8, "step": 0.5}
+    },
+    "answer": "(63 - 10) / r * 10",
+    "tolerance": 0.02,
+    "unit": "min",
+    "seconds": 75,
+    "explanation": {
+      "fr": "53 °C à perdre ÷ vitesse par tranche de 10 min × 10. On compare ensuite à l'objectif de la procédure (de l'ordre de 2 h).",
+      "en": "53 °C to lose ÷ rate per 10 min × 10. Then compare with the procedure's target (around 2 hours)."
+    }
+  },
+  {
+    "id": "food_safety_l3_haccp_order",
+    "skill_id": "food_safety",
+    "level": 3,
+    "type": "order",
+    "stem": {
+      "fr": "Vous construisez le plan HACCP d'une nouvelle ligne de production. Mettez les principes dans l'ordre.",
+      "en": "You are building the HACCP plan for a new production line. Put the principles in order."
+    },
+    "options": [
+      {"fr": "Fixer les limites critiques", "en": "Set the critical limits"},
+      {"fr": "Analyser les dangers", "en": "Conduct the hazard analysis"},
+      {"fr": "Vérifier que le système fonctionne", "en": "Verify that the system works"},
+      {"fr": "Déterminer les points critiques pour la maîtrise (CCP)", "en": "Determine the critical control points (CCPs)"},
+      {"fr": "Prévoir les actions correctives", "en": "Define the corrective actions"},
+      {"fr": "Mettre en place la surveillance des CCP", "en": "Set up monitoring of the CCPs"}
+    ],
+    "correct": [1, 3, 0, 5, 4, 2],
+    "seconds": 75,
+    "explanation": {
+      "fr": "Dangers → CCP → limites → surveillance → actions correctives → vérification (la documentation accompagne l'ensemble).",
+      "en": "Hazards → CCPs → limits → monitoring → corrective actions → verification (documentation runs alongside it all)."
+    }
+  },
+  {
+    "id": "food_safety_l3_listeria_result",
+    "skill_id": "food_safety",
+    "level": 3,
+    "type": "single",
+    "stem": {
+      "fr": "Une analyse révèle Listeria monocytogenes sur du jambon cuit tranché à votre trancheuse ; le lot est en vitrine et une partie a été livrée. Votre première ligne de conduite ?",
+      "en": "A lab test finds Listeria monocytogenes on cooked ham sliced on your slicer; the batch is on display and part of it has been delivered. Your first course of action?"
+    },
+    "options": [
+      {"fr": "Bloquer et retirer le lot, déclencher la procédure d'alerte et de rappel, démonter et désinfecter la trancheuse, revoir le plan de nettoyage et refaire des prélèvements", "en": "Block and withdraw the batch, trigger the alert and recall procedure, dismantle and disinfect the slicer, review the cleaning plan and re-sample"},
+      {"fr": "Attendre une seconde analyse avant toute mesure", "en": "Wait for a second test before taking any action"},
+      {"fr": "Nettoyer la trancheuse et continuer la vente", "en": "Clean the slicer and keep selling"},
+      {"fr": "Recuire le jambon restant et le remettre en vente", "en": "Re-cook the remaining ham and put it back on sale"}
+    ],
+    "correct": [0],
+    "seconds": 55,
+    "explanation": {
+      "fr": "Listeria se développe au froid et colonise les équipements : on protège d'abord le consommateur, puis on traite la source et on vérifie.",
+      "en": "Listeria grows in the cold and colonises equipment: protect consumers first, then deal with the source and verify."
+    }
+  },
+
+  {
+    "id": "garment_construction_l1_grainline",
+    "skill_id": "garment_construction",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Vous placez une pièce de patron sur un tissu chaîne et trame. Comment positionnez-vous le droit-fil ?",
+      "en": "You are laying a pattern piece on a woven fabric. How do you position the grainline?"
+    },
+    "options": [
+      {"fr": "Parallèle à la lisière, en mesurant la même distance aux deux extrémités de la flèche", "en": "Parallel to the selvedge, measuring the same distance at both ends of the arrow"},
+      {"fr": "Parallèle au bord coupé du coupon", "en": "Parallel to the cut end of the fabric"},
+      {"fr": "Peu importe, du moment que la pièce rentre dans le métrage", "en": "It does not matter, as long as the piece fits in the length"},
+      {"fr": "Toujours à 45° pour que le vêtement tombe mieux", "en": "Always at 45° so the garment hangs better"}
+    ],
+    "correct": [0],
+    "seconds": 35,
+    "explanation": {
+      "fr": "Un droit-fil de travers fait vriller et pendre le vêtement. Le biais n'est utilisé que lorsque le patron l'indique.",
+      "en": "An off-grain piece makes the garment twist and hang badly. Bias is used only when the pattern says so."
+    }
+  },
+  {
+    "id": "garment_construction_l1_curved_seam",
+    "skill_id": "garment_construction",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Après avoir retourné une encolure parementée, la courbe fait des plis et ne reste pas à plat. Que fallait-il faire ?",
+      "en": "After turning out a faced neckline, the curve puckers and will not lie flat. What should have been done?"
+    },
+    "options": [
+      {"fr": "Dégarnir et cranter les valeurs de couture dans la courbe avant de retourner", "en": "Grade and clip the seam allowances around the curve before turning"},
+      {"fr": "Coudre avec un point plus long", "en": "Sew with a longer stitch"},
+      {"fr": "Augmenter la valeur de couture", "en": "Use a wider seam allowance"},
+      {"fr": "Repasser à plus haute température", "en": "Press at a higher temperature"}
+    ],
+    "correct": [0],
+    "seconds": 35,
+    "explanation": {
+      "fr": "Dans une courbe, l'épaisseur des valeurs empêche le retournement : on dégarnit, on crante (ou on encoche) puis on sous-pique.",
+      "en": "On a curve, bulky allowances stop it turning cleanly: grade, clip (or notch), then understitch."
+    }
+  },
+  {
+    "id": "garment_construction_l2_yardage",
+    "skill_id": "garment_construction",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "Vous coupez {n} pièces l'une sous l'autre, chacune de {L} cm de long plus {s} cm de couture en haut et en bas. Le tissu rétrécit de {sh} % en longueur au prélavage. Quel métrage acheter (m) ?",
+      "en": "You cut {n} pieces one below the other, each {L} cm long plus {s} cm seam allowance at top and bottom. The fabric shrinks {sh}% in length when pre-washed. How many metres do you buy?"
+    },
+    "params": {
+      "n": {"min": 2, "max": 6, "step": 1},
+      "L": {"min": 60, "max": 110, "step": 5},
+      "s": {"min": 1, "max": 2, "step": 0.5},
+      "sh": {"min": 2, "max": 6, "step": 1}
+    },
+    "answer": "n * (L + 2 * s) / (1 - sh / 100) / 100",
+    "tolerance": 0.02,
+    "unit": "m",
+    "seconds": 110,
+    "explanation": {
+      "fr": "Longueur utile = n × (L + 2s) ; avant lavage il en faut longueur ÷ (1 − retrait) ; puis conversion en mètres.",
+      "en": "Needed length = n × (L + 2s); before washing you need that ÷ (1 − shrinkage); then convert to metres."
+    }
+  },
+  {
+    "id": "garment_construction_l2_knit_seams",
+    "skill_id": "garment_construction",
+    "level": 2,
+    "type": "single",
+    "stem": {
+      "fr": "Sur un jersey, les coutures craquent quand on enfile le vêtement et la machine saute des points. Correction ?",
+      "en": "On a jersey knit, the seams snap when the garment is pulled on and the machine skips stitches. Fix?"
+    },
+    "options": [
+      {"fr": "Aiguille à pointe boule ou stretch, et point extensible (zigzag étroit, point stretch ou surjeteuse)", "en": "Ballpoint or stretch needle, and a stretch stitch (narrow zigzag, stretch stitch or overlocker)"},
+      {"fr": "Point droit plus court et fil plus épais", "en": "A shorter straight stitch and thicker thread"},
+      {"fr": "Aiguille pour cuir et tension au maximum", "en": "A leather needle and maximum tension"},
+      {"fr": "Doubler chaque couture au point droit", "en": "Double every seam with a straight stitch"}
+    ],
+    "correct": [0],
+    "seconds": 40,
+    "explanation": {
+      "fr": "Le point droit ne s'étire pas, et une pointe fine fend les mailles au lieu de les écarter : points sautés.",
+      "en": "Straight stitch does not stretch, and a sharp point pierces the loops instead of parting them, causing skipped stitches."
+    }
+  },
+  {
+    "id": "garment_construction_l2_skirt_order",
+    "skill_id": "garment_construction",
+    "level": 2,
+    "type": "order",
+    "stem": {
+      "fr": "Jupe droite non doublée, fermeture au milieu dos : mettez le montage dans l'ordre.",
+      "en": "Unlined straight skirt with a centre-back zip: put the assembly in order."
+    },
+    "options": [
+      {"fr": "Monter la ceinture", "en": "Attach the waistband"},
+      {"fr": "Piquer les pinces", "en": "Sew the darts"},
+      {"fr": "Faire l'ourlet", "en": "Hem the skirt"},
+      {"fr": "Reporter les repères et surfiler les bords", "en": "Transfer the markings and finish the raw edges"},
+      {"fr": "Assembler les côtés et repasser", "en": "Sew the side seams and press"},
+      {"fr": "Poser la fermeture dans la couture milieu dos", "en": "Insert the zip in the centre-back seam"}
+    ],
+    "correct": [3, 1, 5, 4, 0, 2],
+    "seconds": 70,
+    "explanation": {
+      "fr": "On travaille à plat le plus longtemps possible (pinces, fermeture) avant de fermer les côtés ; ceinture puis ourlet en dernier, une fois la longueur vérifiée.",
+      "en": "Work flat as long as possible (darts, zip) before closing the sides; waistband, then hem last once the length is checked."
+    }
+  },
+  {
+    "id": "garment_construction_l3_quarter_width",
+    "skill_id": "garment_construction",
+    "level": 3,
+    "type": "numeric",
+    "stem": {
+      "fr": "Tour de poitrine {b} cm, aisance totale voulue {e} cm. Devant et dos de même largeur, chacun coupé au pli. Largeur du demi-devant à la ligne de poitrine, valeur de couture côté {s} cm comprise (cm) ?",
+      "en": "Bust {b} cm, desired total ease {e} cm. Front and back are equal in width, each cut on the fold. Width of the half-front at bust line, including a {s} cm side seam allowance (cm)?"
+    },
+    "params": {
+      "b": {"min": 80, "max": 110, "step": 2},
+      "e": {"min": 6, "max": 12, "step": 2},
+      "s": {"min": 1, "max": 1.5, "step": 0.5}
+    },
+    "answer": "(b + e) / 4 + s",
+    "tolerance": 0.01,
+    "unit": "cm",
+    "seconds": 100,
+    "explanation": {
+      "fr": "Le demi-devant au pli représente un quart du tour fini (poitrine + aisance) ; on n'ajoute de valeur de couture que côté couture, pas au pli.",
+      "en": "A half-front on the fold is one quarter of the finished circumference (bust + ease); seam allowance is added only at the side seam, not the fold."
+    }
+  },
+  {
+    "id": "garment_construction_l3_twisting_seams",
+    "skill_id": "garment_construction",
+    "level": 3,
+    "type": "single",
+    "stem": {
+      "fr": "Après le premier lavage, les coutures côté d'une série de tee-shirts vrillent vers l'avant. Cause la plus probable ?",
+      "en": "After the first wash, the side seams of a batch of T-shirts twist towards the front. Most likely cause?"
+    },
+    "options": [
+      {"fr": "Jersey vrillé (spiralité) coupé hors droit-fil, sans redressage ni relaxation avant la coupe", "en": "Skewed (spirality-prone) knit cut off-grain, without straightening or relaxing it before cutting"},
+      {"fr": "Tension du fil de la surjeteuse trop forte", "en": "Overlocker thread tension too high"},
+      {"fr": "Aiguille d'une grosseur inadaptée", "en": "Wrong needle size"},
+      {"fr": "Fil de couture qui a rétréci au lavage", "en": "Sewing thread that shrank in the wash"}
+    ],
+    "correct": [0],
+    "seconds": 50,
+    "explanation": {
+      "fr": "La torsion du fil de tricot fait tourner la maille au lavage ; si les pièces n'ont pas été coupées dans le droit-fil corrigé, les coutures suivent.",
+      "en": "Yarn twist makes the knit rotate on washing; if pieces were not cut on the corrected grain, the seams follow it."
+    }
+  },
+
+  {
+    "id": "quality_control_l1_nonconforming_part",
+    "skill_id": "quality_control",
+    "level": 1,
+    "type": "single",
+    "stem": {
+      "fr": "Vous trouvez une pièce hors tolérance sur la ligne. Que faites-vous en premier ?",
+      "en": "You find an out-of-tolerance part on the line. What do you do first?"
+    },
+    "options": [
+      {"fr": "L'identifier et l'isoler (étiquette, zone de quarantaine) puis signaler", "en": "Tag it and isolate it (label, quarantine area), then report it"},
+      {"fr": "La retoucher discrètement pour ne pas ralentir la ligne", "en": "Rework it quietly so as not to slow the line"},
+      {"fr": "La remettre avec les bonnes si l'écart est faible", "en": "Put it back with the good parts if the deviation is small"},
+      {"fr": "La jeter à la benne sans rien dire", "en": "Throw it in the scrap bin without saying anything"}
+    ],
+    "correct": [0],
+    "seconds": 30,
+    "explanation": {
+      "fr": "Une non-conformité doit être identifiée, isolée et tracée : c'est la seule façon de trouver sa cause et de vérifier les pièces voisines.",
+      "en": "A nonconformity must be identified, isolated and recorded: that is the only way to find its cause and check neighbouring parts."
+    }
+  },
+  {
+    "id": "quality_control_l1_defect_rate",
+    "skill_id": "quality_control",
+    "level": 1,
+    "type": "numeric",
+    "stem": {
+      "fr": "Sur {n} pièces contrôlées, {d} sont défectueuses. Quel est le taux de défauts (%) ?",
+      "en": "Out of {n} parts inspected, {d} are defective. What is the defect rate (%)?"
+    },
+    "params": {
+      "n": {"min": 200, "max": 1000, "step": 50},
+      "d": {"min": 1, "max": 30, "step": 1}
+    },
+    "answer": "d / n * 100",
+    "tolerance": 0.02,
+    "unit": "%",
+    "seconds": 60,
+    "explanation": {
+      "fr": "Taux = défectueuses ÷ contrôlées × 100.",
+      "en": "Rate = defective ÷ inspected × 100."
+    }
+  },
+  {
+    "id": "quality_control_l2_run_rule",
+    "skill_id": "quality_control",
+    "level": 2,
+    "type": "single",
+    "stem": {
+      "fr": "Sur une carte de contrôle, neuf points consécutifs sont au-dessus de la moyenne, tous dans les limites. Comment l'interprétez-vous ?",
+      "en": "On a control chart, nine consecutive points sit above the centre line, all within the limits. How do you read it?"
+    },
+    "options": [
+      {"fr": "Tendance non aléatoire : le procédé s'est probablement décalé, il faut chercher la cause", "en": "A non-random pattern: the process has probably shifted, look for the cause"},
+      {"fr": "Rien à faire, aucun point ne sort des limites", "en": "Nothing to do, no point is outside the limits"},
+      {"fr": "Il faut élargir les limites de contrôle", "en": "The control limits should be widened"},
+      {"fr": "C'est la preuve que le procédé est capable", "en": "It proves the process is capable"}
+    ],
+    "correct": [0],
+    "seconds": 45,
+    "explanation": {
+      "fr": "Une longue série du même côté de la moyenne est très improbable par hasard : c'est un signal de cause spéciale, même sans point hors limites.",
+      "en": "A long run on one side of the centre line is very unlikely by chance: it signals a special cause even with no point outside the limits."
+    }
+  },
+  {
+    "id": "quality_control_l2_cp",
+    "skill_id": "quality_control",
+    "level": 2,
+    "type": "numeric",
+    "stem": {
+      "fr": "Cote nominale ± {t} mm. L'écart-type du procédé est de {sigma} mm. Quel est le Cp ?",
+      "en": "Dimension nominal ± {t} mm. The process standard deviation is {sigma} mm. What is the Cp?"
+    },
+    "params": {
+      "t": {"min": 0.05, "max": 0.2, "step": 0.01},
+      "sigma": {"min": 0.01, "max": 0.04, "step": 0.005}
+    },
+    "answer": "2 * t / (6 * sigma)",
+    "tolerance": 0.02,
+    "unit": "",
+    "seconds": 90,
+    "explanation": {
+      "fr": "Cp = (LSS − LSI) / 6σ = 2t / 6σ.",
+      "en": "Cp = (USL − LSL) / 6σ = 2t / 6σ."
+    }
+  },
+  {
+    "id": "quality_control_l3_cpk",
+    "skill_id": "quality_control",
+    "level": 3,
+    "type": "numeric",
+    "stem": {
+      "fr": "Cote nominale ± {t} mm, écart-type {sigma} mm, et la moyenne du procédé est décalée de {off} mm au-dessus du nominal. Quel est le Cpk ?",
+      "en": "Dimension nominal ± {t} mm, standard deviation {sigma} mm, and the process mean sits {off} mm above nominal. What is the Cpk?"
+    },
+    "params": {
+      "t": {"min": 0.05, "max": 0.2, "step": 0.01},
+      "sigma": {"min": 0.01, "max": 0.04, "step": 0.005},
+      "off": {"min": 0, "max": 0.04, "step": 0.01}
+    },
+    "answer": "(t - off) / (3 * sigma)",
+    "tolerance": 0.02,
+    "unit": "",
+    "seconds": 110,
+    "explanation": {
+      "fr": "Cpk = min(LSS − moyenne, moyenne − LSI) / 3σ ; la limite la plus proche est la supérieure : (t − décalage) / 3σ.",
+      "en": "Cpk = min(USL − mean, mean − LSL) / 3σ; the nearest limit is the upper one: (t − offset) / 3σ."
+    }
+  },
+  {
+    "id": "quality_control_l3_gauge_rr",
+    "skill_id": "quality_control",
+    "level": 3,
+    "type": "single",
+    "stem": {
+      "fr": "Une étude R&R montre que la variation de mesure représente 45 % de la tolérance. Le procédé semble produire des pièces hors cote. Que décidez-vous ?",
+      "en": "A gauge R&R study shows measurement variation is 45% of the tolerance. The process appears to make out-of-spec parts. What do you decide?"
+    },
+    "options": [
+      {"fr": "Le système de mesure n'est pas acceptable : l'améliorer avant de juger ou régler le procédé", "en": "The measurement system is not acceptable: improve it before judging or adjusting the process"},
+      {"fr": "Régler immédiatement la machine d'après ces mesures", "en": "Adjust the machine straight away based on these measurements"},
+      {"fr": "Passer à un contrôle à 100 % avec le même instrument", "en": "Move to 100% inspection with the same gauge"},
+      {"fr": "Resserrer la tolérance pour compenser", "en": "Tighten the tolerance to compensate"}
+    ],
+    "correct": [0],
+    "seconds": 50,
+    "explanation": {
+      "fr": "Au-delà d'environ 30 %, l'instrument ne distingue plus une bonne pièce d'une mauvaise : régler sur ces mesures ajoute de la variation.",
+      "en": "Beyond about 30%, the gauge cannot tell a good part from a bad one: adjusting from those readings adds variation."
+    }
+  },
+  {
+    "id": "quality_control_l3_8d_order",
+    "skill_id": "quality_control",
+    "level": 3,
+    "type": "order",
+    "stem": {
+      "fr": "Réclamation client sur un lot défectueux : mettez la résolution du problème dans l'ordre.",
+      "en": "Customer complaint about a defective batch: put the problem-solving steps in order."
+    },
+    "options": [
+      {"fr": "Vérifier l'efficacité de l'action sur les lots suivants", "en": "Verify the action works on the following batches"},
+      {"fr": "Contenir : bloquer et trier le stock et les en-cours suspects", "en": "Contain: block and sort suspect stock and work in progress"},
+      {"fr": "Standardiser pour éviter la récurrence (procédures, autres lignes)", "en": "Standardise to prevent recurrence (procedures, other lines)"},
+      {"fr": "Rechercher la cause racine", "en": "Find the root cause"},
+      {"fr": "Mettre en œuvre l'action corrective", "en": "Implement the corrective action"},
+      {"fr": "Décrire précisément le problème (quoi, où, combien)", "en": "Describe the problem precisely (what, where, how many)"}
+    ],
+    "correct": [5, 1, 3, 4, 0, 2],
+    "seconds": 70,
+    "explanation": {
+      "fr": "Décrire, contenir pour protéger le client, trouver la cause, corriger, vérifier, puis standardiser (logique 8D).",
+      "en": "Describe, contain to protect the customer, find the cause, correct, verify, then standardise (8D logic)."
+    }
+  }
+]

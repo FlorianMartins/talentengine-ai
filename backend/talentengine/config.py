@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENGINE_VERSION = "0.3.0"
+ENGINE_VERSION = "0.5.0"
 
 
 class Settings(BaseSettings):
@@ -47,10 +47,19 @@ class Settings(BaseSettings):
     llm_price_input_per_mtok: float = 4.0
     llm_price_output_per_mtok: float = 20.0
 
+    # A GitHub profile link expands to all its public repositories, up to this many.
+    max_repos_per_submission: int = 30
     # Optional GitHub token: raises the API rate limit from 60 to 5000 requests/hour.
     github_token: str = ""
 
     enable_demo: bool = True
+
+    # Hours between automatic erasures of applications whose retention period is over (0 disables).
+    retention_sweep_hours: int = 24
+
+    # Public URL of the app (e.g. https://hivey.be/talentengine), used to verify Safe Exam Browser hashes
+    # computed by the browser on the URL it sees, before any reverse-proxy rewriting.
+    public_base_url: str = ""
 
     # --- Public sandbox (/api/try): anyone can test an offer against their own CV, nothing is stored ---
     sandbox_enabled: bool = True

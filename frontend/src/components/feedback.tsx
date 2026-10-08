@@ -22,8 +22,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ApiError } from "../api/client";
-import type { CriterionStatus, DecisionKind, EvidenceBand, Family, Importance } from "../api/types";
-import { useT, useToast } from "../lib/prefs";
+import type { CriterionStatus, DecisionKind, EvidenceBand, Family, Importance, Permission } from "../api/types";
+import { useAccess, useT, useToast } from "../lib/prefs";
 import { cx } from "../lib/format";
 
 export function ToastRegion() {
@@ -273,6 +273,22 @@ export function FamilyIcon({ family, size = 20 }: { family: Family; size?: numbe
   return (
     <span className="family-icon">
       <Icon size={size} aria-hidden="true" />
+    </span>
+  );
+}
+
+/**
+ * Permission gate for an action: renders children with `allowed`; when the role lacks the permission,
+ * wraps them in a span whose tooltip (and screen-reader text) says which roles may do it.
+ */
+export function Gate({ perm, children }: { perm: Permission; children: (allowed: boolean) => ReactNode }) {
+  const access = useAccess();
+  const hint = access.denied(perm);
+  if (!hint) return <>{children(true)}</>;
+  return (
+    <span className="gate" title={hint}>
+      {children(false)}
+      <span className="sr-only">{hint}</span>
     </span>
   );
 }

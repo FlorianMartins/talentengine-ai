@@ -20,9 +20,12 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import logging
+import re
 import secrets
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -32,9 +35,11 @@ from .config import ENGINE_VERSION, Settings
 from .dashboard.interview import build_interview_guide
 from .dashboard.scoring import score
 from .funnel.budget import BudgetGuard, Price, estimate_tokens, factual_density, plan_escalation
+from .funnel.crossrepo import analyse_repository, detect_links
 from .funnel.documents import analyze_text, extract_credentials
+from .funnel.github import FetchedRepo, fetch_repositories
 from .funnel.llm import LLMError, LLMProvider, build_provider
-from .funnel.repo import RepoFetchError, RepoSnapshot, analyze_repo, fetch_github
+from .funnel.repo import RepoFetchError, RepoSnapshot, analyze_repo
 from .i18n import localise
 from .models import (
     Artifact,
@@ -112,7 +117,7 @@ class Submission(BaseModel):
                                description="Used only to mask the name everywhere, then stored encrypted.")
     identity_email: str = Field("", max_length=200)
     retention_days: int = Field(180, ge=1, le=730)
-    documents: list[TextDocument] = Field(default_factory=list, max_length=20)
+    documents: list[TextDocument] = Field(default_factory=list, max_length=60)
     repositories: list[RepositoryInput] = Field(default_factory=list, max_length=10)
     portfolio: list[PortfolioItem] = Field(default_factory=list, max_length=30)
 
@@ -198,7 +203,8 @@ class Engine:
         self.settings = settings
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         self.store = store or Store(settings.db_path)
-        self.vault = PseudonymVault(self.store, resolve_vault_key(settings.vault_key, settings.data_dir))
+        self.vault_key = resolve_vault_key(settings.vault_key, settings.data_dir)
+        self.vault = PseudonymVault(self.store, self.vault_key)
         self.ledger = AuditLedger(self.store, resolve_seal_key(settings.ledger_seal_key, settings.data_dir))
         self.detector = detector or build_detector(settings.vision_detector, settings.ollama_url,
                                                    settings.vision_model)
@@ -264,24 +270,57 @@ class Engine:
         def next_id(kind: ArtifactKind, label_fr: str) -> tuple[str, str]:
             counters[kind] = counters.get(kind, 0) + 1
             n = counters[kind]
-            label = label_fr if kind == ArtifactKind.cv and n == 1 else f"{label_fr} {n}"
+            label = label_fr if kind in (ArtifactKind.cv, ArtifactKind.linkedin) and n == 1 else f"{label_fr} {n}"
             return f"A{len(artifacts) + 1}", label
 
         def shield_text(raw: str, *, header: bool) -> tuple[str, RedactionReport]:
             cleaned = strip_hidden(raw)
             result = text_shield.run(cleaned, ref, known, header_name=header)
+            text = result.text
+            for rx, repo_label in name_rx:  # "Built agent-platform" in a CV would lead to the GitHub account
+                text = rx.sub(repo_label, text)
             # Excerpts come from the pseudonymised text (no PII); invisible characters are counted on the raw one.
-            hits = screen(result.text, hidden=hidden_count(raw))
-            return result.text, RedactionReport(
+            hits = screen(text, hidden=hidden_count(raw))
+            return text, RedactionReport(
                 pii_replaced=dict(result.counts), gendered_terms_neutralised=result.gendered_terms,
                 injection_suspected=bool(hits), injection_excerpts=hits, detector="rules",
             )
 
+        # Repositories first: the GitHub user name they reveal must be masked in every other document too.
+        fetched: list[FetchedRepo] = []
+        try:
+            for repo in sub.repositories:
+                if repo.paths is not None:
+                    fetched.append(FetchedRepo(url=repo.url or "", owner="", name="",
+                                               snapshot=RepoSnapshot(list(repo.paths), dict(repo.files or {}))))
+            urls = [r.url for r in sub.repositories if r.paths is None and r.url]
+            if urls:
+                fetched += fetch_repositories(urls, self.settings.github_token, self.settings.max_repos_per_submission)
+            elif not fetched and sub.repositories:
+                raise PolicyError("a repository needs a url or a list of paths")
+        except RepoFetchError as exc:
+            raise PolicyError(str(exc)) from exc
+        for owner in sorted({f.owner for f in fetched if f.owner}):
+            self.vault.token("GITHUB_USER", owner, ref)
+            known.append(owner)
+        repo_labels = {f.url or str(i): f"repo-{i}" for i, f in enumerate(fetched, start=1)}
+        # Repository names can be searched online and would break blind review: excerpts say "repo-3" instead.
+        name_rx = [(re.compile(r"(?i)(?<![\w-])" + re.escape(f.name) + r"(?![\w-])"), repo_labels[f.url])
+                   for f in sorted(fetched, key=lambda f: -len(f.name)) if f.name and len(f.name) >= 3]
+
+        def blind(text: str) -> str:
+            text = text_shield.run(strip_hidden(text), ref, known, header_name=False).text
+            for rx, label in name_rx:
+                text = rx.sub(label, text)
+            return text
+
         for doc in sub.documents:
-            labels = {ArtifactKind.cv: "CV", ArtifactKind.portfolio_note: "Note", ArtifactKind.document: "Document"}
+            labels = {ArtifactKind.cv: "CV", ArtifactKind.portfolio_note: "Note", ArtifactKind.document: "Document",
+                      ArtifactKind.linkedin: "LinkedIn", ArtifactKind.degree: "Diplôme",
+                      ArtifactKind.certification: "Certification"}
             aid, label = next_id(doc.kind, labels.get(doc.kind, "Document"))
             self.vault.token("FILENAME", doc.name, ref)
-            text, report = shield_text(doc.content, header=doc.kind == ArtifactKind.cv)
+            text, report = shield_text(doc.content, header=doc.kind in (ArtifactKind.cv, ArtifactKind.linkedin))
             artifacts.append(Artifact(id=aid, candidate_ref=ref, kind=doc.kind, label=label, text=text,
                                       content_sha256=_sha(text), redaction=report, media_type="text/plain"))
 
@@ -292,35 +331,47 @@ class Engine:
                                       text=text, content_sha256=_sha(text), redaction=report,
                                       media_type="text/plain"))
 
-        for repo in sub.repositories:
-            aid, label = next_id(ArtifactKind.repository, "repo")
-            label = label.replace("repo ", "repo-")
-            if repo.paths is not None:
-                snapshot = RepoSnapshot(list(repo.paths), dict(repo.files or {}))
-            elif repo.url:
-                try:
-                    snapshot = fetch_github(repo.url, self.settings.github_token)
-                except RepoFetchError as exc:
-                    raise PolicyError(str(exc)) from exc
-            else:
-                raise PolicyError("a repository needs a url or a list of paths")
-            if repo.url:
-                self.vault.token("REPO_URL", repo.url, ref)
+        links = detect_links([f for f in fetched if f.owner])
+        for i, fetched_repo in enumerate(fetched, start=1):
+            aid = f"A{len(artifacts) + 1}"
+            label = repo_labels[fetched_repo.url or str(i)]
+            if fetched_repo.url:
+                self.vault.token("REPO_URL", fetched_repo.url, ref)
+            snapshot = fetched_repo.snapshot
             paths = path_shield.run("\n".join(snapshot.paths), ref, known, header_name=False).text.splitlines()
             files: dict[str, str] = {}
             hits: list[str] = []
             pii: dict[str, int] = {}
             for path, content in snapshot.files.items():
                 shielded = text_shield.run(strip_hidden(content), ref, known, header_name=False)
-                files[path_shield.run(path, ref, known, header_name=False).text] = shielded.text
-                hits += screen(shielded.text, hidden=hidden_count(content))
+                text = shielded.text
+                for rx, other in name_rx:
+                    text = rx.sub(other, text)
+                files[path_shield.run(path, ref, known, header_name=False).text] = text
+                hits += screen(text, hidden=hidden_count(content))
                 for k, v in shielded.counts.items():
                     pii[k] = pii.get(k, 0) + v
+            integration: dict[str, Any] = {}
+            if fetched_repo.owner:
+                analysis = analyse_repository(fetched_repo)
+                integration = {
+                    "links": [{"target": repo_labels[link.target], "kind": link.kind, "file": link.file,
+                               "line": link.line, "excerpt": blind(link.excerpt)}
+                              for link in links if link.source == fetched_repo.url],
+                    "linked_from": sorted({repo_labels[link.source] for link in links
+                                           if link.target == fetched_repo.url and link.kind != "documentation"}),
+                    "tools": analysis.tools, "workflow_files": analysis.workflow_files,
+                    "job_dependencies": analysis.job_dependencies, "services": analysis.services,
+                    "compose_file": analysis.compose_file,
+                    "stack": {skill: sorted({d for d, _ in deps}) for skill, deps in analysis.stack.items()},
+                    "stack_files": {skill: sorted({f for _, f in deps}) for skill, deps in analysis.stack.items()},
+                }
             report = RedactionReport(pii_replaced=pii, injection_suspected=bool(hits), injection_excerpts=hits[:5],
                                      detector="rules", notes=[f"{len(paths)} paths read, {len(files)} key files kept"])
             artifacts.append(Artifact(id=aid, candidate_ref=ref, kind=ArtifactKind.repository, label=label,
-                                      repo_paths=paths, repo_files=files, content_sha256=_sha("\n".join(paths)),
-                                      redaction=report, media_type="application/x-git-tree"))
+                                      repo_paths=paths, repo_files=files, integration=integration,
+                                      content_sha256=_sha("\n".join(paths)), redaction=report,
+                                      media_type="application/x-git-tree"))
 
         for image in images:
             aid, label = next_id(ArtifactKind.image, "Image")
@@ -388,10 +439,14 @@ class Engine:
         for art in artifacts:
             if art.status != ArtifactStatus.ready:
                 continue
+            if art.kind in (ArtifactKind.degree, ArtifactKind.certification):
+                creds.extend(extract_credentials(art))  # proof of a credential, not of a skill
+                continue
             found = analyze_repo(art) if art.kind == ArtifactKind.repository else analyze_text(art)
             signals.extend(found)
-            if art.kind in (ArtifactKind.cv, ArtifactKind.document):
+            if art.kind in (ArtifactKind.cv, ArtifactKind.document, ArtifactKind.linkedin):
                 creds.extend(extract_credentials(art))
+        creds = _merge_credentials(creds)
         text_volume = sum(len(s.evidence.excerpt) for s in signals) + sum(
             len(c) for a in artifacts for c in a.repo_files.values())
         report = L1Report(
@@ -584,6 +639,8 @@ class Engine:
     # -------------------------------------------------------------------------------------- human oversight
 
     def decide(self, ref: str, decision: HumanDecision) -> DashboardReport:
+        if len(decision.reviewer.strip()) < 2:
+            raise PolicyError("a decision must be signed by a named reviewer")
         report = self.get_report(ref)
         entry = self.ledger.append("human_decision", {
             "decision": decision.decision, "reviewer": decision.reviewer, "rationale": decision.rationale,
@@ -607,14 +664,165 @@ class Engine:
         cand = self.get_candidate(ref)
         shredded = self.vault.shred(ref)
         artifacts = self.store.delete_children("artifacts", ref)
+        self.store.delete_children("assessments", ref)
         for media in self.media_dir.glob(f"{ref}-*"):
             media.unlink(missing_ok=True)
         for collection in ("reports", "graphs", "l1", "candidates"):
             self.store.delete(collection, ref)
+        self.store.query("DELETE FROM documents WHERE collection = 'explain_tokens' AND body LIKE ?",
+                         (f'%"ref": "{ref}"%',))
         self.ledger.append("erasure", {"vault_entries_shredded": shredded, "artifacts_deleted": artifacts,
                                        "legal_basis": "GDPR Art. 17"}, actor=actor, job_id=cand.job_id,
                            candidate_ref=ref)
         return {"vault_entries_shredded": shredded, "artifacts_deleted": artifacts}
+
+    # ---------------------------------------------------------------------------------- GDPR operations
+
+    def purge_expired(self, now: datetime | None = None, actor: str = "retention-policy") -> list[str]:
+        """Erase every application whose consented retention period is over (GDPR Art. 5(1)(e))."""
+        now = now or utcnow()
+        expired = [c.ref for c in self.store.list("candidates", Candidate)
+                   if c.consent.recorded_at + timedelta(days=c.consent.retention_days) <= now]
+        for ref in expired:
+            self.erase(ref, actor)
+        if expired:
+            self.ledger.append("retention_sweep", {"erased": len(expired), "at": now.isoformat()}, actor=actor)
+        return expired
+
+    def export_candidate(self, ref: str, actor: str) -> dict[str, Any]:
+        """Everything held about one candidate, for an access or portability request (GDPR Art. 15 and 20)."""
+        cand = self.get_candidate(ref)
+        report = self.store.get("reports", ref, DashboardReport)
+        data = {
+            "exported_at": utcnow().isoformat(),
+            "candidate_ref": ref,
+            "job_id": cand.job_id,
+            "consent": cand.consent.model_dump(mode="json"),
+            "identity": self.vault.reveal(ref),
+            "artifacts": [a.model_dump(mode="json") for a in self.artifacts(ref)],
+            "report": report.model_dump(mode="json") if report else None,
+            "audit_trail": [e.model_dump(mode="json") for e in self.ledger.entries(candidate_ref=ref, limit=1000)],
+            "verification_tests": [json.loads(r["body"]) for r in self.store.query(
+                "SELECT body FROM documents WHERE collection = 'assessments' AND parent = ?", (ref,))],
+        }
+        self.ledger.append("data_export", {"legal_basis": "GDPR Art. 15/20", "sections": sorted(data)},
+                           actor=actor, job_id=cand.job_id, candidate_ref=ref)
+        return data
+
+    # ---------------------------------------------------------------------------------- explanation links
+
+    def create_explanation_link(self, ref: str, actor: str, days: int = 30) -> dict[str, Any]:
+        """A private link the candidate can open to see why they got their score (AI Act Art. 86)."""
+        report = self.get_report(ref)
+        token = secrets.token_urlsafe(24)
+        expires = utcnow() + timedelta(days=days)
+        self.store.put_json("explain_tokens", hashlib.sha256(token.encode()).hexdigest(),
+                            {"ref": ref, "expires_at": expires.isoformat(), "created_at": utcnow().isoformat(),
+                             "created_by": actor})
+        self.ledger.append("explanation_link", {"expires_at": expires.isoformat()}, actor=actor,
+                           job_id=report.job_id, candidate_ref=ref)
+        return {"token": token, "path": f"/explication/{token}", "expires_at": expires.isoformat()}
+
+    def explanation_links(self, ref: str) -> list[dict[str, Any]]:
+        self.get_candidate(ref)
+        rows = self.store.query("SELECT id, body FROM documents WHERE collection = 'explain_tokens'")
+        out = []
+        for row in rows:
+            body = json.loads(row["body"])
+            if body.get("ref") == ref:
+                out.append({"id": row["id"][:16], "created_at": body.get("created_at"),
+                            "created_by": body.get("created_by"), "expires_at": body["expires_at"],
+                            "revoked": bool(body.get("revoked_at")), "revoked_at": body.get("revoked_at"),
+                            "revoked_by": body.get("revoked_by"),
+                            "active": not body.get("revoked_at")
+                            and datetime.fromisoformat(body["expires_at"]) > utcnow()})
+        return sorted(out, key=lambda x: x["created_at"] or "", reverse=True)
+
+    def revoke_explanation_link(self, ref: str, link_id: str, actor: str) -> bool:
+        rows = self.store.query("SELECT id, body FROM documents WHERE collection = 'explain_tokens' AND id LIKE ?",
+                                (f"{link_id}%",))
+        rows = [r for r in rows if json.loads(r["body"]).get("ref") == ref and len(link_id) >= 12
+                and not json.loads(r["body"]).get("revoked_at")]
+        for row in rows:  # kept, flagged: the audit view shows who revoked what and when
+            body = json.loads(row["body"]) | {"revoked_at": utcnow().isoformat(), "revoked_by": actor}
+            self.store.put_json("explain_tokens", row["id"], body)
+        if rows:
+            report = self.get_report(ref)
+            self.ledger.append("explanation_link_revoked", {"link": link_id}, actor=actor, job_id=report.job_id,
+                               candidate_ref=ref)
+        return bool(rows)
+
+    def public_explanation(self, token: str) -> dict[str, Any]:
+        record = self.store.get_json("explain_tokens", hashlib.sha256(token.encode()).hexdigest())
+        if not record or record.get("revoked_at") or datetime.fromisoformat(record["expires_at"]) < utcnow():
+            raise NotFound("this explanation link is invalid or has expired")
+        ref = record["ref"]
+        report = self.get_report(ref)  # NotFound after an erasure: the link dies with the data
+        self.ledger.append("explanation_viewed", {}, actor="candidate", job_id=report.job_id, candidate_ref=ref)
+        entry = self.ledger.get(report.audit.ledger_entry_id)
+        return {
+            "job_title": report.job_title, "locale": report.locale, "generated_at": report.generated_at.isoformat(),
+            "compatibility_pct": report.compatibility_pct, "skills_component_pct": report.skills_component_pct,
+            "credentials_component_pct": report.credentials_component_pct,
+            "credentials_weight": report.credentials.weight_applied, "evidence_band": report.evidence_band,
+            "criteria": [c.model_dump(mode="json") for c in report.criteria],
+            "validated_skills": [s.model_dump(mode="json") for s in report.validated_skills],
+            "gaps": [g.model_dump(mode="json") for g in report.gaps],
+            "credentials": [c.label for c in report.credentials.items],
+            "decision": ({"decision": report.decision.decision, "rationale": report.decision.rationale,
+                          "decided_at": report.decision.decided_at.isoformat()} if report.decision else None),
+            "notice": report.notice,
+            "audit": {"score_entry_hash": report.audit.entry_hash, "recorded_at": entry.created_at if entry else None,
+                      "ledger_intact": self.ledger.verify().valid, "engine_version": report.audit.engine_version,
+                      "job_config_version": report.audit.job_config_version},
+            "expires_at": record["expires_at"],
+        }
+
+    # ---------------------------------------------------------------------------------- AI Act operations
+
+    def monitoring(self, tests: list[Any] | None = None) -> dict[str, Any]:
+        """Post-market monitoring figures (AI Act Art. 72) and evidence that human oversight is real."""
+        jobs_out = []
+        overrides = decisions = 0
+        bands: dict[str, int] = {}
+        for job in self.list_jobs():
+            ranked = self.summaries(job.id)
+            scores = [s.compatibility_pct for s in ranked if s.compatibility_pct is not None]
+            decided = [(i, s) for i, s in enumerate(ranked) if s.decision]
+            positive = {"shortlist", "interview"}
+            # A human override: someone advanced while a higher-ranked candidate was not (or the reverse).
+            for i, s in decided:
+                decisions += 1
+                higher_not_advanced = any(o.decision not in positive for o in ranked[:i] if o.decision)
+                if (s.decision in positive and higher_not_advanced) or (s.decision not in positive and i == 0):
+                    overrides += 1
+            for s in ranked:
+                if s.evidence_band:
+                    bands[s.evidence_band] = bands.get(s.evidence_band, 0) + 1
+            jobs_out.append({"job_id": job.id, "title": job.title, "candidates": len(ranked), "decisions": len(decided),
+                             "score_min": min(scores) if scores else None, "score_max": max(scores) if scores else None,
+                             "score_median": sorted(scores)[len(scores) // 2] if scores else None})
+        finished = [t for t in (tests or []) if getattr(t, "results", None)]
+        risk: dict[str, int] = {}
+        for t in finished:
+            r = t.results.get("integrity", {}).get("risk", "low")
+            risk[r] = risk.get(r, 0) + 1
+        spent = sum(self.budget.spent(j.id)["usd"] for j in self.list_jobs())
+        incidents = self.ledger.count(kind="incident")
+        return {"generated_at": utcnow().isoformat(), "jobs": jobs_out, "evidence_bands": bands,
+                "human_decisions": decisions, "decisions_departing_from_ranking": overrides,
+                "verification_tests_completed": len(finished), "test_integrity_risk": risk,
+                "ai_spend_usd": round(spent, 4), "incidents_recorded": incidents,
+                "ledger": self.ledger.verify().model_dump()}
+
+    def record_incident(self, actor: str, severity: str, description: str, affected: list[str]) -> dict[str, Any]:
+        """Serious-incident journal (AI Act Art. 73): the reporting deadline is computed from awareness."""
+        days = {"death": 10, "widespread": 2, "serious": 15}.get(severity, 15)
+        deadline = (utcnow() + timedelta(days=days)).isoformat()
+        entry = self.ledger.append("incident", {"severity": severity, "description": description[:4000],
+                                                "affected_candidates": affected[:200], "report_deadline": deadline,
+                                                "legal_basis": "AI Act Art. 73"}, actor=actor)
+        return {"entry_id": entry.entry_id, "severity": severity, "report_to_authority_before": deadline}
 
     def media_path(self, ref: str, artifact_id: str) -> Path | None:
         matches = sorted(self.media_dir.glob(f"{ref}-{artifact_id}.*"))
@@ -632,6 +840,21 @@ class Engine:
         return {"job_id": job_id, "budget_usd": job.funnel.job_budget_usd, **spent,
                 "provider": self.provider.name if self.provider else "none",
                 "model": self.provider.model if self.provider else ""}
+
+
+def _merge_credentials(items: list[CredentialItem]) -> list[CredentialItem]:
+    """The same diploma named in the CV, on LinkedIn and in its own file counts once, as supported."""
+    def key(item: CredentialItem) -> str:
+        words = re.findall(r"[^\W\d_]{3,}|\d+", item.label.lower())
+        return " ".join(w for w in words if not w.startswith(("school", "person")))[:40]
+
+    merged: dict[str, CredentialItem] = {}
+    for item in sorted(items, key=lambda i: not i.supported_by_document):
+        k = key(item)
+        if k in merged:
+            continue
+        merged[k] = item
+    return list(merged.values())[:20]
 
 
 def _validate_skills(job: JobProfile) -> None:

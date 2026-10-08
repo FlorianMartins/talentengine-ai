@@ -6,7 +6,6 @@
 > Paste one of your job ads (text or LinkedIn link), add a CV and a GitHub or portfolio link:
 > you see the score, the evidence, the gaps and the generated interview questions.
 
-*Version française : [GUIDE-RECRUTEURS.md](GUIDE-RECRUTEURS.md)*
 
 ---
 
@@ -71,7 +70,7 @@ campaign reports, case studies, descriptions and photos of finished work, and th
    tool reads the **structure** (presence of tests, continuous integration, security checks…) without
    reading all the code. A commercial AI model steps in, if you enable it, only for the few files
    richest in evidence, with a spending cap per job ad.
-3. **The trade translator.** Evidence is translated into skills (31 skills: software, data, design,
+3. **The trade translator.** Evidence is translated into skills (37 skills: software, AI, data, design,
    marketing, sales, craft, cooking, sewing, management, cloud…) and scored on three axes that
    everyone understands: **autonomy** (did they carry the work through end to end?), **complexity**
    (is it hard?), **reliability** (are there checks, tests, measured results?).
@@ -152,9 +151,9 @@ https://github.com/FlorianMartins/talentengine-ai/issues.
 
 This is the most important step: **the tool looks for what you ask it to look for**.
 
-1. **Start from a template role** (DevSecOps, full-stack developer, UI/UX designer, growth marketer,
-   key account sales executive, joiner and fitter, chef de partie, pattern-maker and tailor),
-   or from your own job ad.
+1. **Start from one of the 47 reference roles** — searchable ("AI engineer", "data", "UX",
+   "renovation"…) across software, AI and data, security, design, marketing, sales, management, trades,
+   cooking and textile — or from your own job ad.
 2. **Choose the criteria** from the catalogue. For each one:
    - **importance**: *essential* (counts triple), *important* (double), *bonus* (single);
    - **weight**: a fine adjustment on top of importance;
@@ -176,8 +175,11 @@ to say which configuration produced which score.
 ### 5.2 Receiving applications
 
 Share the application form or upload the documents on the candidate's behalf (with their agreement):
-CV (PDF, Word, text), documents (reports, case studies), GitHub links, described achievements, photos
-of work. The **name is mandatory**: it is what allows it to be masked everywhere, whatever the layout
+CV (PDF, Word, text), **LinkedIn profile as PDF** (often fuller than a CV that must fit on two pages),
+**diplomas** and **certifications** (marked "document provided"), other documents (reports, case
+studies, quotes), GitHub links — a profile link is enough: **every** public repository is analysed,
+including how they work together (a project reusing another, an automated tool chain) —, described
+achievements, photos of work. The **name is mandatory**: it is what allows it to be masked everywhere, whatever the layout
 of the documents.
 
 ### 5.3 Running the evaluation
@@ -189,8 +191,20 @@ are looking at.
 ### 5.4 Comparing and deciding
 
 Select two or three applications to compare them criterion by criterion. Record your decision
-(shortlisted, interview, on hold, not selected) with a short justification. After a shortlisting or
-an interview, you can **reveal the identity** in order to contact the person; this access is logged.
+(shortlisted, interview, on hold, not selected) with a short justification: it is signed with your
+account name. After a shortlisting or an interview, you can **reveal the identity** in order to contact
+the person; this access is logged. **Export as PDF** produces a clean report for a hiring committee.
+
+### 5.5 Answering the candidate and your DPO
+
+- **Explanation link**: from the report, send the candidate a private link (valid 30 days) showing the
+  evidence used, the criteria, what was missing, your decision and its justification — with no
+  identifier. That is the AI Act right to explanation (Art. 86), in one click.
+- **Accounts and roles**: everyone has their own account (recruiter, DPO, admin). The DPO exports a
+  candidate's data on request and erases it, and applications past their retention period are purged
+  automatically.
+- **DPIA draft**: on a job page, download an impact assessment pre-filled from its configuration; your
+  DPO completes the items specific to your organisation.
 
 ## 6. Reading a report without being an expert
 
@@ -224,6 +238,30 @@ Each report offers **three questions** about the candidate's real work, chosen t
 Tick off the points during the interview. For a file with no attached achievement, the questions are
 about the **declared** skills: "You say you are proficient in X: describe a concrete achievement, what
 you did yourself and the result." A thin file is a reason to ask questions, never to reject.
+
+### Before the interview: filter impostors with a verification test
+
+Evidence can be borrowed: a CV can be invented, a repository can belong to someone else. From any report,
+send the candidate a **verification test link** for the level the role needs (junior, confirmed, senior):
+
+- **Questions on the craft**, drawn from 236 practical questions over all 37 skills, spread over your
+  job's criteria by importance — scenarios, calculations, ordering steps, not definitions.
+- **Questions on their own work**, generated from what they submitted: which tools their CI runs, which of
+  their projects builds on which, which library a repository uses, the exact figure in their own report.
+  The author answers in seconds; someone presenting another person's work does not.
+- **Every candidate gets a different test** (questions, numbers, option order), one question at a time,
+  with a timer kept by the server and no going back: an answer key or a screenshot shared online is useless.
+- **Integrity signals** for you to review — window left, copy/paste or print-screen attempts, full screen
+  exited, answers faster than reading time — summarised as a low/medium/high risk with neutral notes.
+  They are never applied automatically.
+- **Safe Exam Browser** mode for high-stakes roles: the free, open exam browser used by universities locks
+  the computer (no screenshots, no other applications); TalentEngine checks on every request that the test
+  really runs in it.
+
+What no website can do, and we prefer to say so: stop someone from photographing the screen with a phone.
+That is why timers are tight, questions are personal, every leak is traceable through a moving watermark,
+and why the interview remains the final check. No camera and no microphone are used — emotion recognition
+in recruitment is prohibited in the EU.
 
 ## 8. Worked examples with numbers
 
@@ -261,10 +299,18 @@ you meet your obligations:
 | Human oversight (AI Act Art. 14) | Indicative ranking, visible alerts, traced decisions |
 | Minimisation and protection by design (GDPR Art. 5 and 25) | Anonymisation on intake, encrypted identity, local analysis by default |
 | Right to erasure (GDPR Art. 17) | One-click erasure; the log stays intact but is no longer linked to the person |
+| Candidate information (Code du travail L1221-8, L1221-9) | A notice before every application and test says what is analysed and monitored |
+| Workers' representatives (AI Act Art. 26(7), L2312-38) | The DPIA draft and the instructions for use form the information file |
 
-**What remains your responsibility**: the impact assessment (DPIA), informing candidates and staff
-representatives, the choice of any AI provider, and training recruiters in the proper use of the
-score. Details: [COMPLIANCE.md](../COMPLIANCE.md).
+**The calendar, verified**: the AI Act's high-risk obligations for recruitment tools apply from
+**2 December 2027** (postponed from 2 August 2026 by Regulation (EU) 2026/1744). The GDPR and labour law
+apply today, and the ban on emotion recognition at work has applied since February 2025. A private
+employer recruiting for itself does not need a fundamental-rights impact assessment (Art. 27), but does
+need a DPIA, candidate information and informed workers' representatives.
+
+**What remains your responsibility**: the DPIA (a draft is generated per job), informing candidates and
+staff representatives, the choice of any AI provider, and training recruiters in the proper use of the
+score. Who must do what, provider and deployer, article by article: [AI_ACT_READINESS.md](../AI_ACT_READINESS.md).
 
 ## 10. What the tool does not do (yet)
 
@@ -275,9 +321,11 @@ We would rather tell you:
   CVs.
 - **It does not read everything**: profiles with no written or visual trace of their work get a
   "limited" evidence level. That is an invitation to ask for examples, not a verdict.
-- **The recruiter edition is an MVP**: SQLite database, one access key per instance, no multi-user
-  login yet and no native integration with your ATS (both planned in the
-  [roadmap](../ROADMAP.md)).
+- **The recruiter edition is an MVP**: SQLite database, named accounts with personal keys (no single
+  sign-on yet); the Greenhouse and Ashby note endpoints should be checked against your account before
+  production ([ATS_BRIDGE.md](../ATS_BRIDGE.md)).
+- **No web test can stop a phone camera**: tests make cheating slow, detectable and of little use; the
+  interview stays the final check.
 - **The skill-detection rules** need to be reviewed with practitioners of each trade before large-scale
   use.
 
@@ -293,8 +341,9 @@ What the tool prevents is a degree **with no achievements at all** getting ahead
 proved themselves.
 
 **"What if the candidate lies or copies a project?"**
-Claims without evidence earn nothing. Repetitive, inflated CVs are penalised. And the interview guide
-is designed precisely to check that the person is the author of what they present.
+Claims without evidence earn nothing. Repetitive, inflated CVs are penalised. The verification test asks
+about the craft at the level claimed **and about the candidate's own submitted work**, with a different
+test for each person and server-side timers. And the interview guide checks authorship face to face.
 
 **"Our candidates don't have a GitHub."**
 GitHub is only one source among others: campaign reports, case studies, site descriptions, photos of
@@ -316,8 +365,10 @@ The software is free and open. Local analysis costs nothing. Deepening with a co
 optional, capped per job ad ($5 by default), and applies only to the best files.
 
 **"Does it replace my ATS?"**
-No: it sits alongside it. You keep publishing and managing the process in your ATS; TalentEngine-AI
-assesses the evidence and helps you choose whom to meet.
+No — it plugs into it. With Greenhouse, Lever, Ashby or any tool through a signed webhook, each new
+application is analysed automatically and a note appears on the candidate in your ATS: score, key
+evidence, gaps, three interview questions and the explanation link. You keep your tool and your habits
+([ATS_BRIDGE.md](../ATS_BRIDGE.md)).
 
 ## 12. Proposal: a 30-day pilot
 

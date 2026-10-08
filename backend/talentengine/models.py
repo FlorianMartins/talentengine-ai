@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -168,6 +168,9 @@ class JobProfile(BaseModel):
 
 class ArtifactKind(StrEnum):
     cv = "cv"
+    linkedin = "linkedin"  # LinkedIn profile exported as PDF: a longer self-description than the CV
+    degree = "degree"  # diploma or transcript supporting a declared degree
+    certification = "certification"  # certificate supporting a declared certification
     document = "document"
     image = "image"
     repository = "repository"
@@ -200,6 +203,9 @@ class Artifact(BaseModel):
     text: str = ""  # pseudonymised text (CV, documents, image captions, notes)
     repo_paths: list[str] = Field(default_factory=list)  # repository tree (paths only, never code)
     repo_files: dict[str, str] = Field(default_factory=dict)  # key files fetched for escalation only
+    # How this repository works with the candidate's other repositories and tools (pseudonymised):
+    # links, orchestrated tools, job dependencies, services, declared stack. See funnel/crossrepo.py.
+    integration: dict[str, Any] = Field(default_factory=dict)
     media_type: str = ""
     redaction: RedactionReport = Field(default_factory=RedactionReport)
 
@@ -255,6 +261,7 @@ class CredentialItem(BaseModel):
     kind: Literal["degree", "certification"]
     label: str  # school names masked
     evidence: EvidenceRef
+    supported_by_document: bool = False  # a diploma or certificate file was provided, not only a CV line
 
 
 class L1Report(BaseModel):
@@ -370,7 +377,8 @@ class AuditInfo(BaseModel):
 
 class HumanDecision(BaseModel):
     decision: Literal["shortlist", "interview", "hold", "not_retained"]
-    reviewer: str = Field(..., min_length=2, max_length=120)
+    # Named accounts sign with their own name server-side; required only with the shared key or in dev mode.
+    reviewer: str = Field("", max_length=120)
     rationale: str = Field(..., min_length=15, max_length=4000)
     decided_at: datetime = Field(default_factory=utcnow)
     ledger_entry_id: str = ""

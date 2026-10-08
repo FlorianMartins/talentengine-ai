@@ -4,21 +4,31 @@ from __future__ import annotations
 
 import hmac
 import json
+import random
+import threading
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
+from ..assessment.engine import AssessmentEngine, AssessmentSession
+from ..assessment.personal import personal_questions
+from ..auth import Principal, Role, UserStore
+from ..compliance import dpia_markdown
 from ..config import ENGINE_VERSION, Settings, get_settings
 from ..dashboard.presets import list_presets
 from ..i18n import localise
+from ..integrations.bridge import Bridge, ConnectionInput
 from ..models import (
     MAX_CREDENTIAL_WEIGHT,
     ArtifactKind,
+    Candidate,
     CandidateSummary,
     DashboardReport,
     Family,
@@ -42,8 +52,13 @@ IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
 
 
 class RevealRequest(BaseModel):
-    reviewer: str = Field(..., min_length=2, max_length=120)
+    reviewer: str = Field("", max_length=120, description="Ignored for named accounts: the account name is used")
     reason: str = Field(..., min_length=15, max_length=2000)
+
+
+class NewUser(BaseModel):
+    name: str = Field(..., min_length=2, max_length=120)
+    role: Role
 
 
 class EvaluationResult(BaseModel):
@@ -54,19 +69,56 @@ class EvaluationResult(BaseModel):
     spent_usd: float
 
 
+class NewAssessment(BaseModel):
+    level: int = Field(2, ge=1, le=3, description="1 junior, 2 confirmed, 3 senior")
+    questions: int = Field(12, ge=4, le=25)
+    personal: bool = Field(True, description="Add questions generated from the candidate's own work")
+    seb_config_keys: list[str] = Field(default_factory=list, max_length=5,
+                                       description="Safe Exam Browser Config Keys: if set, SEB is required")
+    valid_hours: int = Field(72, ge=1, le=336)
+
+
+class IncidentReport(BaseModel):
+    severity: Literal["serious", "widespread", "death"] = "serious"
+    description: str = Field(..., min_length=20, max_length=4000)
+    affected_candidates: list[str] = Field(default_factory=list, max_length=200)
+
+
 class EraseRequest(BaseModel):
-    actor: str = Field(..., min_length=2, max_length=120)
+    actor: str = Field("", max_length=120, description="Ignored for named accounts: the account name is used")
 
 
 def create_app(settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
     settings = settings or get_settings()
     engine = engine or Engine(settings)
+    users = UserStore(settings.data_dir / "users.json")
+    stop = threading.Event()
+
+    def retention_loop() -> None:
+        # First sweep shortly after start, then every `retention_sweep_hours`.
+        delay = 60.0
+        while not stop.wait(delay):
+            try:
+                engine.purge_expired()
+            except Exception:
+                import logging
+
+                logging.getLogger(__name__).exception("retention sweep failed")
+            delay = settings.retention_sweep_hours * 3600.0
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        if settings.retention_sweep_hours > 0:
+            threading.Thread(target=retention_loop, name="retention-sweep", daemon=True).start()
+        yield
+        stop.set()
+
     app = FastAPI(title="TalentEngine-AI", version=ENGINE_VERSION, docs_url="/api/docs",
-                  openapi_url="/api/openapi.json", redoc_url=None,
+                  openapi_url="/api/openapi.json", redoc_url=None, lifespan=lifespan,
                   description="Skills-first, privacy-first applicant evaluation. No automated rejection.")
     app.state.engine = engine
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"],
-                       allow_headers=["*"], expose_headers=["X-Total-Count"])
+                       allow_headers=["*"], expose_headers=["X-Total-Count", "X-Required-Permission"])
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next: Any) -> Any:
@@ -76,9 +128,38 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         response.headers.setdefault("X-Frame-Options", "DENY")
         return response
 
-    def require_key(x_api_key: Annotated[str | None, Header()] = None) -> None:
-        if settings.api_key and not (x_api_key and hmac.compare_digest(x_api_key, settings.api_key)):
-            raise HTTPException(401, "missing or invalid X-API-Key")
+    def auth_required() -> bool:
+        return bool(settings.api_key) or users.any()
+
+    def current(
+        x_api_key: Annotated[str | None, Header()] = None,
+        x_actor: Annotated[str | None, Header(max_length=120)] = None,
+    ) -> Principal:
+        if x_api_key:
+            if (user := users.authenticate(x_api_key)) is not None:
+                return user
+            if settings.api_key and hmac.compare_digest(x_api_key, settings.api_key):
+                return Principal(name=(x_actor or "admin").strip()[:120] or "admin", role="admin",
+                                 authenticated=True, shared_key=True)
+            raise HTTPException(401, "invalid API key")
+        if auth_required():
+            raise HTTPException(401, "missing X-API-Key")
+        # Development mode (no key, no account): open, the name is whatever the client says.
+        return Principal(name=(x_actor or "anonymous").strip()[:120] or "anonymous", role="admin",
+                         authenticated=False)
+
+    def need(permission: str) -> Callable[..., Principal]:
+        def check(who: Principal = Depends(current)) -> Principal:
+            if not who.can(permission):
+                raise HTTPException(403, f"the {who.role} role cannot do this (needs: {permission})",
+                                    headers={"X-Required-Permission": permission})
+            return who
+        return check
+
+    # Built once: each is the dependency that authenticates the caller and checks one permission.
+    CAN_READ, CAN_WRITE, CAN_DECIDE, CAN_PRIVACY, CAN_ADMIN = (
+        Depends(need(p)) for p in ("read", "write", "decide", "privacy", "admin"))
+
 
     @app.exception_handler(NotFound)
     async def _not_found(_: Request, exc: NotFound) -> JSONResponse:
@@ -88,19 +169,45 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     async def _policy(_: Request, exc: PolicyError) -> JSONResponse:
         return JSONResponse({"detail": str(exc)}, status_code=422)
 
-    auth = [Depends(require_key)]
+    auth = [CAN_READ]
 
-    from ..sandbox.api import build_router
+    from ..assessment.api import SeedStore
+    from ..assessment.api import build_router as build_assess_router
+    from ..sandbox.api import _client_ip, _RateLimiter, build_router
 
-    app.include_router(build_router(settings))  # public on purpose: no API key, nothing stored
+    limiter = _RateLimiter()
+    seeds = SeedStore()
+    tests = AssessmentEngine(engine.store)
+    app.state.tests = tests
+    app.include_router(build_router(settings, seeds, limiter))  # public on purpose: no API key, nothing stored
+
+    def test_limit(request: Request) -> None:
+        limiter.check("test", _client_ip(request, settings.trust_proxy), settings.sandbox_matches_per_hour * 2)
+
+    def test_finished(session: AssessmentSession) -> None:
+        results = session.results or {}
+        engine.ledger.append("assessment_completed", {
+            "assessment": session.id, "level": session.level, "overall_pct": results.get("overall_pct"),
+            "authorship_pct": results.get("authorship_pct"),
+            "skills": [{k: s[k] for k in ("skill_id", "score_pct", "verified_level")}
+                       for s in results.get("skills", [])],
+            "integrity": {"risk": results.get("integrity", {}).get("risk"),
+                          "events": results.get("integrity", {}).get("events")},
+        }, actor="candidate", job_id=session.job_id, candidate_ref=session.candidate_ref)
+
+    app.include_router(build_assess_router(settings, tests, seeds, test_limit, test_finished))
 
     # ------------------------------------------------------------------ meta
 
     @app.get("/api/health")
     def health() -> dict[str, Any]:
         # Public on purpose: the UI needs to know a key is required before its first call fails.
-        return {"status": "ok", "version": ENGINE_VERSION, "auth_required": bool(settings.api_key),
+        return {"status": "ok", "version": ENGINE_VERSION, "auth_required": auth_required(),
                 "demo_enabled": settings.enable_demo}
+
+    @app.get("/api/me")
+    def me(who: Principal = Depends(current)) -> dict[str, Any]:
+        return {**who.model_dump(), "permissions": who.permissions}
 
     @app.get("/api/runtime", dependencies=auth)
     def runtime() -> dict[str, Any]:
@@ -111,7 +218,9 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
             "llm_model": engine.provider.model if engine.provider else "",
             "max_credential_weight": MAX_CREDENTIAL_WEIGHT,
             "demo_enabled": settings.enable_demo,
-            "auth_required": bool(settings.api_key),
+            "auth_required": auth_required(),
+            "named_accounts": users.any(),
+            "upload_limits": {"max_file_mb": MAX_UPLOAD_BYTES // 1024 // 1024, "max_files_total": 60},
         }
 
     @app.get("/api/catalog/skills", dependencies=auth)
@@ -124,8 +233,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         return [f.value for f in Family]
 
     @app.get("/api/catalog/presets", dependencies=auth)
-    def presets(locale: str = "fr") -> list[dict[str, Any]]:
-        return list_presets("en" if locale == "en" else "fr")
+    def presets(locale: str = "fr", q: str = "") -> list[dict[str, Any]]:
+        return list_presets("en" if locale == "en" else "fr", q[:100])
 
     # ------------------------------------------------------------------ jobs
 
@@ -140,26 +249,32 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
                         "decisions": sum(1 for s in summaries if s.decision)})
         return out
 
-    @app.post("/api/jobs", dependencies=auth, status_code=201)
-    def create_job(job: JobProfile, x_actor: Annotated[str, Header()] = "recruiter") -> JobProfile:
-        return engine.create_job(job, actor=x_actor)
+    @app.post("/api/jobs", status_code=201)
+    def create_job(job: JobProfile, who: Principal = CAN_WRITE) -> JobProfile:
+        return engine.create_job(job, actor=who.name)
 
     @app.get("/api/jobs/{job_id}", dependencies=auth)
     def get_job(job_id: str) -> JobProfile:
         return engine.get_job(job_id)
 
-    @app.put("/api/jobs/{job_id}", dependencies=auth)
-    def update_job(job_id: str, job: JobProfile, x_actor: Annotated[str, Header()] = "recruiter") -> JobProfile:
-        return engine.update_job(job_id, job, actor=x_actor)
+    @app.put("/api/jobs/{job_id}")
+    def update_job(job_id: str, job: JobProfile, who: Principal = CAN_WRITE) -> JobProfile:
+        return engine.update_job(job_id, job, actor=who.name)
+
+    @app.get("/api/jobs/{job_id}/dpia", dependencies=auth, response_class=PlainTextResponse)
+    def dpia(job_id: str, locale: str = "fr") -> PlainTextResponse:
+        text = dpia_markdown(engine.get_job(job_id), settings, runtime(), "en" if locale == "en" else "fr")
+        return PlainTextResponse(text, media_type="text/markdown; charset=utf-8",
+                                 headers={"Content-Disposition": f'attachment; filename="AIPD-{job_id}.md"'})
 
     @app.get("/api/jobs/{job_id}/candidates", dependencies=auth)
     def candidates(job_id: str) -> list[CandidateSummary]:
         engine.get_job(job_id)
         return engine.summaries(job_id)
 
-    @app.post("/api/jobs/{job_id}/evaluate", dependencies=auth)
-    def evaluate(job_id: str, x_actor: Annotated[str, Header()] = "system") -> EvaluationResult:
-        run = engine.evaluate(job_id, actor=x_actor)
+    @app.post("/api/jobs/{job_id}/evaluate")
+    def evaluate(job_id: str, who: Principal = CAN_WRITE) -> EvaluationResult:
+        run = engine.evaluate(job_id, actor=who.name)
         locale = engine.get_job(job_id).locale
         return EvaluationResult(job_id=run.job_id, evaluated=run.evaluated, escalated=run.escalated,
                                 escalation_skipped={k: localise(v, locale) for k, v in run.skipped.items()},
@@ -169,12 +284,12 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     def usage(job_id: str) -> dict[str, Any]:
         return engine.usage(job_id)
 
-    @app.post("/api/jobs/{job_id}/candidates/json", dependencies=auth, status_code=201)
+    @app.post("/api/jobs/{job_id}/candidates/json", dependencies=[CAN_WRITE], status_code=201)
     def submit_json(job_id: str, submission: Submission) -> dict[str, Any]:
         cand = engine.ingest(job_id, submission)
         return {"candidate_ref": cand.ref, "artifacts": cand.artifact_ids}
 
-    @app.post("/api/jobs/{job_id}/candidates", dependencies=auth, status_code=201)
+    @app.post("/api/jobs/{job_id}/candidates", dependencies=[CAN_WRITE], status_code=201)
     async def submit_multipart(
         job_id: str,
         consent: Annotated[bool, Form()],
@@ -185,7 +300,10 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         image_captions_json: Annotated[str, Form(description="Captions, in the same order as images")] = "[]",
         retention_days: Annotated[int, Form()] = 180,
         cv: Annotated[UploadFile | None, File()] = None,
+        linkedin: Annotated[UploadFile | None, File(description="LinkedIn profile saved as PDF")] = None,
         documents: Annotated[list[UploadFile] | None, File()] = None,
+        degrees: Annotated[list[UploadFile] | None, File(description="Diplomas or transcripts")] = None,
+        certifications: Annotated[list[UploadFile] | None, File(description="Certificates")] = None,
         images: Annotated[list[UploadFile] | None, File()] = None,
     ) -> dict[str, Any]:
         docs: list[TextDocument] = []
@@ -196,12 +314,12 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
                 raise HTTPException(413, f"{upload.filename}: file larger than 15 MB")
             return data
 
-        if cv is not None and cv.filename:
-            docs.append(TextDocument(name=cv.filename, content=extract_text(cv.filename, await read(cv)),
-                                     kind=ArtifactKind.cv))
-        for upload in documents or []:
+        uploads = [(u, k) for u, k in ((cv, ArtifactKind.cv), (linkedin, ArtifactKind.linkedin)) if u is not None]
+        uploads += [(u, k) for files, k in ((documents, ArtifactKind.document), (degrees, ArtifactKind.degree),
+                                             (certifications, ArtifactKind.certification)) for u in files or []]
+        for upload, kind in uploads[:60]:
             if upload.filename:
-                docs.append(TextDocument(name=upload.filename,
+                docs.append(TextDocument(name=upload.filename, kind=kind,
                                          content=extract_text(upload.filename, await read(upload))))
         try:
             portfolio = json.loads(portfolio_json or "[]")
@@ -259,17 +377,151 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     def explanation(ref: str) -> dict[str, Any]:
         return engine.explanation(ref)
 
-    @app.post("/api/candidates/{ref}/decisions", dependencies=auth)
-    def decide(ref: str, decision: HumanDecision) -> DashboardReport:
-        return engine.decide(ref, decision)
+    def signer(who: Principal, claimed: str) -> str:
+        # A named account always signs with its own name; the shared key and dev mode keep the claimed one.
+        if who.authenticated and not who.shared_key:
+            return who.name
+        return claimed.strip() or who.name
 
-    @app.post("/api/candidates/{ref}/reveal", dependencies=auth)
-    def reveal(ref: str, body: RevealRequest) -> dict[str, Any]:
-        return {"candidate_ref": ref, "identity": engine.reveal(ref, body.reviewer, body.reason)}
+    @app.post("/api/candidates/{ref}/decisions")
+    def decide(ref: str, decision: HumanDecision, who: Principal = CAN_DECIDE) -> DashboardReport:
+        return engine.decide(ref, decision.model_copy(update={"reviewer": signer(who, decision.reviewer)}))
 
-    @app.post("/api/candidates/{ref}/erase", dependencies=auth)
-    def erase(ref: str, body: EraseRequest) -> dict[str, Any]:
-        return engine.erase(ref, body.actor)
+    @app.post("/api/candidates/{ref}/reveal")
+    def reveal(ref: str, body: RevealRequest, who: Principal = CAN_DECIDE) -> dict[str, Any]:
+        return {"candidate_ref": ref, "identity": engine.reveal(ref, signer(who, body.reviewer), body.reason)}
+
+    @app.post("/api/candidates/{ref}/explanation-link")
+    def explanation_link(
+        ref: str, who: Principal = CAN_DECIDE, days: Annotated[int, Query(ge=1, le=90)] = 30,
+    ) -> dict[str, Any]:
+        return engine.create_explanation_link(ref, who.name, days)
+
+    @app.get("/api/candidates/{ref}/explanation-links")
+    def explanation_links(ref: str, who: Principal = CAN_DECIDE) -> list[dict[str, Any]]:
+        return engine.explanation_links(ref)
+
+    @app.delete("/api/candidates/{ref}/explanation-links/{link_id}")
+    def revoke_explanation_link(ref: str, link_id: str, who: Principal = CAN_DECIDE) -> dict[str, bool]:
+        return {"revoked": engine.revoke_explanation_link(ref, link_id, who.name)}
+
+    @app.post("/api/candidates/{ref}/assessments")
+    def create_assessment(ref: str, body: NewAssessment, who: Principal = CAN_DECIDE) -> dict[str, Any]:
+        cand = engine.get_candidate(ref)
+        job = engine.get_job(cand.job_id)
+        l1, arts = engine.level1(ref)
+        personal = personal_questions(l1, arts, random.SystemRandom()) if body.personal else []
+        try:
+            token, session = tests.create(job, body.level, locale=job.locale, mode="candidate", n=body.questions,
+                                          personal=personal, candidate_ref=ref, job_id=job.id,
+                                          seb_config_keys=[k.strip() for k in body.seb_config_keys if k.strip()],
+                                          valid_hours=body.valid_hours)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        engine.ledger.append("assessment_created", {
+            "assessment": session.id, "level": body.level, "questions": len(session.questions),
+            "personal_questions": len(personal), "seb_required": session.seb_required,
+            "expires_at": session.expires_at.isoformat()}, actor=who.name, job_id=job.id, candidate_ref=ref)
+        return {"token": token, "path": f"/test/{token}", "expires_at": session.expires_at.isoformat(),
+                "questions": len(session.questions), "untestable_skills": session.untestable_skills}
+
+    @app.get("/api/candidates/{ref}/assessments", dependencies=auth)
+    def list_assessments(ref: str) -> list[dict[str, Any]]:
+        engine.get_candidate(ref)
+        return [{"id": s.id, "status": s.status, "level": s.level, "created_at": s.created_at.isoformat(),
+                 "expires_at": s.expires_at.isoformat(), "seb_required": s.seb_required,
+                 "questions": len(s.questions), "results": s.results} for s in tests.list_for(ref)]
+
+    @app.post("/api/candidates/{ref}/erase")
+    def erase(ref: str, body: EraseRequest, who: Principal = CAN_PRIVACY) -> dict[str, Any]:
+        return engine.erase(ref, signer(who, body.actor))
+
+    @app.get("/api/candidates/{ref}/export")
+    def export(ref: str, who: Principal = CAN_PRIVACY) -> JSONResponse:
+        return JSONResponse(engine.export_candidate(ref, who.name),
+                            headers={"Content-Disposition": f'attachment; filename="export-{ref}.json"'})
+
+    # ------------------------------------------------------------------ public explanation (AI Act Art. 86)
+
+    @app.get("/api/public/explanation/{token}")
+    def public_explanation(token: str) -> dict[str, Any]:
+        if len(token) > 100:
+            raise HTTPException(404, "this explanation link is invalid or has expired")
+        return engine.public_explanation(token)
+
+    # ------------------------------------------------------------------ administration
+
+    @app.post("/api/admin/retention/run")
+    def retention_run(who: Principal = CAN_PRIVACY) -> dict[str, Any]:
+        erased = engine.purge_expired(actor=who.name)
+        return {"erased": erased, "count": len(erased)}
+
+    @app.get("/api/admin/monitoring")
+    def monitoring(who: Principal = CAN_PRIVACY) -> dict[str, Any]:
+        refs = [c.ref for c in engine.store.list("candidates", Candidate)]
+        all_tests = [s for ref in refs for s in tests.list_for(ref)]
+        return engine.monitoring(all_tests)
+
+    @app.post("/api/admin/incidents", status_code=201)
+    def incident(body: IncidentReport, who: Principal = CAN_PRIVACY) -> dict[str, Any]:
+        return engine.record_incident(who.name, body.severity, body.description, body.affected_candidates)
+
+    # ------------------------------------------------------------------ ATS bridge (add-on mode)
+
+    bridge = Bridge(engine, engine.vault_key, settings.public_base_url)
+    app.state.bridge = bridge
+
+    @app.get("/api/integrations")
+    def list_integrations(who: Principal = CAN_ADMIN) -> list[dict[str, Any]]:
+        return [c.public() for c in bridge.list()]
+
+    @app.post("/api/integrations", status_code=201)
+    def create_integration(body: ConnectionInput, who: Principal = CAN_ADMIN) -> dict[str, Any]:
+        conn, generated = bridge.create(body, who.name)
+        out = conn.public()
+        if generated:
+            out["webhook_secret"] = generated  # shown once (generic connector)
+        return out
+
+    @app.delete("/api/integrations/{conn_id}")
+    def delete_integration(conn_id: str, who: Principal = CAN_ADMIN) -> dict[str, bool]:
+        return {"removed": bridge.delete(conn_id, who.name)}
+
+    @app.post("/api/integrations/{conn_id}/webhook")
+    async def webhook(conn_id: str, request: Request) -> JSONResponse:
+        body = await request.body()
+        if len(body) > 20 * 1024 * 1024:
+            raise HTTPException(413, "payload too large")
+        try:
+            result = bridge.receive(conn_id, dict(request.headers), body)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except PermissionError as exc:
+            raise HTTPException(401, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return JSONResponse(result, status_code=202 if result.get("accepted") else 200)
+
+    @app.get("/api/admin/users")
+    def list_users(who: Principal = CAN_ADMIN) -> list[dict[str, str]]:
+        return users.list()
+
+    @app.post("/api/admin/users", status_code=201)
+    def add_user(body: NewUser, who: Principal = CAN_ADMIN) -> dict[str, str]:
+        try:
+            key = users.add(body.name, body.role)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        engine.ledger.append("account_created", {"name": body.name, "role": body.role}, actor=who.name)
+        return {"name": body.name, "role": body.role, "api_key": key,
+                "notice": "Shown once: store it now, only its hash is kept."}
+
+    @app.delete("/api/admin/users/{name}")
+    def delete_user(name: str, who: Principal = CAN_ADMIN) -> dict[str, bool]:
+        removed = users.remove(name)
+        if removed:
+            engine.ledger.append("account_removed", {"name": name}, actor=who.name)
+        return {"removed": removed}
 
     # ------------------------------------------------------------------ audit
 
@@ -290,7 +542,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
 
     # ------------------------------------------------------------------ demo
 
-    @app.post("/api/demo/seed", dependencies=auth)
+    @app.post("/api/demo/seed", dependencies=[CAN_ADMIN])
     def seed() -> dict[str, Any]:
         if not settings.enable_demo:
             raise HTTPException(403, "demo data is disabled (TE_ENABLE_DEMO=false)")

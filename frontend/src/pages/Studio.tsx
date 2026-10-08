@@ -28,7 +28,9 @@ import type { CatalogSkill, Criterion, Family, Importance, JobProfile, Locale, P
 import { useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
 import { cx, levelIndex } from "../lib/format";
 import { PageHeader, useCrumbs } from "../components/Shell";
-import { ErrorState, FamilyIcon, PageSkeleton, Skeleton } from "../components/feedback";
+import { ErrorState, Gate, PageSkeleton, Skeleton } from "../components/feedback";
+import { DpiaButton } from "../components/DpiaButton";
+import { PresetPicker } from "../components/PresetPicker";
 import { RangeField, Segmented, SwitchRow, TagInput } from "../components/controls";
 import { Radar } from "../components/charts";
 
@@ -223,39 +225,53 @@ export function StudioPage() {
           ) : presets.error ? (
             <ErrorState error={presets.error} onRetry={presets.reload} />
           ) : (
-            <div className="preset-grid">
-              <button
-                type="button"
-                className="preset"
-                aria-pressed={presetId === "blank"}
-                onClick={() => {
-                  setPresetId("blank");
-                  setDraft(blankProfile(lang));
-                }}
-              >
-                <span className="family-icon">
-                  <Plus size={16} aria-hidden="true" />
-                </span>
-                <b>{t.studio.blank}</b>
-                <p>{t.studio.blankDesc}</p>
-              </button>
-              {(presets.data ?? []).map((p) => (
+            <PresetPicker
+              idPrefix="studio-presets"
+              items={(presets.data ?? []).map((p) => ({
+                ...p,
+                criteria: p.job.criteria.map((c) => catalog.get(c.skill_id)?.label ?? c.skill_id),
+              }))}
+              selected={presetId}
+              onSelect={(pid) => {
+                const p = presets.data?.find((x) => x.id === pid);
+                if (!p) return;
+                setPresetId(pid);
+                setDraft(normalize({ ...p.job, id: "" }, lang));
+              }}
+              lead={
                 <button
-                  key={p.id}
                   type="button"
                   className="preset"
-                  aria-pressed={presetId === p.id}
+                  aria-pressed={presetId === "blank"}
                   onClick={() => {
-                    setPresetId(p.id);
-                    setDraft(normalize({ ...p.job, id: "" }, lang));
+                    setPresetId("blank");
+                    setDraft(blankProfile(lang));
                   }}
                 >
-                  <FamilyIcon family={p.family} size={16} />
-                  <b>{p.title}</b>
-                  <p>{p.summary}</p>
+                  <span className="family-icon">
+                    <Plus size={16} aria-hidden="true" />
+                  </span>
+                  <b>{t.studio.blank}</b>
+                  <p>{t.studio.blankDesc}</p>
                 </button>
-              ))}
-            </div>
+              }
+              empty={
+                <>
+                  <p>{t.presetsUi.noneStudio}</p>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setPresetId("blank");
+                      setDraft(blankProfile(lang));
+                    }}
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    {t.studio.blank}
+                  </button>
+                </>
+              }
+            />
           )}
         </section>
       )}
@@ -705,10 +721,15 @@ export function StudioPage() {
                 {t.studio.criteriaCount(draft.criteria.length, MAX_CRITERIA)}
               </div>
             )}
-            <button className="btn btn-primary" onClick={save} disabled={saving}>
-              {saving ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
-              {editing ? t.studio.saveEdit : t.studio.saveNew}
-            </button>
+            {editing && id && existing.data && <DpiaButton jobId={id} locale={existing.data.locale} />}
+            <Gate perm="write">
+              {(ok) => (
+                <button className="btn btn-primary" onClick={save} disabled={saving || !ok}>
+                  {saving ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
+                  {editing ? t.studio.saveEdit : t.studio.saveNew}
+                </button>
+              )}
+            </Gate>
           </div>
         </div>
       </div>

@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import {
   CheckCircle2,
   ClipboardCopy,
-  FileText,
   Github,
   ImageIcon,
   Info,
@@ -18,13 +17,16 @@ import {
 } from "lucide-react";
 import { api } from "../api/client";
 import type { SubmissionResult } from "../api/types";
-import { useAsync, usePrefs, useToast } from "../lib/prefs";
+import { useAsync, usePrefs, useSystem, useToast } from "../lib/prefs";
 import { PageHeader, useCrumbs } from "../components/Shell";
-import { ErrorState, PageSkeleton } from "../components/feedback";
+import { ErrorState, Gate, PageSkeleton } from "../components/feedback";
 import { DropZone } from "../components/controls";
+import { CandidateNotice } from "../components/CandidateNotice";
+import { DocumentZones, EMPTY_DOCS, hasAnyDoc, type DocSet } from "../components/DocumentZones";
 
-const MAX_BYTES = 15 * 1024 * 1024;
-const DOC_EXT = /\.(pdf|txt|md|markdown)$/i;
+const DOC_EXT = /\.(pdf|docx|txt|md|markdown)$/i;
+const DOC_ACCEPT =
+  ".pdf,.docx,.txt,.md,.markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown";
 const IMG_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 interface Item {
@@ -37,18 +39,15 @@ interface Img {
   url: string;
 }
 
-function fmtSize(b: number): string {
-  return b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
-}
 
 export function ApplyPage() {
   const { id = "" } = useParams();
   const { t } = usePrefs();
   const toast = useToast();
+  const system = useSystem();
   const job = useAsync(() => api.job(id), [id]);
 
-  const [cv, setCv] = useState<File | null>(null);
-  const [docs, setDocs] = useState<File[]>([]);
+  const [docSet, setDocSet] = useState<DocSet>(EMPTY_DOCS);
   const [github, setGithub] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [images, setImages] = useState<Img[]>([]);
@@ -71,19 +70,12 @@ export function ApplyPage() {
   imagesRef.current = images;
   useEffect(() => () => imagesRef.current.forEach((i) => URL.revokeObjectURL(i.url)), []);
 
-  const acceptDocs = (files: File[]): File[] =>
-    files.filter((f) => {
-      if (f.size > MAX_BYTES) return toast.push("warning", t.apply.tooBig(f.name)), false;
-      if (!DOC_EXT.test(f.name)) return toast.push("warning", t.apply.badType(f.name)), false;
-      return true;
-    });
-
   const urls = github
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
   const cleanItems = items.filter((i) => i.description.trim());
-  const hasContent = Boolean(cv) || docs.length > 0 || urls.length > 0 || cleanItems.length > 0 || images.length > 0;
+  const hasContent = hasAnyDoc(docSet) || urls.length > 0 || cleanItems.length > 0 || images.length > 0;
   const problems = useMemo(() => {
     const p: string[] = [];
     if (!hasContent) p.push(t.apply.needContent);
@@ -93,8 +85,7 @@ export function ApplyPage() {
   }, [hasContent, name, consent, t]);
 
   const reset = () => {
-    setCv(null);
-    setDocs([]);
+    setDocSet(EMPTY_DOCS);
     setGithub("");
     setItems([]);
     setImages([]);
@@ -119,8 +110,11 @@ export function ApplyPage() {
         github_urls: urls,
         portfolio: cleanItems.map((i) => ({ title: i.title.trim(), description: i.description.trim() })),
         retention_days: retention,
-        cv,
-        documents: docs,
+        cv: docSet.cv,
+        linkedin: docSet.linkedin,
+        degrees: docSet.degrees,
+        certifications: docSet.certifications,
+        documents: docSet.documents,
         images: images.map((i) => ({ file: i.file, caption: i.caption.trim() })),
       });
       setResult(r);
@@ -176,45 +170,10 @@ export function ApplyPage() {
         <PageHeader eyebrow={`${t.apply.forJob} · ${job.data?.title ?? ""}`} title={t.apply.title} sub={t.apply.subtitle} />
       </section>
 
-      <div className="grid-2" style={{ alignItems: "start" }}>
-        {/* ------------------------------------------------ documents */}
-        <section className="panel" aria-labelledby="ap-docs">
-          <h2 id="ap-docs" className="panel-title">
-            <FileText size={18} aria-hidden="true" />
-            {t.apply.cv}
-          </h2>
-          {cv ? (
-            <ul className="file-list">
-              <FileRow file={cv} onRemove={() => setCv(null)} />
-            </ul>
-          ) : (
-            <DropZone
-              accept=".pdf,.txt,.md,.markdown,application/pdf,text/plain,text/markdown"
-              label={t.apply.cv}
-              hint={t.apply.cvHint}
-              onFiles={(f) => setCv(acceptDocs(f)[0] ?? null)}
-            />
-          )}
-          <div className="divider" />
-          <h3 className="label">
-            {t.apply.docs} <span className="opt">({t.common.optional})</span>
-          </h3>
-          <DropZone
-            accept=".pdf,.txt,.md,.markdown,application/pdf,text/plain,text/markdown"
-            multiple
-            label={t.apply.docs}
-            hint={t.apply.docsHint}
-            onFiles={(f) => setDocs((d) => [...d, ...acceptDocs(f)].slice(0, 20))}
-          />
-          {docs.length > 0 && (
-            <ul className="file-list">
-              {docs.map((d, i) => (
-                <FileRow key={`${d.name}-${i}`} file={d} onRemove={() => setDocs(docs.filter((_, j) => j !== i))} />
-              ))}
-            </ul>
-          )}
-        </section>
+      <CandidateNotice />
+      <DocumentZones value={docSet} onChange={setDocSet} maxPerCategory={Math.min(10, system.runtime?.upload_limits?.max_files_total ?? 10)} maxMb={system.runtime?.upload_limits?.max_file_mb ?? 15} ext={DOC_EXT} accept={DOC_ACCEPT} />
 
+      <div className="grid-2" style={{ alignItems: "start" }}>
         <div className="stack-lg">
           {/* ------------------------------------------------ github */}
           <section className="panel" aria-labelledby="ap-gh">
@@ -355,7 +314,7 @@ export function ApplyPage() {
           onFiles={(files) => {
             const ok = files.filter((f) => {
               if (!IMG_TYPES.includes(f.type)) return toast.push("warning", t.apply.badType(f.name)), false;
-              if (f.size > MAX_BYTES) return toast.push("warning", t.apply.tooBig(f.name)), false;
+              if (f.size > (system.runtime?.upload_limits?.max_file_mb ?? 15) * 1024 * 1024) return toast.push("warning", t.apply.tooBig(f.name)), false;
               return true;
             });
             setImages((imgs) => [...imgs, ...ok.map((file) => ({ file, caption: "", url: URL.createObjectURL(file) }))]);
@@ -442,28 +401,16 @@ export function ApplyPage() {
           </div>
         )}
         <div className="row wrap">
-          <button className="btn btn-primary" type="submit" disabled={busy}>
+          <Gate perm="write">
+            {(ok) => (
+          <button className="btn btn-primary" type="submit" disabled={busy || !ok}>
             {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
             {busy ? t.apply.submitting : t.apply.submit}
           </button>
+            )}
+          </Gate>
         </div>
       </section>
     </form>
-  );
-}
-
-function FileRow({ file, onRemove }: { file: File; onRemove: () => void }) {
-  const { t } = usePrefs();
-  return (
-    <li className="file-item">
-      <FileText size={18} aria-hidden="true" style={{ color: "var(--accent-text)", flex: "none" }} />
-      <span className="truncate" style={{ flex: 1 }}>
-        {file.name}
-      </span>
-      <span className="xs faint num">{fmtSize(file.size)}</span>
-      <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={t.apply.fileRemove(file.name)} onClick={onRemove}>
-        <X size={15} aria-hidden="true" />
-      </button>
-    </li>
   );
 }

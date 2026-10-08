@@ -1,0 +1,2660 @@
+[
+ {
+  "id": "campaign_performance_roas_basic",
+  "skill_id": "campaign_performance",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Une campagne a dépensé {spend} € et généré {revenue} € de chiffre d'affaires attribué. Quel est son ROAS ?",
+   "en": "A campaign spent {spend} € and generated {revenue} € in attributed revenue. What is its ROAS?"
+  },
+  "params": {
+   "spend": {
+    "min": 2000,
+    "max": 10000,
+    "step": 500
+   },
+   "revenue": {
+    "min": 5000,
+    "max": 40000,
+    "step": 1000
+   }
+  },
+  "answer": "revenue / spend",
+  "tolerance": 0.02,
+  "unit": "x",
+  "seconds": 60,
+  "explanation": {
+   "fr": "ROAS = chiffre d'affaires attribué / dépense publicitaire.",
+   "en": "ROAS = attributed revenue / ad spend."
+  }
+ },
+ {
+  "id": "campaign_performance_high_ctr_low_cvr",
+  "skill_id": "campaign_performance",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Votre annonce a un CTR deux fois supérieur à la moyenne, mais presque personne ne convertit sur la page d'arrivée. Que vérifiez-vous d'abord ?",
+   "en": "Your ad has twice the average CTR, but almost nobody converts on the landing page. What do you check first?"
+  },
+  "options": [
+   {
+    "fr": "La cohérence entre la promesse de l'annonce et la page d'arrivée",
+    "en": "Whether the landing page matches the ad's promise"
+   },
+   {
+    "fr": "Augmenter l'enchère pour obtenir plus de clics",
+    "en": "Raising the bid to get more clicks"
+   },
+   {
+    "fr": "Élargir le ciblage à de nouvelles audiences",
+    "en": "Broadening targeting to new audiences"
+   },
+   {
+    "fr": "Ajouter davantage de mots-clés",
+    "en": "Adding more keywords"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Les clics arrivent : la rupture est après le clic (message, offre, page).",
+   "en": "Clicks are coming in: the break is after the click (message, offer, page)."
+  }
+ },
+ {
+  "id": "campaign_performance_cpa_from_clicks",
+  "skill_id": "campaign_performance",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Dépense : {spend} €. Clics : {clicks}. Taux de conversion des clics : {cr} %. Quel est le coût par acquisition (CPA) ?",
+   "en": "Spend: {spend} €. Clicks: {clicks}. Click conversion rate: {cr}%. What is the cost per acquisition (CPA)?"
+  },
+  "params": {
+   "spend": {
+    "min": 3000,
+    "max": 12000,
+    "step": 500
+   },
+   "clicks": {
+    "min": 2000,
+    "max": 8000,
+    "step": 500
+   },
+   "cr": {
+    "min": 2,
+    "max": 6,
+    "step": 0.5
+   }
+  },
+  "answer": "spend / (clicks * cr / 100)",
+  "tolerance": 0.02,
+  "unit": "€",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Conversions = clics × taux ; CPA = dépense / conversions.",
+   "en": "Conversions = clicks × rate; CPA = spend / conversions."
+  }
+ },
+ {
+  "id": "campaign_performance_retargeting_roas",
+  "skill_id": "campaign_performance",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Votre campagne de retargeting affiche un ROAS de 12 en dernier clic, bien au-dessus de la prospection. Quel est le principal risque d'interprétation ?",
+   "en": "Your retargeting campaign shows a last-click ROAS of 12, far above prospecting. What is the main interpretation risk?"
+  },
+  "options": [
+   {
+    "fr": "Elle s'attribue des ventes qui auraient eu lieu sans elle (faible incrémentalité)",
+    "en": "It claims sales that would have happened anyway (low incrementality)"
+   },
+   {
+    "fr": "Le plafond de fréquence est trop bas",
+    "en": "The frequency cap is too low"
+   },
+   {
+    "fr": "Le CPM est anormalement bas",
+    "en": "The CPM is abnormally low"
+   },
+   {
+    "fr": "Les créations sont trop récentes pour être évaluées",
+    "en": "The creatives are too new to judge"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Le retargeting touche des personnes déjà sur le point d'acheter ; seul un test d'incrémentalité dit ce qu'il apporte vraiment.",
+   "en": "Retargeting reaches people already about to buy; only an incrementality test shows its real contribution."
+  }
+ },
+ {
+  "id": "campaign_performance_marginal_cpa",
+  "skill_id": "campaign_performance",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "À 10 000 € de budget : 250 conversions. À 13 000 € : 275 conversions. CPA cible : 50 €. Gardez-vous les 3 000 € supplémentaires ?",
+   "en": "At 10,000 € budget: 250 conversions. At 13,000 €: 275 conversions. Target CPA: 50 €. Do you keep the extra 3,000 €?"
+  },
+  "options": [
+   {
+    "fr": "Non : les 25 conversions marginales coûtent 120 € chacune",
+    "en": "No: the 25 marginal conversions cost 120 € each"
+   },
+   {
+    "fr": "Oui : le CPA moyen (47 €) reste sous la cible",
+    "en": "Yes: the average CPA (47 €) stays under target"
+   },
+   {
+    "fr": "Oui : le volume de conversions a augmenté",
+    "en": "Yes: conversion volume went up"
+   },
+   {
+    "fr": "Impossible à dire sans le CTR",
+    "en": "Impossible to say without the CTR"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "On décide sur le coût marginal : 3 000 € / 25 = 120 €, bien au-dessus des 50 €. Le CPA moyen masque les rendements décroissants.",
+   "en": "Decide on marginal cost: 3,000 € / 25 = 120 €, far above 50 €. The average CPA hides diminishing returns."
+  }
+ },
+ {
+  "id": "campaign_performance_incrementality_methods",
+  "skill_id": "campaign_performance",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Quelles méthodes mesurent réellement l'incrémentalité d'un canal publicitaire ?",
+   "en": "Which methods actually measure the incrementality of an ad channel?"
+  },
+  "options": [
+   {
+    "fr": "Un test géographique avec zones témoins sans diffusion",
+    "en": "A geo test with holdout regions that get no ads"
+   },
+   {
+    "fr": "Une étude de lift avec groupe de contrôle randomisé",
+    "en": "A lift study with a randomised control group"
+   },
+   {
+    "fr": "Comparer l'attribution premier clic et dernier clic",
+    "en": "Comparing first-click and last-click attribution"
+   },
+   {
+    "fr": "Lire le ROAS dans le tableau de bord de la plateforme",
+    "en": "Reading ROAS in the platform's dashboard"
+   },
+   {
+    "fr": "Couper le canal en alternance sur des périodes comparables (on/off)",
+    "en": "Switching the channel off and on over comparable periods"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   4
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "L'incrémentalité exige un contrefactuel (groupe ou période sans exposition). Les modèles d'attribution ne font que répartir le crédit.",
+   "en": "Incrementality needs a counterfactual (unexposed group or period). Attribution models only split credit."
+  }
+ },
+ {
+  "id": "funnel_design_orders_through_steps",
+  "skill_id": "funnel_design",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "{visits} visiteurs. {a} % ajoutent au panier, {b} % de ceux-ci commencent le paiement, {c} % de ceux-là paient. Combien de commandes ?",
+   "en": "{visits} visitors. {a}% add to cart, {b}% of those start checkout, {c}% of those pay. How many orders?"
+  },
+  "params": {
+   "visits": {
+    "min": 10000,
+    "max": 50000,
+    "step": 1000
+   },
+   "a": {
+    "min": 5,
+    "max": 15,
+    "step": 1
+   },
+   "b": {
+    "min": 30,
+    "max": 60,
+    "step": 5
+   },
+   "c": {
+    "min": 40,
+    "max": 80,
+    "step": 5
+   }
+  },
+  "answer": "visits * a / 100 * b / 100 * c / 100",
+  "tolerance": 0.02,
+  "unit": "commandes / orders",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Les taux d'étapes se multiplient.",
+   "en": "Step rates multiply."
+  }
+ },
+ {
+  "id": "funnel_design_step_exceeds_previous",
+  "skill_id": "funnel_design",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Votre rapport d'entonnoir indique : 10 000 visites, 1 200 inscriptions, 1 500 activations. Que se passe-t-il le plus probablement ?",
+   "en": "Your funnel report shows: 10,000 visits, 1,200 signups, 1,500 activations. What is most likely happening?"
+  },
+  "options": [
+   {
+    "fr": "Les étapes ne sont pas comptées sur les mêmes personnes, dans l'ordre",
+    "en": "The steps are not counted on the same people, in sequence"
+   },
+   {
+    "fr": "L'activation est excellente et il faut la célébrer",
+    "en": "Activation is excellent and worth celebrating"
+   },
+   {
+    "fr": "Le taux d'inscription est trop bas",
+    "en": "The signup rate is too low"
+   },
+   {
+    "fr": "Le trafic est principalement mobile",
+    "en": "Traffic is mostly mobile"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Une étape ne peut dépasser la précédente dans un vrai entonnoir : on compte des événements, ou des personnes qui sautent une étape.",
+   "en": "A step cannot exceed the previous one in a real funnel: events are being counted, or people skip a step."
+  }
+ },
+ {
+  "id": "funnel_design_visitors_needed",
+  "skill_id": "funnel_design",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Objectif : {n} clients payants ce mois-ci. Visiteur → inscription : {a} %. Inscription → payant : {b} %. Combien de visiteurs faut-il ?",
+   "en": "Goal: {n} paying customers this month. Visitor → signup: {a}%. Signup → paid: {b}%. How many visitors do you need?"
+  },
+  "params": {
+   "n": {
+    "min": 50,
+    "max": 400,
+    "step": 10
+   },
+   "a": {
+    "min": 2,
+    "max": 8,
+    "step": 0.5
+   },
+   "b": {
+    "min": 5,
+    "max": 25,
+    "step": 1
+   }
+  },
+  "answer": "n / (a / 100) / (b / 100)",
+  "tolerance": 0.02,
+  "unit": "visiteurs / visitors",
+  "seconds": 75,
+  "explanation": {
+   "fr": "On remonte l'entonnoir en divisant par chaque taux.",
+   "en": "Work back up the funnel by dividing by each rate."
+  }
+ },
+ {
+  "id": "funnel_design_best_step_to_improve",
+  "skill_id": "funnel_design",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Entonnoir : étape A 40 %, étape B 5 %, étape C 80 %. Une seule amélioration possible, à effort égal. Laquelle rapporte le plus de commandes ?",
+   "en": "Funnel: step A 40%, step B 5%, step C 80%. Only one improvement possible, equal effort. Which yields the most orders?"
+  },
+  "options": [
+   {
+    "fr": "B : 5 % → 7 %",
+    "en": "B: 5% → 7%"
+   },
+   {
+    "fr": "A : 40 % → 50 %",
+    "en": "A: 40% → 50%"
+   },
+   {
+    "fr": "C : 80 % → 90 %",
+    "en": "C: 80% → 90%"
+   },
+   {
+    "fr": "Toutes se valent",
+    "en": "They are all equal"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Les taux se multiplient : seul le gain relatif compte. B +40 %, A +25 %, C +12,5 %.",
+   "en": "Rates multiply, so only the relative gain matters: B +40%, A +25%, C +12.5%."
+  }
+ },
+ {
+  "id": "funnel_design_removed_step_signups",
+  "skill_id": "funnel_design",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Supprimer une étape du parcours d'inscription a augmenté les inscriptions de 30 %, mais le nombre de clients payants n'a pas bougé. Votre lecture ?",
+   "en": "Removing a signup step raised signups by 30%, but paying customers did not move. Your reading?"
+  },
+  "options": [
+   {
+    "fr": "L'étape filtrait des personnes peu motivées : on juge sur la métrique aval",
+    "en": "The step was filtering low-intent people: judge on the downstream metric"
+   },
+   {
+    "fr": "Succès : les inscriptions sont l'indicateur principal",
+    "en": "Success: signups are the key metric"
+   },
+   {
+    "fr": "La page de tarifs est forcément cassée",
+    "en": "The pricing page must be broken"
+   },
+   {
+    "fr": "L'échantillon est trop petit pour conclure quoi que ce soit",
+    "en": "The sample is too small to conclude anything"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Optimiser une étape intermédiaire peut déplacer la friction sans créer de valeur ; c'est le résultat final qui tranche.",
+   "en": "Optimising a middle step can move friction without creating value; the final outcome decides."
+  }
+ },
+ {
+  "id": "funnel_design_card_required_trial",
+  "skill_id": "funnel_design",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Vous passez d'un essai gratuit sans carte à un essai avec carte bancaire obligatoire. Quels effets attendre en général ?",
+   "en": "You switch from a free trial without card to one requiring a credit card. Which effects are typically expected?"
+  },
+  "options": [
+   {
+    "fr": "Moins de démarrages d'essai",
+    "en": "Fewer trial starts"
+   },
+   {
+    "fr": "Un meilleur taux de conversion essai → payant",
+    "en": "A higher trial-to-paid rate"
+   },
+   {
+    "fr": "Plus de demandes de remboursement et de litiges",
+    "en": "More refund requests and disputes"
+   },
+   {
+    "fr": "Davantage de revenu total, garanti",
+    "en": "More total revenue, guaranteed"
+   },
+   {
+    "fr": "Le même volume de démarrages d'essai",
+    "en": "The same volume of trial starts"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "La carte filtre et convertit mieux, mais réduit le volume ; l'effet net sur le revenu doit être testé.",
+   "en": "The card filters and converts better but cuts volume; the net revenue effect must be tested."
+  }
+ },
+ {
+  "id": "experimentation_stopped_day3",
+  "skill_id": "experimentation",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Un test A/B prévu pour 3 semaines est arrêté au jour 3 car p = 0,04. Quel est le problème ?",
+   "en": "An A/B test planned for 3 weeks is stopped on day 3 because p = 0.04. What is the problem?"
+  },
+  "options": [
+   {
+    "fr": "S'arrêter dès que p < 0,05 gonfle le risque de faux positif",
+    "en": "Stopping as soon as p < 0.05 inflates the false-positive risk"
+   },
+   {
+    "fr": "p = 0,04 n'est pas significatif",
+    "en": "p = 0.04 is not significant"
+   },
+   {
+    "fr": "Il aurait fallu un test A/B/C",
+    "en": "It should have been an A/B/C test"
+   },
+   {
+    "fr": "Aucun : le résultat est significatif, on peut déployer",
+    "en": "None: the result is significant, ship it"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Regarder et s'arrêter au premier seuil franchi (peeking) multiplie les faux positifs ; 3 jours ne couvrent pas non plus un cycle hebdomadaire.",
+   "en": "Peeking and stopping at the first crossing multiplies false positives; 3 days also miss a weekly cycle."
+  }
+ },
+ {
+  "id": "experimentation_relative_uplift",
+  "skill_id": "experimentation",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Contrôle : {c} % de conversion. Variante : {v} %. Quelle est la hausse relative de la variante ?",
+   "en": "Control: {c}% conversion. Variant: {v}%. What is the variant's relative uplift?"
+  },
+  "params": {
+   "c": {
+    "min": 4,
+    "max": 5,
+    "step": 0.1
+   },
+   "v": {
+    "min": 5.2,
+    "max": 6,
+    "step": 0.1
+   }
+  },
+  "answer": "(v - c) / c * 100",
+  "tolerance": 0.02,
+  "unit": "%",
+  "seconds": 60,
+  "explanation": {
+   "fr": "Hausse relative = (variante − contrôle) / contrôle, à ne pas confondre avec l'écart en points.",
+   "en": "Relative uplift = (variant − control) / control, not the gap in points."
+  }
+ },
+ {
+  "id": "experimentation_sample_size_rule",
+  "skill_id": "experimentation",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Règle empirique (α = 5 %, puissance 80 %) : n par variante ≈ 16 × p × (1 − p) / δ², δ = écart absolu. Conversion de base {p} %, hausse relative visée {u} %. n par variante ?",
+   "en": "Rule of thumb (α = 5%, power 80%): n per variant ≈ 16 × p × (1 − p) / δ², δ = absolute difference. Baseline {p}%, target relative uplift {u}%. n per variant?"
+  },
+  "params": {
+   "p": {
+    "min": 2,
+    "max": 10,
+    "step": 1
+   },
+   "u": {
+    "min": 5,
+    "max": 20,
+    "step": 5
+   }
+  },
+  "answer": "16 * (p / 100) * (1 - p / 100) / ((p / 100 * u / 100) ** 2)",
+  "tolerance": 0.03,
+  "unit": "utilisateurs / users",
+  "seconds": 110,
+  "explanation": {
+   "fr": "δ = p × hausse relative (ex. 5 % × 10 % = 0,5 point). Diviser la hausse visée par deux quadruple l'échantillon.",
+   "en": "δ = p × relative uplift (e.g. 5% × 10% = 0.5 pt). Halving the target uplift quadruples the sample."
+  }
+ },
+ {
+  "id": "experimentation_srm",
+  "skill_id": "experimentation",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Partage prévu 50/50. Après une semaine : 52 300 utilisateurs en A, 47 700 en B. Que faites-vous ?",
+   "en": "Planned 50/50 split. After a week: 52,300 users in A, 47,700 in B. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Chercher un bug d'assignation ou de tracking avant de lire les résultats",
+    "en": "Look for an assignment or tracking bug before reading results"
+   },
+   {
+    "fr": "Pondérer les résultats de B pour compenser",
+    "en": "Re-weight B's results to compensate"
+   },
+   {
+    "fr": "Rien : un écart de 4,6 points est normal",
+    "en": "Nothing: a 4.6-point gap is normal"
+   },
+   {
+    "fr": "Prolonger le test jusqu'à ce que les groupes s'équilibrent",
+    "en": "Extend the test until the groups even out"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Sur 100 000 utilisateurs, cet écart est quasi impossible par hasard : c'est un sample ratio mismatch, qui invalide la comparaison.",
+   "en": "On 100,000 users this gap is near-impossible by chance: a sample ratio mismatch, which invalidates the comparison."
+  }
+ },
+ {
+  "id": "experimentation_many_metrics",
+  "skill_id": "experimentation",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Métrique principale stable. La variante gagne sur 1 des 20 métriques secondaires (p = 0,03). On vous demande de déployer. Votre avis ?",
+   "en": "Primary metric flat. The variant wins on 1 of 20 secondary metrics (p = 0.03). You're asked to ship. Your view?"
+  },
+  "options": [
+   {
+    "fr": "Probable faux positif : avec 20 métriques, 1 « gagnante » est attendue par hasard",
+    "en": "Likely false positive: with 20 metrics, 1 'winner' is expected by chance"
+   },
+   {
+    "fr": "Déployer : p < 0,05 suffit",
+    "en": "Ship: p < 0.05 is enough"
+   },
+   {
+    "fr": "Déployer, car aucune métrique n'a baissé",
+    "en": "Ship, since no metric went down"
+   },
+   {
+    "fr": "Relancer en ne mesurant que cette métrique, puis déployer quel que soit le résultat",
+    "en": "Rerun measuring only that metric, then ship whatever happens"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Comparaisons multiples : 20 × 5 % ≈ 1 faux positif. Décider sur la métrique principale préenregistrée, ou répliquer.",
+   "en": "Multiple comparisons: 20 × 5% ≈ 1 false positive. Decide on the pre-registered primary metric, or replicate."
+  }
+ },
+ {
+  "id": "experimentation_marketplace_interference",
+  "skill_id": "experimentation",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Marketplace : vous testez une nouvelle mise en avant des offres sur 50 % des acheteurs ; vendeurs et stock sont partagés. Quelles affirmations sont justes ?",
+   "en": "Marketplace: you test a new offer ranking on 50% of buyers; sellers and stock are shared. Which statements are correct?"
+  },
+  "options": [
+   {
+    "fr": "Les deux groupes se disputent le même stock, ce qui biaise l'écart mesuré",
+    "en": "Both groups compete for the same stock, biasing the measured gap"
+   },
+   {
+    "fr": "Randomiser par zone géographique ou par période (switchback) limite ce biais",
+    "en": "Randomising by region or time period (switchback) limits this bias"
+   },
+   {
+    "fr": "Un très gros échantillon suffit à éliminer le biais",
+    "en": "A very large sample removes the bias"
+   },
+   {
+    "fr": "Un seuil de p plus strict règle le problème",
+    "en": "A stricter p threshold fixes the problem"
+   }
+  ],
+  "correct": [
+   0,
+   1
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Interférence entre groupes : la taille d'échantillon ou le seuil ne corrigent pas un biais, seul le plan de randomisation le fait.",
+   "en": "Interference between groups: sample size or threshold do not fix bias; only the randomisation design does."
+  }
+ },
+ {
+  "id": "content_strategy_intent_mismatch",
+  "skill_id": "content_strategy",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Votre article cible « prix logiciel CRM » mais raconte l'histoire des CRM sur 2 000 mots. Beaucoup d'impressions, peu de clics, sorties rapides. Le problème principal ?",
+   "en": "Your article targets 'CRM software pricing' but tells the history of CRMs in 2,000 words. Many impressions, few clicks, quick exits. The main problem?"
+  },
+  "options": [
+   {
+    "fr": "Il ne répond pas à l'intention de recherche",
+    "en": "It does not match search intent"
+   },
+   {
+    "fr": "Il est trop court",
+    "en": "It is too short"
+   },
+   {
+    "fr": "La densité de mots-clés est trop faible",
+    "en": "Keyword density is too low"
+   },
+   {
+    "fr": "Il manque de liens entrants",
+    "en": "It lacks backlinks"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Qui cherche « prix » veut des prix et une comparaison, pas un historique.",
+   "en": "People searching 'pricing' want prices and a comparison, not a history."
+  }
+ },
+ {
+  "id": "content_strategy_brief_contents",
+  "skill_id": "content_strategy",
+  "level": 1,
+  "type": "multi",
+  "stem": {
+   "fr": "Que doit contenir un brief de contenu avant rédaction ?",
+   "en": "What should a content brief contain before writing starts?"
+  },
+  "options": [
+   {
+    "fr": "Le public visé",
+    "en": "The target audience"
+   },
+   {
+    "fr": "L'intention ou la question à laquelle répondre",
+    "en": "The intent or question to answer"
+   },
+   {
+    "fr": "L'action attendue du lecteur et la métrique de succès",
+    "en": "The expected reader action and success metric"
+   },
+   {
+    "fr": "Une liste de mots-clés à répéter à 3 % de densité",
+    "en": "A list of keywords to repeat at 3% density"
+   },
+   {
+    "fr": "Un minimum imposé de 3 000 mots",
+    "en": "A mandatory minimum of 3,000 words"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Un brief cadre pour qui, pourquoi et pour quel résultat ; densité et longueur imposées sont des recettes dépassées.",
+   "en": "A brief sets who, why and what outcome; forced density and length are outdated recipes."
+  }
+ },
+ {
+  "id": "content_strategy_content_audit",
+  "skill_id": "content_strategy",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Vous héritez de 400 articles ; 70 % n'ont reçu aucune visite depuis un an. Quelle approche ?",
+   "en": "You inherit 400 articles; 70% have had no visits for a year. Which approach?"
+  },
+  "options": [
+   {
+    "fr": "Trier : mettre à jour, fusionner avec redirection 301, ou retirer",
+    "en": "Triage: update, merge with a 301 redirect, or remove"
+   },
+   {
+    "fr": "Tout supprimer immédiatement",
+    "en": "Delete them all immediately"
+   },
+   {
+    "fr": "Les republier tous avec une date récente",
+    "en": "Republish them all with a recent date"
+   },
+   {
+    "fr": "Ne rien faire : plus de contenu vaut toujours mieux",
+    "en": "Do nothing: more content is always better"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Certains ont des liens ou un potentiel ; on décide au cas par cas pour préserver l'acquis et réduire le contenu faible.",
+   "en": "Some have links or potential; decide case by case to keep equity and cut thin content."
+  }
+ },
+ {
+  "id": "content_strategy_traffic_decay",
+  "skill_id": "content_strategy",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Un article phare a perdu 40 % de trafic en trois mois, sans problème technique. Que regardez-vous en premier ?",
+   "en": "A flagship article lost 40% of its traffic in three months, with no technical issue. What do you look at first?"
+  },
+  "options": [
+   {
+    "fr": "Les requêtes qui ont perdu des clics et les pages qui vous ont dépassé",
+    "en": "Which queries lost clicks and which pages overtook you"
+   },
+   {
+    "fr": "Le nombre de partages sur les réseaux sociaux",
+    "en": "The number of social media shares"
+   },
+   {
+    "fr": "La longueur de l'article",
+    "en": "The article's length"
+   },
+   {
+    "fr": "Le taux de rebond global du site",
+    "en": "The site-wide bounce rate"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Les données de requêtes (Search Console) et les résultats concurrents disent quoi mettre à jour.",
+   "en": "Query data (Search Console) and competing results tell you what to update."
+  }
+ },
+ {
+  "id": "content_strategy_traffic_not_leads",
+  "skill_id": "content_strategy",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Le trafic issu du contenu a pris +80 % sur un an, les leads issus du contenu sont stables. La direction veut doubler la production. Votre réponse ?",
+   "en": "Content traffic grew 80% year over year, content-sourced leads are flat. Leadership wants to double output. Your response?"
+  },
+  "options": [
+   {
+    "fr": "Identifier les contenus qui génèrent des leads et réorienter le mix vers l'intention d'achat",
+    "en": "Find which pieces drive leads and shift the mix toward buying intent"
+   },
+   {
+    "fr": "Doubler la production : plus de trafic finira par convertir",
+    "en": "Double output: more traffic will eventually convert"
+   },
+   {
+    "fr": "Passer tout le contenu en vidéo",
+    "en": "Move all content to video"
+   },
+   {
+    "fr": "Acheter des liens pour accélérer",
+    "en": "Buy links to speed things up"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Le volume attire surtout du trafic informationnel ; le levier est le mix de sujets et le parcours vers la conversion.",
+   "en": "Volume mostly attracts informational traffic; the lever is topic mix and the path to conversion."
+  }
+ },
+ {
+  "id": "content_strategy_programmatic_risks",
+  "skill_id": "content_strategy",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Vous envisagez de générer 5 000 pages quasi identiques (une par ville) pour le SEO. Quels risques sont réels ?",
+   "en": "You plan to generate 5,000 near-identical pages (one per city) for SEO. Which risks are real?"
+  },
+  "options": [
+   {
+    "fr": "Des pages jugées pauvres qui pèsent sur la qualité perçue du site",
+    "en": "Pages judged thin that drag down the site's perceived quality"
+   },
+   {
+    "fr": "Une cannibalisation de vos pages existantes",
+    "en": "Cannibalising your existing pages"
+   },
+   {
+    "fr": "Des pages crawlées mais non indexées, budget de crawl gaspillé",
+    "en": "Pages crawled but not indexed, wasted crawl budget"
+   },
+   {
+    "fr": "Plus de pages donnent toujours plus d'autorité",
+    "en": "More pages always give more authority"
+   },
+   {
+    "fr": "Aucun risque si chaque page contient le nom de la ville",
+    "en": "No risk if each page contains the city name"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Sans valeur propre par page, le volume devient un passif ; changer seulement le nom de ville ne suffit pas.",
+   "en": "Without unique value per page, volume becomes a liability; swapping the city name is not enough."
+  }
+ },
+ {
+  "id": "sales_pipeline_stale_deal",
+  "skill_id": "sales_pipeline",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une opportunité est en étape « Proposition » depuis 90 jours, sans prochaine étape planifiée ; votre contact ne répond plus. Que faites-vous ?",
+   "en": "A deal has sat in the 'Proposal' stage for 90 days, with no next step scheduled; your contact no longer replies. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Tenter une relance ciblée, puis la passer en perdue si rien ne bouge",
+    "en": "Make one targeted follow-up, then mark it lost if nothing moves"
+   },
+   {
+    "fr": "La garder à 60 % pour ne pas faire baisser le pipeline",
+    "en": "Keep it at 60% so the pipeline does not drop"
+   },
+   {
+    "fr": "La passer en « Négociation » pour la relancer",
+    "en": "Move it to 'Negotiation' to revive it"
+   },
+   {
+    "fr": "Renvoyer la même proposition chaque semaine",
+    "en": "Resend the same proposal every week"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Un pipeline gonflé fausse la prévision ; l'absence de prochaine étape est le signal d'alerte.",
+   "en": "An inflated pipeline skews the forecast; no next step is the warning sign."
+  }
+ },
+ {
+  "id": "sales_pipeline_weighted_pipeline",
+  "skill_id": "sales_pipeline",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Trois opportunités : {a} € à 20 %, {b} € à 50 %, {c} € à 80 %. Quelle est la valeur pondérée du pipeline ?",
+   "en": "Three deals: {a} € at 20%, {b} € at 50%, {c} € at 80%. What is the weighted pipeline value?"
+  },
+  "params": {
+   "a": {
+    "min": 10000,
+    "max": 50000,
+    "step": 5000
+   },
+   "b": {
+    "min": 10000,
+    "max": 50000,
+    "step": 5000
+   },
+   "c": {
+    "min": 10000,
+    "max": 50000,
+    "step": 5000
+   }
+  },
+  "answer": "a * 0.2 + b * 0.5 + c * 0.8",
+  "tolerance": 0.01,
+  "unit": "€",
+  "seconds": 60,
+  "explanation": {
+   "fr": "Somme de chaque montant × sa probabilité.",
+   "en": "Sum of each amount × its probability."
+  }
+ },
+ {
+  "id": "sales_pipeline_coverage_ratio",
+  "skill_id": "sales_pipeline",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Objectif trimestriel : {q} €. Déjà signé : {w} €. Pipeline ouvert pour ce trimestre : {p} €. Quel est le taux de couverture de l'objectif restant ?",
+   "en": "Quarterly quota: {q} €. Already closed: {w} €. Open pipeline for this quarter: {p} €. What is the coverage ratio of the remaining quota?"
+  },
+  "params": {
+   "q": {
+    "min": 300000,
+    "max": 600000,
+    "step": 50000
+   },
+   "w": {
+    "min": 50000,
+    "max": 200000,
+    "step": 25000
+   },
+   "p": {
+    "min": 400000,
+    "max": 1200000,
+    "step": 50000
+   }
+  },
+  "answer": "p / (q - w)",
+  "tolerance": 0.02,
+  "unit": "x",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Couverture = pipeline ouvert / reste à signer (objectif − signé).",
+   "en": "Coverage = open pipeline / remaining quota (quota − closed)."
+  }
+ },
+ {
+  "id": "sales_pipeline_win_rate_drop",
+  "skill_id": "sales_pipeline",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Après une campagne de génération de leads, le pipeline a doublé mais le taux de signature est passé de 25 % à 15 %. Cause la plus probable ?",
+   "en": "After a lead-gen push, pipeline doubled but win rate fell from 25% to 15%. Most likely cause?"
+  },
+  "options": [
+   {
+    "fr": "Des opportunités mal qualifiées entrent dans le pipeline",
+    "en": "Poorly qualified opportunities are entering the pipeline"
+   },
+   {
+    "fr": "Les commerciaux sont devenus moins bons",
+    "en": "The sales reps got worse"
+   },
+   {
+    "fr": "Les prix sont trop bas",
+    "en": "Prices are too low"
+   },
+   {
+    "fr": "Le cycle de vente s'est raccourci",
+    "en": "The sales cycle got shorter"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Plus de volume sans critères d'entrée stricts dilue la qualité : on resserre la qualification.",
+   "en": "More volume without strict entry criteria dilutes quality: tighten qualification."
+  }
+ },
+ {
+  "id": "sales_pipeline_forecast_bias",
+  "skill_id": "sales_pipeline",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Les engagements de prévision de vos commerciaux dépassent le réel de 40 % chaque trimestre. Quelle correction est la plus solide ?",
+   "en": "Your reps' forecast commits exceed actuals by 40% every quarter. Which fix is most robust?"
+  },
+  "options": [
+   {
+    "fr": "Définir des critères de sortie d'étape vérifiables côté acheteur et prévoir à partir des taux historiques",
+    "en": "Define buyer-verifiable stage exit criteria and forecast from historical conversion rates"
+   },
+   {
+    "fr": "Appliquer en permanence une décote de 40 %",
+    "en": "Apply a permanent 40% haircut"
+   },
+   {
+    "fr": "Demander aux commerciaux d'être plus prudents",
+    "en": "Ask reps to be more conservative"
+   },
+   {
+    "fr": "Supprimer les probabilités par étape",
+    "en": "Remove stage probabilities"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Une décote fixe masque le problème et dérive ; des critères objectifs rendent les étapes comparables.",
+   "en": "A fixed haircut hides the problem and drifts; objective criteria make stages comparable."
+  }
+ },
+ {
+  "id": "sales_pipeline_slip_signals",
+  "skill_id": "sales_pipeline",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Quels signaux indiquent qu'une opportunité risque de glisser au trimestre suivant ?",
+   "en": "Which signals suggest a deal is likely to slip to next quarter?"
+  },
+  "options": [
+   {
+    "fr": "Aucun accès à la personne qui décide du budget",
+    "en": "No access to the person who owns the budget"
+   },
+   {
+    "fr": "La date de signature a déjà été repoussée deux fois",
+    "en": "The close date has already moved twice"
+   },
+   {
+    "fr": "Aucun plan d'action commun avec l'acheteur",
+    "en": "No mutual action plan with the buyer"
+   },
+   {
+    "fr": "Le client demande le détail de la tarification et du contrat",
+    "en": "The buyer asks for detailed pricing and contract terms"
+   },
+   {
+    "fr": "Les achats et le juridique sont déjà impliqués",
+    "en": "Procurement and legal are already involved"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Demander le contrat et impliquer achats/juridique sont plutôt des signes d'avancement.",
+   "en": "Asking for contract terms and involving procurement/legal are usually signs of progress."
+  }
+ },
+ {
+  "id": "budget_management_variance_pct",
+  "skill_id": "budget_management",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Budget prévu : {b} €. Dépense réelle : {a} €. Quel est l'écart en % du budget (positif = dépassement) ?",
+   "en": "Budgeted: {b} €. Actual spend: {a} €. What is the variance as a % of budget (positive = overspend)?"
+  },
+  "params": {
+   "b": {
+    "min": 40000,
+    "max": 60000,
+    "step": 5000
+   },
+   "a": {
+    "min": 62000,
+    "max": 75000,
+    "step": 1000
+   }
+  },
+  "answer": "(a - b) / b * 100",
+  "tolerance": 0.02,
+  "unit": "%",
+  "seconds": 60,
+  "explanation": {
+   "fr": "Écart % = (réel − budget) / budget.",
+   "en": "Variance % = (actual − budget) / budget."
+  }
+ },
+ {
+  "id": "budget_management_phasing",
+  "skill_id": "budget_management",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Au 6e mois sur 12, vous avez consommé 65 % du budget annuel. Êtes-vous en dépassement ?",
+   "en": "In month 6 of 12, you have used 65% of the annual budget. Are you overspending?"
+  },
+  "options": [
+   {
+    "fr": "Ça dépend : il faut comparer au budget phasé, pas à un rythme linéaire",
+    "en": "It depends: compare against the phased budget, not a straight line"
+   },
+   {
+    "fr": "Oui, forcément, de 15 points",
+    "en": "Yes, necessarily, by 15 points"
+   },
+   {
+    "fr": "Non, tant qu'on n'a pas atteint 100 %",
+    "en": "No, as long as it hasn't reached 100%"
+   },
+   {
+    "fr": "Oui, il faut geler toutes les dépenses",
+    "en": "Yes, all spending must be frozen"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Les dépenses saisonnières (salons, licences annuelles) rendent le rythme linéaire trompeur.",
+   "en": "Seasonal spend (trade shows, annual licences) makes a straight-line pace misleading."
+  }
+ },
+ {
+  "id": "budget_management_run_rate",
+  "skill_id": "budget_management",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Budget annuel : {b} €. Sur les {m} premiers mois, la dépense moyenne est de {r} € par mois. Si ce rythme continue, quel dépassement prévoir en fin d'année ?",
+   "en": "Annual budget: {b} €. Over the first {m} months, spend averaged {r} € per month. If this pace continues, what year-end overspend should you expect?"
+  },
+  "params": {
+   "b": {
+    "min": 100000,
+    "max": 150000,
+    "step": 10000
+   },
+   "m": {
+    "min": 4,
+    "max": 8,
+    "step": 1
+   },
+   "r": {
+    "min": 13000,
+    "max": 20000,
+    "step": 500
+   }
+  },
+  "answer": "r * 12 - b",
+  "tolerance": 0.02,
+  "unit": "€",
+  "seconds": 75,
+  "explanation": {
+   "fr": "Projection = rythme mensuel × 12 ; dépassement = projection − budget.",
+   "en": "Projection = monthly pace × 12; overspend = projection − budget."
+  }
+ },
+ {
+  "id": "budget_management_q3_underspend",
+  "skill_id": "budget_management",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "En septembre, vous prévoyez 30 000 € non dépensés sur l'année. Votre manager propose de « tout dépenser pour ne pas perdre ce budget ». Meilleure réponse ?",
+   "en": "In September, you forecast 30,000 € unspent for the year. Your manager suggests 'spending it all so we don't lose it'. Best response?"
+  },
+  "options": [
+   {
+    "fr": "Mettre à jour la prévision et réallouer vers des priorités justifiées, ou rendre le reste",
+    "en": "Update the forecast and reallocate to justified priorities, or release the rest"
+   },
+   {
+    "fr": "Acheter du matériel d'avance pour l'an prochain",
+    "en": "Buy equipment in advance for next year"
+   },
+   {
+    "fr": "Ne rien dire avant la clôture",
+    "en": "Say nothing until year-end close"
+   },
+   {
+    "fr": "Payer d'avance les fournisseurs de l'an prochain",
+    "en": "Prepay next year's suppliers"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Signaler tôt permet à l'organisation de réallouer ; brûler le reste détruit de la valeur et la crédibilité.",
+   "en": "Flagging early lets the organisation reallocate; burning it destroys value and credibility."
+  }
+ },
+ {
+  "id": "budget_management_contingency",
+  "skill_id": "budget_management",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Projet avec 10 % de réserve pour aléas. Au premier tiers, un risque s'est matérialisé et a consommé 8 points. Que faites-vous ?",
+   "en": "Project with a 10% contingency reserve. One third in, a risk materialised and used 8 points. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Réévaluer l'exposition restante et alerter le sponsor si elle dépasse la réserve",
+    "en": "Reassess remaining exposure and alert the sponsor if it exceeds the reserve"
+   },
+   {
+    "fr": "Continuer : il reste 2 % de réserve",
+    "en": "Carry on: 2% reserve remains"
+   },
+   {
+    "fr": "Réduire discrètement le périmètre",
+    "en": "Quietly cut scope"
+   },
+   {
+    "fr": "Imputer les surcoûts sur une autre ligne budgétaire",
+    "en": "Charge the overruns to another budget line"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Deux tiers des risques restent devant vous avec 2 % de marge : il faut le dire tôt et décider en connaissance de cause.",
+   "en": "Two thirds of the risks remain with 2% margin: say so early and decide with eyes open."
+  }
+ },
+ {
+  "id": "budget_management_zbb_tradeoffs",
+  "skill_id": "budget_management",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Budget base zéro (BBZ) contre budget reconduit (incrémental). Quelles affirmations sont justes ?",
+   "en": "Zero-based budgeting (ZBB) versus incremental budgeting. Which statements are correct?"
+  },
+  "options": [
+   {
+    "fr": "Le BBZ oblige à justifier chaque ligne",
+    "en": "ZBB forces every line to be justified"
+   },
+   {
+    "fr": "Le BBZ demande beaucoup plus de temps et d'effort",
+    "en": "ZBB takes far more time and effort"
+   },
+   {
+    "fr": "Le budget reconduit perpétue les inefficacités historiques",
+    "en": "Incremental budgeting perpetuates historical inefficiencies"
+   },
+   {
+    "fr": "Le BBZ garantit une baisse des coûts",
+    "en": "ZBB guarantees lower costs"
+   },
+   {
+    "fr": "Le budget reconduit est inadapté à toute organisation stable",
+    "en": "Incremental budgeting is unsuitable for any stable organisation"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Le BBZ révèle les dépenses inutiles mais coûte cher à mener ; il ne garantit rien en soi.",
+   "en": "ZBB surfaces waste but is costly to run; it guarantees nothing by itself."
+  }
+ },
+ {
+  "id": "project_management_float",
+  "skill_id": "project_management",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "La tâche A a 5 jours de marge (float). Elle prend 3 jours de retard. Quel effet sur la date de fin du projet ?",
+   "en": "Task A has 5 days of float. It slips by 3 days. What is the effect on the project end date?"
+  },
+  "options": [
+   {
+    "fr": "Aucun, mais il ne reste que 2 jours de marge",
+    "en": "None, but only 2 days of float remain"
+   },
+   {
+    "fr": "La fin recule de 3 jours",
+    "en": "The end date slips 3 days"
+   },
+   {
+    "fr": "La fin recule de 5 jours",
+    "en": "The end date slips 5 days"
+   },
+   {
+    "fr": "La fin recule de 2 jours",
+    "en": "The end date slips 2 days"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "La marge absorbe le retard tant qu'il ne la dépasse pas.",
+   "en": "Float absorbs the delay as long as it doesn't exceed it."
+  }
+ },
+ {
+  "id": "project_management_change_request_order",
+  "skill_id": "project_management",
+  "level": 1,
+  "type": "order",
+  "stem": {
+   "fr": "Remettez dans l'ordre le traitement d'une demande de changement.",
+   "en": "Put the handling of a change request in order."
+  },
+  "options": [
+   {
+    "fr": "Mettre à jour le planning et la référence",
+    "en": "Update the plan and baseline"
+   },
+   {
+    "fr": "Enregistrer la demande",
+    "en": "Log the request"
+   },
+   {
+    "fr": "Communiquer la décision à l'équipe et aux parties prenantes",
+    "en": "Communicate the decision to team and stakeholders"
+   },
+   {
+    "fr": "Analyser l'impact sur périmètre, coût, délai et risques",
+    "en": "Analyse impact on scope, cost, schedule and risks"
+   },
+   {
+    "fr": "Faire décider le sponsor ou le comité de changement",
+    "en": "Get the sponsor or change board to decide"
+   }
+  ],
+  "correct": [
+   1,
+   3,
+   4,
+   0,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Enregistrer, analyser, décider, mettre à jour, communiquer.",
+   "en": "Log, analyse, decide, update, communicate."
+  }
+ },
+ {
+  "id": "project_management_schedule_variance",
+  "skill_id": "project_management",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Budget total (BAC) : {bac} €. À date, {pp} % du travail devait être fait ; {ap} % l'est réellement. Coût réel : {ac} €. Quel est l'écart de délai SV = EV − PV ?",
+   "en": "Budget at completion (BAC): {bac} €. To date, {pp}% of the work was planned; {ap}% is actually done. Actual cost: {ac} €. What is the schedule variance SV = EV − PV?"
+  },
+  "params": {
+   "bac": {
+    "min": 300000,
+    "max": 500000,
+    "step": 20000
+   },
+   "pp": {
+    "min": 50,
+    "max": 60,
+    "step": 5
+   },
+   "ap": {
+    "min": 30,
+    "max": 45,
+    "step": 5
+   },
+   "ac": {
+    "min": 150000,
+    "max": 250000,
+    "step": 10000
+   }
+  },
+  "answer": "bac * (ap - pp) / 100",
+  "tolerance": 0.01,
+  "unit": "€",
+  "seconds": 90,
+  "explanation": {
+   "fr": "EV = BAC × % réalisé, PV = BAC × % prévu. Le coût réel ne sert pas ici (il sert au CV). Un SV négatif signale un retard.",
+   "en": "EV = BAC × % done, PV = BAC × % planned. Actual cost is not used here (it's for CV). A negative SV means behind schedule."
+  }
+ },
+ {
+  "id": "project_management_fast_tracking",
+  "skill_id": "project_management",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Pour rattraper deux semaines, vous faites démarrer le développement avant la validation finale de la conception (fast-tracking). Principal risque ?",
+   "en": "To recover two weeks, you start build before the design is fully approved (fast-tracking). Main risk?"
+  },
+  "options": [
+   {
+    "fr": "Du travail à refaire si la conception change",
+    "en": "Rework if the design changes"
+   },
+   {
+    "fr": "Un coût accru par l'ajout de ressources",
+    "en": "Higher cost from adding resources"
+   },
+   {
+    "fr": "Une baisse automatique du périmètre",
+    "en": "An automatic scope reduction"
+   },
+   {
+    "fr": "Aucun, le chemin critique est raccourci",
+    "en": "None, the critical path is shortened"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Le fast-tracking chevauche des tâches au prix d'un risque de reprise ; ajouter des ressources, c'est le crashing.",
+   "en": "Fast-tracking overlaps tasks at the cost of rework risk; adding resources is crashing."
+  }
+ },
+ {
+  "id": "project_management_eac",
+  "skill_id": "project_management",
+  "level": 3,
+  "type": "numeric",
+  "stem": {
+   "fr": "BAC : {bac} €. Valeur acquise (EV) : {ev} €. Coût réel (AC) : {ac} €. Si la performance de coût actuelle se maintient, quelle est l'estimation à terminaison (EAC) ?",
+   "en": "BAC: {bac} €. Earned value (EV): {ev} €. Actual cost (AC): {ac} €. If current cost performance continues, what is the estimate at completion (EAC)?"
+  },
+  "params": {
+   "bac": {
+    "min": 200000,
+    "max": 600000,
+    "step": 50000
+   },
+   "ev": {
+    "min": 80000,
+    "max": 150000,
+    "step": 10000
+   },
+   "ac": {
+    "min": 90000,
+    "max": 180000,
+    "step": 10000
+   }
+  },
+  "answer": "bac * ac / ev",
+  "tolerance": 0.02,
+  "unit": "€",
+  "seconds": 100,
+  "explanation": {
+   "fr": "CPI = EV / AC ; EAC = BAC / CPI.",
+   "en": "CPI = EV / AC; EAC = BAC / CPI."
+  }
+ },
+ {
+  "id": "project_management_late_add_people",
+  "skill_id": "project_management",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Un projet logiciel a un mois de retard, livraison dans trois semaines. Le sponsor propose d'ajouter quatre développeurs. Votre recommandation ?",
+   "en": "A software project is a month late, delivery in three weeks. The sponsor offers four more developers. Your recommendation?"
+  },
+  "options": [
+   {
+    "fr": "Réduire et prioriser le périmètre : de nouvelles recrues aussi tard ralentiraient l'équipe",
+    "en": "Cut and prioritise scope: new people this late would slow the team down"
+   },
+   {
+    "fr": "Accepter : quatre personnes de plus divisent le retard",
+    "en": "Accept: four more people divide the delay"
+   },
+   {
+    "fr": "Accepter et leur confier les tâches les plus critiques",
+    "en": "Accept and give them the most critical tasks"
+   },
+   {
+    "fr": "Imposer des heures supplémentaires jusqu'à la livraison",
+    "en": "Mandate overtime until delivery"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Loi de Brooks : intégration et coordination coûtent plus qu'elles ne rapportent à si court terme.",
+   "en": "Brooks's law: onboarding and coordination cost more than they return on such short notice."
+  }
+ },
+ {
+  "id": "team_leadership_missed_commitments",
+  "skill_id": "team_leadership",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une personne de votre équipe ne tient pas ses engagements depuis trois sprints. Première action ?",
+   "en": "A team member has missed their commitments for three sprints. First action?"
+  },
+  "options": [
+   {
+    "fr": "Un échange en tête-à-tête, avec des faits précis, pour comprendre ce qui se passe",
+    "en": "A one-to-one with specific facts, to understand what's going on"
+   },
+   {
+    "fr": "Le signaler devant l'équipe au prochain point",
+    "en": "Raise it in front of the team at the next meeting"
+   },
+   {
+    "fr": "Alerter les RH",
+    "en": "Escalate to HR"
+   },
+   {
+    "fr": "Lui retirer discrètement ses tâches",
+    "en": "Quietly take tasks away from them"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "On commence en privé, factuel et curieux : la cause peut être de charge, de clarté ou personnelle.",
+   "en": "Start private, factual and curious: the cause may be workload, clarity or personal."
+  }
+ },
+ {
+  "id": "team_leadership_feedback_phrasing",
+  "skill_id": "team_leadership",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Quelle formulation de retour est la plus efficace ?",
+   "en": "Which feedback phrasing is most effective?"
+  },
+  "options": [
+   {
+    "fr": "« Pendant la démo d'hier, tu as coupé le client deux fois ; on a perdu son retour. Comment faire la prochaine fois ? »",
+    "en": "'In yesterday's demo you interrupted the client twice; we lost their feedback. How could we handle it next time?'"
+   },
+   {
+    "fr": "« Tu n'écoutes pas assez. »",
+    "en": "'You don't listen enough.'"
+   },
+   {
+    "fr": "« Plusieurs personnes trouvent que tu es impoli. »",
+    "en": "'Several people think you're rude.'"
+   },
+   {
+    "fr": "« Bon travail dans l'ensemble, mais attention à ton attitude. »",
+    "en": "'Good job overall, but watch your attitude.'"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Situation, comportement observable, impact, puis ouverture : c'est actionnable et non jugeant.",
+   "en": "Situation, observable behaviour, impact, then an opening: actionable and non-judgemental."
+  }
+ },
+ {
+  "id": "team_leadership_tech_conflict",
+  "skill_id": "team_leadership",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Deux personnes seniors s'opposent sur un choix d'architecture depuis deux semaines ; l'équipe est bloquée. Que faites-vous ?",
+   "en": "Two senior engineers have disagreed on an architecture choice for two weeks; the team is blocked. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Expliciter les critères, fixer une échéance, faire trancher par une personne désignée et consigner la décision",
+    "en": "Make criteria explicit, set a deadline, have a named person decide and record the decision"
+   },
+   {
+    "fr": "Les laisser trouver un consensus, quel que soit le temps",
+    "en": "Let them reach consensus, however long it takes"
+   },
+   {
+    "fr": "Choisir l'option de la personne la plus ancienne",
+    "en": "Pick the option of the most senior person"
+   },
+   {
+    "fr": "Mettre le sujet de côté et avancer sur autre chose",
+    "en": "Park the topic and move on to something else"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Un cadre de décision clair débloque sans désigner de gagnant personnel ; chacun s'engage ensuite.",
+   "en": "A clear decision process unblocks without picking a personal winner; everyone then commits."
+  }
+ },
+ {
+  "id": "team_leadership_delegation",
+  "skill_id": "team_leadership",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Vous déléguez un projet à une personne nouvellement responsable d'équipe. Quelles pratiques sont bonnes ?",
+   "en": "You delegate a project to a newly appointed team lead. Which practices are good?"
+  },
+  "options": [
+   {
+    "fr": "Clarifier le résultat attendu et ses marges de décision",
+    "en": "Clarify the expected outcome and their decision boundaries"
+   },
+   {
+    "fr": "Convenir de points d'étape",
+    "en": "Agree on checkpoints"
+   },
+   {
+    "fr": "Lui donner les accès et les moyens nécessaires",
+    "en": "Give them the access and resources they need"
+   },
+   {
+    "fr": "Assister à toutes ses réunions pour corriger en direct",
+    "en": "Attend all their meetings to correct on the spot"
+   },
+   {
+    "fr": "Ne déléguer que les tâches ingrates, sans contexte",
+    "en": "Delegate only thankless tasks, without context"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Déléguer, c'est confier un résultat avec un cadre et du soutien, pas surveiller ni se débarrasser.",
+   "en": "Delegating means entrusting an outcome with a frame and support, not micromanaging or offloading."
+  }
+ },
+ {
+  "id": "team_leadership_brilliant_jerk",
+  "skill_id": "team_leadership",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "La personne la plus performante de l'équipe rabaisse régulièrement ses collègues ; deux d'entre elles parlent de partir. Que faites-vous ?",
+   "en": "Your top performer regularly belittles colleagues; two of them are talking about leaving. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Recadrer le comportement explicitement, avec attentes et conséquences, et agir s'il persiste",
+    "en": "Address the behaviour explicitly with expectations and consequences, and act if it persists"
+   },
+   {
+    "fr": "La protéger : ses résultats priment",
+    "en": "Protect them: their results come first"
+   },
+   {
+    "fr": "La faire travailler seule, sans rien dire",
+    "en": "Have them work alone, without saying anything"
+   },
+   {
+    "fr": "Attendre l'entretien annuel",
+    "en": "Wait for the annual review"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Tolérer le comportement coûte plus que la performance individuelle ne rapporte, et envoie un signal à toute l'équipe.",
+   "en": "Tolerating the behaviour costs more than individual output returns, and signals it to the whole team."
+  }
+ },
+ {
+  "id": "team_leadership_sustained_crunch",
+  "skill_id": "team_leadership",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Depuis trois mois, l'équipe tient les échéances en travaillant le week-end. La fatigue monte. Meilleure action ?",
+   "en": "For three months the team has met deadlines by working weekends. Fatigue is rising. Best action?"
+  },
+  "options": [
+   {
+    "fr": "Renégocier périmètre ou dates avec les parties prenantes pour revenir à un rythme soutenable",
+    "en": "Renegotiate scope or dates with stakeholders to return to a sustainable pace"
+   },
+   {
+    "fr": "Verser une prime et continuer",
+    "en": "Pay a bonus and carry on"
+   },
+   {
+    "fr": "Prévoir des prestataires au prochain trimestre",
+    "en": "Plan contractors for next quarter"
+   },
+   {
+    "fr": "Organiser une réunion de motivation",
+    "en": "Hold a motivational all-hands"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Un rush prolongé mène à l'épuisement et aux départs ; c'est la charge qu'il faut traiter.",
+   "en": "Prolonged crunch leads to burnout and attrition; the workload itself must be addressed."
+  }
+ },
+ {
+  "id": "structured_communication_exec_email",
+  "skill_id": "structured_communication",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Vous écrivez à la direction pour annoncer un retard qui demande une décision. Comment commencer le message ?",
+   "en": "You email leadership about a delay that needs a decision. How do you open the message?"
+  },
+  "options": [
+   {
+    "fr": "Par la décision attendue et sa date limite",
+    "en": "With the decision needed and its deadline"
+   },
+   {
+    "fr": "Par l'historique complet du projet",
+    "en": "With the full project history"
+   },
+   {
+    "fr": "Par les causes du retard, en détail",
+    "en": "With the causes of the delay, in detail"
+   },
+   {
+    "fr": "Par des excuses et le contexte",
+    "en": "With an apology and context"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "L'essentiel d'abord : une personne pressée doit savoir dès la 1re ligne ce qu'on attend d'elle.",
+   "en": "Bottom line first: a busy reader must know from line one what is expected of them."
+  }
+ },
+ {
+  "id": "structured_communication_pyramid_order",
+  "skill_id": "structured_communication",
+  "level": 1,
+  "type": "order",
+  "stem": {
+   "fr": "Remettez dans l'ordre une note de recommandation structurée en pyramide.",
+   "en": "Put a pyramid-structured recommendation memo in order."
+  },
+  "options": [
+   {
+    "fr": "Données à l'appui de chaque argument",
+    "en": "Supporting data for each argument"
+   },
+   {
+    "fr": "La recommandation",
+    "en": "The recommendation"
+   },
+   {
+    "fr": "Annexe : méthode et sources",
+    "en": "Appendix: method and sources"
+   },
+   {
+    "fr": "Trois arguments clés",
+    "en": "Three key arguments"
+   }
+  ],
+  "correct": [
+   1,
+   3,
+   0,
+   2
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Conclusion, puis arguments regroupés, puis preuves, puis détails.",
+   "en": "Conclusion, then grouped arguments, then evidence, then detail."
+  }
+ },
+ {
+  "id": "structured_communication_mece",
+  "skill_id": "structured_communication",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Pour analyser « pourquoi le chiffre d'affaires a baissé », quelles décompositions sont mutuellement exclusives et collectivement exhaustives ?",
+   "en": "To analyse 'why revenue fell', which breakdowns are mutually exclusive and collectively exhaustive?"
+  },
+  "options": [
+   {
+    "fr": "Clients existants / nouveaux clients",
+    "en": "Existing customers / new customers"
+   },
+   {
+    "fr": "Volume vendu × prix moyen",
+    "en": "Volume sold × average price"
+   },
+   {
+    "fr": "Problèmes marketing / problèmes produit / plaintes clients",
+    "en": "Marketing issues / product issues / customer complaints"
+   },
+   {
+    "fr": "Europe / France / ventes en ligne",
+    "en": "Europe / France / online sales"
+   }
+  ],
+  "correct": [
+   0,
+   1
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Les deux dernières se chevauchent (la France est en Europe ; une plainte peut être un problème produit) et laissent des trous.",
+   "en": "The last two overlap (France is in Europe; a complaint may be a product issue) and leave gaps."
+  }
+ },
+ {
+  "id": "structured_communication_action_title",
+  "skill_id": "structured_communication",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Quel titre de diapositive est le plus efficace ?",
+   "en": "Which slide title is most effective?"
+  },
+  "options": [
+   {
+    "fr": "« Le churn a pris 3 points au T3, porté par les PME après la hausse de prix »",
+    "en": "'Churn rose 3 pts in Q3, driven by SMBs after the price increase'"
+   },
+   {
+    "fr": "« Analyse du churn T3 »",
+    "en": "'Q3 churn analysis'"
+   },
+   {
+    "fr": "« Churn »",
+    "en": "'Churn'"
+   },
+   {
+    "fr": "« Vue d'ensemble des données de rétention »",
+    "en": "'Overview of retention data'"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Un titre d'action énonce la conclusion ; le corps de la diapositive la prouve.",
+   "en": "An action title states the takeaway; the slide body proves it."
+  }
+ },
+ {
+  "id": "structured_communication_prewire",
+  "skill_id": "structured_communication",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Vous allez recommander au comité de direction une option contraire à celle que soutient un membre influent. Que faites-vous avant la réunion ?",
+   "en": "You will recommend to the executive committee an option opposed to the one an influential member backs. What do you do before the meeting?"
+  },
+  "options": [
+   {
+    "fr": "Le rencontrer seul à seul pour entendre ses objections et les intégrer",
+    "en": "Meet them one-on-one to hear their objections and address them"
+   },
+   {
+    "fr": "Ajouter davantage de données au support",
+    "en": "Add more data to the deck"
+   },
+   {
+    "fr": "Envoyer le support dix minutes avant la réunion",
+    "en": "Send the deck ten minutes before the meeting"
+   },
+   {
+    "fr": "Ne pas mentionner l'autre option",
+    "en": "Not mention the other option"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Le « pre-wiring » évite une opposition publique et améliore la recommandation ; la réunion sert à décider, pas à surprendre.",
+   "en": "Pre-wiring avoids public opposition and improves the recommendation; the meeting is for deciding, not surprising."
+  }
+ },
+ {
+  "id": "structured_communication_memo_no_reply",
+  "skill_id": "structured_communication",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Votre note de six pages, envoyée il y a une semaine, n'a reçu aucune réponse. Quelle révision a le plus de chances d'obtenir une décision ?",
+   "en": "Your six-page memo, sent a week ago, got no reply. Which revision is most likely to get a decision?"
+  },
+  "options": [
+   {
+    "fr": "Placer en tête la décision demandée, votre recommandation et l'échéance",
+    "en": "Put the decision requested, your recommendation and the deadline at the top"
+   },
+   {
+    "fr": "Ajouter des annexes de données",
+    "en": "Add data appendices"
+   },
+   {
+    "fr": "Renvoyer la même note marquée « urgent »",
+    "en": "Resend the same memo marked 'urgent'"
+   },
+   {
+    "fr": "Organiser une réunion d'une heure avec douze personnes",
+    "en": "Schedule a one-hour meeting with twelve people"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Le lecteur ne savait sans doute pas ce qu'on attendait de lui ni pour quand.",
+   "en": "The reader probably didn't know what was expected of them, or by when."
+  }
+ },
+ {
+  "id": "ui_design_column_width",
+  "skill_id": "ui_design",
+  "level": 1,
+  "type": "numeric",
+  "stem": {
+   "fr": "Conteneur de {w} px, {n} colonnes, gouttières de {g} px entre les colonnes (aucune sur les bords extérieurs). Quelle est la largeur d'une colonne ?",
+   "en": "Container of {w}px, {n} columns, {g}px gutters between columns (none on the outer edges). What is the width of one column?"
+  },
+  "params": {
+   "w": {
+    "min": 960,
+    "max": 1440,
+    "step": 40
+   },
+   "n": {
+    "min": 4,
+    "max": 12,
+    "step": 4
+   },
+   "g": {
+    "min": 16,
+    "max": 32,
+    "step": 8
+   }
+  },
+  "answer": "(w - (n - 1) * g) / n",
+  "tolerance": 0.01,
+  "unit": "px",
+  "seconds": 75,
+  "explanation": {
+   "fr": "n colonnes ont n − 1 gouttières : (largeur − (n − 1) × gouttière) / n.",
+   "en": "n columns have n − 1 gutters: (width − (n − 1) × gutter) / n."
+  }
+ },
+ {
+  "id": "ui_design_spacing_scale",
+  "skill_id": "ui_design",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Une maquette utilise des espacements de 13, 17 et 22 px. Le reste du produit suit une échelle de 8 px. Que faites-vous ?",
+   "en": "A mockup uses 13, 17 and 22px spacings. The rest of the product follows an 8px scale. What do you do?"
+  },
+  "options": [
+   {
+    "fr": "Aligner sur l'échelle (8, 16, 24 px)",
+    "en": "Snap to the scale (8, 16, 24px)"
+   },
+   {
+    "fr": "Les garder : l'œil ne voit pas la différence",
+    "en": "Keep them: the eye can't tell"
+   },
+   {
+    "fr": "Ajouter ces valeurs à l'échelle",
+    "en": "Add these values to the scale"
+   },
+   {
+    "fr": "Passer toute l'échelle à 1 px",
+    "en": "Switch the whole scale to 1px steps"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Une échelle d'espacement donne un rythme cohérent et simplifie l'implémentation.",
+   "en": "A spacing scale gives consistent rhythm and simpler implementation."
+  }
+ },
+ {
+  "id": "ui_design_span_width",
+  "skill_id": "ui_design",
+  "level": 2,
+  "type": "numeric",
+  "stem": {
+   "fr": "Écran de {v} px, marges extérieures de {m} px de chaque côté, grille de 12 colonnes, gouttières de {g} px. Quelle largeur pour un bloc qui couvre {k} colonnes ?",
+   "en": "Viewport of {v}px, outer margins of {m}px on each side, 12-column grid, {g}px gutters. How wide is a block spanning {k} columns?"
+  },
+  "params": {
+   "v": {
+    "min": 1280,
+    "max": 1440,
+    "step": 80
+   },
+   "m": {
+    "min": 24,
+    "max": 80,
+    "step": 8
+   },
+   "g": {
+    "min": 16,
+    "max": 32,
+    "step": 8
+   },
+   "k": {
+    "min": 3,
+    "max": 8,
+    "step": 1
+   }
+  },
+  "answer": "k * ((v - 2 * m - 11 * g) / 12) + (k - 1) * g",
+  "tolerance": 0.01,
+  "unit": "px",
+  "seconds": 110,
+  "explanation": {
+   "fr": "Colonne = (écran − 2 marges − 11 gouttières) / 12 ; bloc = k colonnes + (k − 1) gouttières.",
+   "en": "Column = (viewport − 2 margins − 11 gutters) / 12; block = k columns + (k − 1) gutters."
+  }
+ },
+ {
+  "id": "ui_design_touch_target",
+  "skill_id": "ui_design",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Sur mobile, des utilisateurs ratent souvent une icône de 24 px dans un bouton de 32 × 32 px. Meilleure correction ?",
+   "en": "On mobile, users often miss a 24px icon inside a 32 × 32px button. Best fix?"
+  },
+  "options": [
+   {
+    "fr": "Agrandir la zone tactile à au moins 44–48 px, sans forcément agrandir l'icône",
+    "en": "Enlarge the tap area to at least 44–48px, without necessarily enlarging the icon"
+   },
+   {
+    "fr": "Ajouter une infobulle au survol",
+    "en": "Add a hover tooltip"
+   },
+   {
+    "fr": "Changer la couleur de l'icône",
+    "en": "Change the icon colour"
+   },
+   {
+    "fr": "Rapprocher les boutons voisins",
+    "en": "Move neighbouring buttons closer"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Apple recommande 44 pt et Material 48 dp de zone tactile ; le survol n'existe pas au doigt.",
+   "en": "Apple recommends 44pt and Material 48dp tap targets; there is no hover with a finger."
+  }
+ },
+ {
+  "id": "ui_design_detached_components",
+  "skill_id": "ui_design",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Les équipes produit détachent massivement les composants de votre design system. Quelle réponse ?",
+   "en": "Product teams are detaching your design system's components en masse. What is your response?"
+  },
+  "options": [
+   {
+    "fr": "Analyser les besoins derrière les détachements et faire évoluer composants et gouvernance",
+    "en": "Analyse the needs behind detachments and evolve components and governance"
+   },
+   {
+    "fr": "Verrouiller les composants pour interdire le détachement",
+    "en": "Lock components to forbid detaching"
+   },
+   {
+    "fr": "Laisser chaque équipe maintenir sa propre version",
+    "en": "Let each team maintain its own version"
+   },
+   {
+    "fr": "Rappeler les règles par courriel",
+    "en": "Send an email reminding everyone of the rules"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Les détachements sont un signal de besoins non couverts (variantes, cas limites) ; interdire déplace le problème.",
+   "en": "Detachments signal unmet needs (variants, edge cases); banning just moves the problem."
+  }
+ },
+ {
+  "id": "ui_design_dark_mode",
+  "skill_id": "ui_design",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Vous concevez le mode sombre d'un produit existant. Quelles pratiques sont bonnes ?",
+   "en": "You design dark mode for an existing product. Which practices are good?"
+  },
+  "options": [
+   {
+    "fr": "Préférer un gris très foncé au noir pur pour les fonds",
+    "en": "Prefer a very dark grey to pure black for backgrounds"
+   },
+   {
+    "fr": "Signaler l'élévation par des surfaces plus claires plutôt que par des ombres",
+    "en": "Show elevation with lighter surfaces rather than shadows"
+   },
+   {
+    "fr": "Désaturer les couleurs vives de la marque",
+    "en": "Desaturate vivid brand colours"
+   },
+   {
+    "fr": "Inverser simplement toutes les couleurs",
+    "en": "Simply invert all colours"
+   },
+   {
+    "fr": "Réutiliser les mêmes valeurs de couleur que le thème clair",
+    "en": "Reuse the same colour values as the light theme"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Les ombres se voient mal sur fond sombre, le noir pur fatigue avec du texte blanc, les couleurs saturées vibrent.",
+   "en": "Shadows barely show on dark, pure black strains with white text, saturated colours vibrate."
+  }
+ },
+ {
+  "id": "ux_research_participant_asks",
+  "skill_id": "ux_research",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Pendant un test d'utilisabilité, la personne vous demande : « Je dois cliquer ici ? » Que répondez-vous ?",
+   "en": "During a usability test, the participant asks: 'Should I click here?' What do you answer?"
+  },
+  "options": [
+   {
+    "fr": "« Qu'est-ce que vous vous attendez à voir si vous cliquez ? »",
+    "en": "'What would you expect to happen if you click?'"
+   },
+   {
+    "fr": "« Oui, c'est le bon bouton. »",
+    "en": "'Yes, that's the right button.'"
+   },
+   {
+    "fr": "« Non, essayez plutôt le menu. »",
+    "en": "'No, try the menu instead.'"
+   },
+   {
+    "fr": "Lui montrer le chemin pour gagner du temps",
+    "en": "Show them the way to save time"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 35,
+  "explanation": {
+   "fr": "Guider fausse l'observation ; renvoyer la question révèle le modèle mental.",
+   "en": "Guiding corrupts the observation; reflecting the question reveals the mental model."
+  }
+ },
+ {
+  "id": "ux_research_interview_question",
+  "skill_id": "ux_research",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Quelle question d'entretien est la meilleure pour comprendre un besoin ?",
+   "en": "Which interview question is best for understanding a need?"
+  },
+  "options": [
+   {
+    "fr": "« Racontez-moi la dernière fois que vous avez réservé un déplacement professionnel. »",
+    "en": "'Tell me about the last time you booked a business trip.'"
+   },
+   {
+    "fr": "« Utiliseriez-vous une fonction qui réserve vos trajets automatiquement ? »",
+    "en": "'Would you use a feature that books your trips automatically?'"
+   },
+   {
+    "fr": "« Ne trouvez-vous pas la réservation frustrante ? »",
+    "en": "'Don't you find booking frustrating?'"
+   },
+   {
+    "fr": "« Combien paieriez-vous pour cette fonction ? »",
+    "en": "'How much would you pay for this feature?'"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Les comportements passés concrets sont fiables ; les questions hypothétiques ou orientées ne le sont pas.",
+   "en": "Concrete past behaviour is reliable; hypothetical or leading questions are not."
+  }
+ },
+ {
+  "id": "ux_research_five_users",
+  "skill_id": "ux_research",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Dans quel cas tester avec 5 personnes est-il approprié ?",
+   "en": "When is testing with 5 people appropriate?"
+  },
+  "options": [
+   {
+    "fr": "Un test qualitatif itératif pour repérer les problèmes majeurs",
+    "en": "An iterative qualitative test to find major issues"
+   },
+   {
+    "fr": "Mesurer le taux de réussite d'une tâche à ±5 %",
+    "en": "Measuring a task success rate within ±5%"
+   },
+   {
+    "fr": "Savoir quel pourcentage d'utilisateurs préfère A à B",
+    "en": "Knowing what percentage of users prefer A over B"
+   },
+   {
+    "fr": "Comparer statistiquement deux versions",
+    "en": "Statistically comparing two versions"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Cinq personnes suffisent pour découvrir des problèmes, pas pour mesurer ou comparer des proportions.",
+   "en": "Five people suffice to discover issues, not to measure or compare proportions."
+  }
+ },
+ {
+  "id": "ux_research_say_vs_do",
+  "skill_id": "ux_research",
+  "level": 2,
+  "type": "multi",
+  "stem": {
+   "fr": "Une enquête annonçait que 80 % des répondants utiliseraient une fonction ; après lancement, 5 % l'utilisent. Quelles explications sont plausibles ?",
+   "en": "A survey said 80% of respondents would use a feature; after launch, 5% use it. Which explanations are plausible?"
+  },
+  "options": [
+   {
+    "fr": "Ce que les gens déclarent diffère de ce qu'ils font",
+    "en": "What people say differs from what they do"
+   },
+   {
+    "fr": "Les questions hypothétiques surestiment l'usage futur",
+    "en": "Hypothetical questions overestimate future use"
+   },
+   {
+    "fr": "La fonction est difficile à trouver dans l'interface",
+    "en": "The feature is hard to find in the interface"
+   },
+   {
+    "fr": "Les enquêtes sont toujours fausses, la recherche est inutile",
+    "en": "Surveys are always wrong, research is useless"
+   },
+   {
+    "fr": "80 % des personnes l'utilisent mais l'outil d'analyse se trompe forcément",
+    "en": "80% use it but the analytics must be wrong"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 55,
+  "explanation": {
+   "fr": "L'écart déclaratif/comportemental et la découvrabilité expliquent souvent ce décalage ; on croise les méthodes.",
+   "en": "The say/do gap and discoverability often explain it; triangulate methods."
+  }
+ },
+ {
+  "id": "ux_research_validate_request",
+  "skill_id": "ux_research",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Un sponsor vous demande une étude pour « valider » une décision déjà prise. Meilleure approche ?",
+   "en": "A sponsor asks for a study to 'validate' a decision already made. Best approach?"
+  },
+  "options": [
+   {
+    "fr": "Recadrer sur les risques à lever et convenir d'avance des résultats qui changeraient la décision",
+    "en": "Reframe around risks to test and agree in advance what results would change the decision"
+   },
+   {
+    "fr": "Accepter et ne présenter que les résultats favorables",
+    "en": "Accept and present only favourable findings"
+   },
+   {
+    "fr": "Refuser toute étude",
+    "en": "Refuse to do any study"
+   },
+   {
+    "fr": "Lancer une grande enquête pour obtenir un chiffre convaincant",
+    "en": "Run a large survey to get a convincing number"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Fixer les critères avant évite le biais de confirmation et rend l'étude utile même si la décision est prise.",
+   "en": "Setting criteria up front avoids confirmation bias and keeps the study useful even with a decision made."
+  }
+ },
+ {
+  "id": "ux_research_synthesis_failures",
+  "skill_id": "ux_research",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Quelles pratiques de synthèse sont des erreurs ?",
+   "en": "Which synthesis practices are mistakes?"
+  },
+  "options": [
+   {
+    "fr": "Annoncer « 62 % des utilisateurs veulent X » à partir de 8 entretiens",
+    "en": "Reporting '62% of users want X' from 8 interviews"
+   },
+   {
+    "fr": "Ne citer que les verbatims qui confirment l'hypothèse",
+    "en": "Quoting only verbatims that confirm the hypothesis"
+   },
+   {
+    "fr": "Présenter des solutions demandées par les participants comme des besoins",
+    "en": "Presenting solutions participants asked for as needs"
+   },
+   {
+    "fr": "Séparer observations et interprétations",
+    "en": "Separating observations from interpretations"
+   },
+   {
+    "fr": "Chercher des cas qui contredisent les tendances",
+    "en": "Looking for cases that contradict the patterns"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Les deux dernières sont de bonnes pratiques ; les trois premières transforment du qualitatif en fausse certitude.",
+   "en": "The last two are good practice; the first three turn qualitative data into false certainty."
+  }
+ },
+ {
+  "id": "visual_identity_logo_format",
+  "skill_id": "visual_identity",
+  "level": 1,
+  "type": "single",
+  "stem": {
+   "fr": "Le prestataire vous livre le logo uniquement en PNG de 500 px. Que demandez-vous ?",
+   "en": "The agency delivers the logo only as a 500px PNG. What do you ask for?"
+  },
+  "options": [
+   {
+    "fr": "Les fichiers vectoriels sources (SVG, AI ou EPS)",
+    "en": "The vector source files (SVG, AI or EPS)"
+   },
+   {
+    "fr": "Un PNG de 5 000 px",
+    "en": "A 5,000px PNG"
+   },
+   {
+    "fr": "Un JPEG de meilleure qualité",
+    "en": "A higher-quality JPEG"
+   },
+   {
+    "fr": "Rien, c'est suffisant pour le web",
+    "en": "Nothing, it's enough for the web"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 30,
+  "explanation": {
+   "fr": "Seul le vectoriel s'agrandit sans perte pour l'impression, la signalétique ou les grands écrans.",
+   "en": "Only vectors scale losslessly for print, signage or large screens."
+  }
+ },
+ {
+  "id": "visual_identity_logo_robustness",
+  "skill_id": "visual_identity",
+  "level": 1,
+  "type": "multi",
+  "stem": {
+   "fr": "Dans quelles conditions un logo doit-il rester lisible et reconnaissable ?",
+   "en": "In which conditions must a logo stay legible and recognisable?"
+  },
+  "options": [
+   {
+    "fr": "En une seule couleur",
+    "en": "In a single colour"
+   },
+   {
+    "fr": "En très petite taille (favicon)",
+    "en": "At very small size (favicon)"
+   },
+   {
+    "fr": "Sur fond clair comme sur fond sombre",
+    "en": "On both light and dark backgrounds"
+   },
+   {
+    "fr": "Uniquement en dégradé",
+    "en": "Only with its gradient"
+   },
+   {
+    "fr": "Uniquement sur fond blanc",
+    "en": "Only on a white background"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 45,
+  "explanation": {
+   "fr": "Un logo vit sur des supports contraints : tampon, broderie, icône d'application, fond photo.",
+   "en": "A logo lives on constrained media: stamps, embroidery, app icons, photo backgrounds."
+  }
+ },
+ {
+  "id": "visual_identity_brand_contrast",
+  "skill_id": "visual_identity",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "La couleur de marque est un jaune vif ; le texte blanc posé dessus manque de contraste. Que prévoyez-vous dans la charte ?",
+   "en": "The brand colour is a bright yellow; white text on it lacks contrast. What do you set in the guidelines?"
+  },
+  "options": [
+   {
+    "fr": "Des associations accessibles : jaune avec texte foncé, ou teinte plus sombre pour le texte",
+    "en": "Accessible pairings: yellow with dark text, or a darker shade for text"
+   },
+   {
+    "fr": "Garder le blanc, l'identité prime",
+    "en": "Keep white, the identity comes first"
+   },
+   {
+    "fr": "Ajouter une ombre portée au texte",
+    "en": "Add a drop shadow to the text"
+   },
+   {
+    "fr": "Utiliser une police plus fine",
+    "en": "Use a thinner typeface"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "La charte doit fixer des couples couleur/texte conformes, sinon chaque équipe improvise.",
+   "en": "Guidelines must fix compliant colour/text pairs, otherwise every team improvises."
+  }
+ },
+ {
+  "id": "visual_identity_clear_space",
+  "skill_id": "visual_identity",
+  "level": 2,
+  "type": "single",
+  "stem": {
+   "fr": "Comment définir la zone de protection autour d'un logo dans une charte ?",
+   "en": "How should the clear space around a logo be defined in guidelines?"
+  },
+  "options": [
+   {
+    "fr": "Relativement à un élément du logo (ex. la hauteur du symbole)",
+    "en": "Relative to an element of the logo (e.g. the symbol's height)"
+   },
+   {
+    "fr": "En pixels fixes, par exemple 10 px",
+    "en": "In fixed pixels, e.g. 10px"
+   },
+   {
+    "fr": "Au jugement de chaque designer",
+    "en": "At each designer's judgement"
+   },
+   {
+    "fr": "Aucune zone n'est nécessaire",
+    "en": "No clear space is needed"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 40,
+  "explanation": {
+   "fr": "Une unité relative reste proportionnée à toutes les tailles et tous les supports.",
+   "en": "A relative unit stays proportional at every size and medium."
+  }
+ },
+ {
+  "id": "visual_identity_rebrand_equity",
+  "skill_id": "visual_identity",
+  "level": 3,
+  "type": "single",
+  "stem": {
+   "fr": "Marque bien reconnue, stratégie inchangée. La nouvelle direction veut une refonte totale de l'identité. Votre recommandation ?",
+   "en": "A well-recognised brand, unchanged strategy. New leadership wants a total identity overhaul. Your recommendation?"
+  },
+  "options": [
+   {
+    "fr": "Une évolution qui préserve les éléments distinctifs déjà reconnus",
+    "en": "An evolution that keeps the distinctive assets people already recognise"
+   },
+   {
+    "fr": "Une rupture complète pour marquer le changement",
+    "en": "A complete break to mark the change"
+   },
+   {
+    "fr": "Ne rien changer du tout",
+    "en": "Change nothing at all"
+   },
+   {
+    "fr": "Un nouveau logo du jour au lendemain, sans plan de déploiement",
+    "en": "A new logo overnight, with no rollout plan"
+   }
+  ],
+  "correct": [
+   0
+  ],
+  "seconds": 50,
+  "explanation": {
+   "fr": "Sans changement de stratégie, jeter des éléments reconnus détruit de la valeur de marque accumulée.",
+   "en": "Without a strategy change, discarding recognised assets destroys accumulated brand equity."
+  }
+ },
+ {
+  "id": "visual_identity_rollout",
+  "skill_id": "visual_identity",
+  "level": 3,
+  "type": "multi",
+  "stem": {
+   "fr": "Vous déployez une nouvelle identité visuelle. Quelles actions sont pertinentes ?",
+   "en": "You are rolling out a new visual identity. Which actions are appropriate?"
+  },
+  "options": [
+   {
+    "fr": "Inventorier tous les points de contact",
+    "en": "Inventory every touchpoint"
+   },
+   {
+    "fr": "Prioriser selon la visibilité et le coût de remplacement",
+    "en": "Prioritise by visibility and replacement cost"
+   },
+   {
+    "fr": "Fournir modèles et bibliothèque d'éléments partagés",
+    "en": "Provide templates and a shared asset library"
+   },
+   {
+    "fr": "Laisser chaque équipe redessiner ses supports à sa façon",
+    "en": "Let each team redesign its materials its own way"
+   },
+   {
+    "fr": "Attendre que tout soit prêt partout, aussi longtemps qu'il le faudra",
+    "en": "Wait until everything is ready everywhere, however long it takes"
+   }
+  ],
+  "correct": [
+   0,
+   1,
+   2
+  ],
+  "seconds": 60,
+  "explanation": {
+   "fr": "Un déploiement se pilote : inventaire, priorités, outils communs ; sinon incohérence ou paralysie.",
+   "en": "A rollout is managed: inventory, priorities, shared tools; otherwise inconsistency or paralysis."
+  }
+ }
+]
