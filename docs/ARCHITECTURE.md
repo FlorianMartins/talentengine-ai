@@ -357,7 +357,30 @@ thin class, so moving to PostgreSQL is a contained change (see the roadmap).
 
 ---
 
-## 8. Security posture (MVP)
+## 8. The public sandbox (`/api/try`, `sandbox/`)
+
+A public, account-free page lets anyone measure how well a CV and portfolio match an offer. It reuses
+the four modules unchanged, inside a **throw-away engine**:
+
+```mermaid
+flowchart LR
+    O[Offer: text, link, LinkedIn, or reference role] -->|fetch.py: SSRF-safe, JSON-LD JobPosting| P[offer.py: skills, importance, level, credentials]
+    P -->|editable job profile| M
+    C[CV · documents · GitHub profile or repos · portfolio links] -->|github.py: git partial clone, names only| M[match: in-memory Store + temp dir]
+    M --> S1[① Shield] --> S2[② Funnel L1] --> S3[③ Translator] --> S4[④ Report + tips]
+    M -.deleted at the end.-> X((nothing stored))
+```
+
+* **Offer parsing** is deterministic and explainable: every detected criterion carries the offer lines it
+  came from; "indispensable / required" → essential, "un plus / nice to have" → bonus, years of experience
+  and seniority words set the required level, company and perks sections are ignored ("Carte Swile" is not
+  a culinary skill), recruiting verbs are neutralised ("nous recrutons" is not team leadership).
+* **Ephemeral by construction**: in-memory database, temporary directory removed in a `finally`, no
+  persistent ledger entry; the recruiter side stays behind the API key.
+* **Bounded**: per-IP hourly limits, a concurrency cap, file and link limits, SSRF guard on every fetched
+  URL and redirect. See [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## 9. Security posture (MVP)
 
 * Local-first by default: no candidate data leaves the machine unless a job explicitly opts into
   escalation, and even then only pseudonymised Level-1 excerpts are sent.

@@ -140,7 +140,7 @@ function EvidenceItem({ ev, candidateRef, imageIds }: { ev: EvidenceRef; candida
   );
 }
 
-function SkillCard({
+export function SkillCard({
   skill,
   candidateRef,
   imageIds,
@@ -419,7 +419,7 @@ export function GraphPanel({
     const list: GraphNode[] = graph.assessments.map((a) => {
       const v = vs.get(a.skill_id);
       const mean = (a.axes.autonomy + a.axes.complexity + a.axes.reliability) / 3;
-      return { id: a.skill_id, label: v?.label ?? pretty(a.skill_id), level: v?.level ?? mean, source: a.source };
+      return { id: a.skill_id, label: v?.label ?? a.label ?? pretty(a.skill_id), level: v?.level ?? mean, source: a.source };
     });
     for (const d of graph.declared_only) if (!list.some((n) => n.id === d)) list.push({ id: d, label: pretty(d), level: 0.4, source: "declared" });
     return list;

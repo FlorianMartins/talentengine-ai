@@ -134,6 +134,8 @@ _QUALITY = _any(".eslintrc*", "eslint.config.*", ".prettierrc*", "ruff.toml", ".
                 "clippy.toml", "sonar-project.properties", "biome.json", ".rubocop.yml", "package-lock.json",
                 "pnpm-lock.yaml", "yarn.lock", "poetry.lock", "uv.lock", "cargo.lock", "go.sum", "pyproject.toml")
 _DOCS = _any("readme*", "contributing.md", "changelog*", "docs/*", "*/docs/*", "architecture.md")
+_CLOUD = _any("*aws*", "*azure*", "*gcp*", "*eks*", "*aks*", "*gke*", "*lambda*", "*cloudformation*", "*.bicep",
+              "serverless.yml", "*cloudrun*", "*app-service*")
 _ADR = _any("*/adr/*", "adr/*", "*/decisions/*", "docs/decisions/*", "*/rfcs/*")
 _FRONT = _any("*.tsx", "*.jsx", "*.vue", "*.svelte", ".storybook/*", "*/components/*")
 _BACK = _any("*/api/*", "*/routes/*", "*/controllers/*", "*/handlers/*", "openapi.y*ml", "openapi.json",
@@ -142,7 +144,10 @@ _DB = _any("*/migrations/*", "migrations/*", "alembic/*", "*/alembic/*", "*.sql"
            "*/prisma/*")
 _DATA = _any("*/dags/*", "dags/*", "dbt_project.yml", "*/pipelines/*", "great_expectations/*", "*.ipynb",
              "dvc.yaml")
-_ML = _any("*train*.py", "mlproject", "*/models/*.py", "*mlflow*", "dvc.yaml", "*model_card*", "*eval*.py")
+# Kept narrow: "*train*.py" matched constraints.py and "*eval*.py" any evaluation script.
+_ML = _any("train.py", "train_*.py", "*_train.py", "training/*.py", "*/training/*.py", "mlproject", "*mlflow*",
+           "dvc.yaml", "*model_card*", "*.ipynb", "*/notebooks/*", "*.onnx", "*.safetensors", "*lora*.py",
+           "*/models/*.pt", "*/models/*.pkl")
 
 _LAYERS = {"domain", "core", "services", "service", "adapters", "infrastructure", "infra", "api", "handlers",
            "controllers", "models", "repositories", "usecases", "use_cases", "ports", "application", "lib",
@@ -164,6 +169,7 @@ _RULES: list[_Rule] = [
     _Rule("ci_pipeline", ("ci_cd",), _CI, ("control", "ownership"), 0.5, 0.1),
     _Rule("containers", ("containerization",), _CONTAINER, ("complex",), 0.45, 0.1),
     _Rule("infrastructure_code", ("infrastructure_as_code",), _IAC, ("complex", "ownership"), 0.45, 0.04),
+    _Rule("cloud_resources", ("cloud_infrastructure",), _CLOUD, ("complex",), 0.4, 0.05),
     _Rule("security_controls", ("security_engineering",), _SECURITY, ("control",), 0.35, 0.1),
     _Rule("quality_tooling", ("code_quality",), _QUALITY, ("control",), 0.3, 0.07),
     _Rule("documentation", ("technical_documentation",), _DOCS, ("ownership",), 0.3, 0.04),

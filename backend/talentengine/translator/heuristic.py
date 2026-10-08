@@ -26,6 +26,7 @@ _PROFILE: dict[str, tuple[float, float, float]] = {
     "ci_pipeline": (0.7, 0.6, 0.9),
     "containers": (0.6, 0.6, 0.5),
     "infrastructure_code": (0.7, 0.9, 0.6),
+    "cloud_resources": (0.6, 0.8, 0.5),
     "security_controls": (0.6, 0.8, 0.9),
     "quality_tooling": (0.4, 0.4, 0.8),
     "documentation": (0.6, 0.3, 0.4),

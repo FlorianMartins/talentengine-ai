@@ -59,6 +59,8 @@ export interface Runtime {
 export interface Health {
   status: string;
   version: string;
+  auth_required: boolean;
+  demo_enabled: boolean;
 }
 
 export interface CatalogSkill {
@@ -298,6 +300,8 @@ export interface DashboardReport {
 
 export interface SkillAssessment {
   skill_id: string;
+  /** localised label (backend ≥ 0.2) */
+  label?: string;
   axes: AxisScores;
   confidence: number;
   rationale: string;
@@ -405,4 +409,89 @@ export interface SubmissionInput {
   cv: File | null;
   documents: File[];
   images: { file: File; caption: string }[];
+}
+
+// ------------------------------------------------------------------ public sandbox (/api/try/*, no key)
+
+export interface TryPreset {
+  id: string;
+  family: Family;
+  title: string;
+  summary: string;
+  /** criterion labels, already localised */
+  criteria: string[];
+}
+
+export interface TryLimits {
+  matches_per_hour: number;
+  max_repos: number;
+  max_links: number;
+  max_documents: number;
+  max_file_mb: number;
+}
+
+export interface TrySkill {
+  id: string;
+  label: string;
+  family: Family;
+}
+
+export interface TryConfig {
+  enabled: boolean;
+  presets: TryPreset[];
+  limits: TryLimits;
+  skills: TrySkill[];
+}
+
+export interface OfferTrace {
+  skill_id: string;
+  label: string;
+  importance: Importance;
+  mentions: number;
+  /** lines of the offer that mention the skill */
+  lines: string[];
+}
+
+export interface OfferAnalysis {
+  /** "text" or the host the offer was read from (e.g. www.linkedin.com) */
+  source: string;
+  job: JobProfile;
+  traces: OfferTrace[];
+  warnings: string[];
+}
+
+export interface TryArtifact {
+  label: string;
+  kind: ArtifactKind;
+  status: ArtifactStatus;
+  /** personal data items masked */
+  masked: number;
+  injection_suspected: boolean;
+  /** repository: number of files read */
+  files: number;
+}
+
+export interface TryGraphAssessment extends SkillAssessment {
+  label: string;
+}
+
+
+export interface TryMatchResult {
+  report: DashboardReport;
+  graph: { assessments: TryGraphAssessment[]; edges: SkillEdge[] };
+  artifacts: TryArtifact[];
+  tips: string[];
+  stored: false;
+}
+
+export interface TryMatchInput {
+  consent: boolean;
+  identity_name: string;
+  locale: Locale;
+  job?: JobProfile;
+  preset_id?: string;
+  github_urls: string[];
+  portfolio_urls: string[];
+  cv: File | null;
+  documents: File[];
 }

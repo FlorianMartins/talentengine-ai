@@ -90,6 +90,10 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
 
     auth = [Depends(require_key)]
 
+    from ..sandbox.api import build_router
+
+    app.include_router(build_router(settings))  # public on purpose: no API key, nothing stored
+
     # ------------------------------------------------------------------ meta
 
     @app.get("/api/health")

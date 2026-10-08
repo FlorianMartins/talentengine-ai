@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENGINE_VERSION = "0.2.0"
+ENGINE_VERSION = "0.3.0"
 
 
 class Settings(BaseSettings):
@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     github_token: str = ""
 
     enable_demo: bool = True
+
+    # --- Public sandbox (/api/try): anyone can test an offer against their own CV, nothing is stored ---
+    sandbox_enabled: bool = True
+    sandbox_matches_per_hour: int = 12
+    sandbox_offers_per_hour: int = 40
+    sandbox_concurrency: int = 2
+    # Behind a reverse proxy, read the client address from X-Forwarded-For (rightmost value, set by our proxy).
+    trust_proxy: bool = False
     # Built front-end to serve at "/". Empty: <repo>/frontend/dist when running from a checkout.
     frontend_dist: str = ""
 

@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1.7
 # ---- front-end build -------------------------------------------------------------------------
 FROM node:20-alpine AS web
+# Path prefix when served under a sub-path (e.g. --build-arg VITE_BASE=/talentengine/); "/" by default.
+ARG VITE_BASE=/
+ENV VITE_BASE=${VITE_BASE}
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -15,6 +18,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TE_FRONTEND_DIST=/app/frontend/dist \
     TE_NER=spacy
 WORKDIR /app
+# git reads public repositories' file trees for the sandbox without using the GitHub API quota.
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 COPY backend/pyproject.toml backend/README.md backend/
 COPY backend/talentengine backend/talentengine
 RUN pip install --no-cache-dir "./backend[anthropic,ner]" \

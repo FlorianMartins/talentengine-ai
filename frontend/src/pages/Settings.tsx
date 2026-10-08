@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import { Eye, EyeOff, KeyRound, Palette, Save, Server, UserRound } from "lucide-react";
 import type { Lang } from "../i18n";
-import { ApiError } from "../api/client";
+import { API, ApiError } from "../api/client";
 import { usePrefs, useSystem, useToast, type Theme } from "../lib/prefs";
 import { PageHeader, useCrumbs } from "../components/Shell";
 import { ErrorState, Skeleton } from "../components/feedback";
@@ -154,9 +153,7 @@ export function SettingsPage() {
             <Skeleton h={180} />
           )}
           <p className="xs faint">
-            <Link to="/api/docs" reloadDocument>
-              OpenAPI · /api/docs
-            </Link>
+            <a href={`${API}/docs`}>OpenAPI · /api/docs</a>
           </p>
         </section>
       </div>

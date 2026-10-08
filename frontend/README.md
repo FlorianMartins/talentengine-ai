@@ -30,6 +30,25 @@ npm run lint       # alias of typecheck
 
 Point the proxy at another backend with `TE_BACKEND_URL=http://127.0.0.1:8001 npm run dev`.
 
+### Serving under a path prefix
+
+The app can live under a sub-path, e.g. `https://hivey.be/talentengine/` behind Caddy `handle_path /talentengine/*`
+(the proxy strips the prefix, so the backend sees `/api/...` and `/essai`):
+
+```bash
+VITE_BASE=/talentengine/ npm run build    # default base is "/" (dev server, Docker image at the root)
+```
+
+- `vite.config.ts` sets `base` from `VITE_BASE`, so assets, fonts and images are emitted with the prefix, and
+  `index.html` uses `%BASE_URL%favicon.svg`.
+- The router uses `basename = import.meta.env.BASE_URL`, so in-app links and deep links such as
+  `/talentengine/jobs/JOB-x` or `/talentengine/essai` resolve.
+- Every API and media URL goes through `API` in `src/api/client.ts` (`BASE_URL + "/api"`). No component writes
+  `/api` by hand.
+
+This was verified with a prefix-stripping proxy in front of the backend. All app routes and both public pages
+loaded, the sandbox flow ran, and the browser made **no request outside the prefix**.
+
 In production the FastAPI backend serves `frontend/dist` with an SPA fallback. Run `npm run build` **before** starting
 the backend: it only mounts `dist/` at startup. The app only calls relative `/api/...` URLs.
 
@@ -52,6 +71,17 @@ curl -X POST localhost:8000/api/demo/seed   # or use the "Load demo data" button
 | `/audit` | **Audit ledger**: paginated table with filters (application ref, role, kind), prev→entry hash chaining, expandable payloads, and a verify-chain banner |
 | `/settings` | Theme, language, reviewer name (sent as `X-Actor`), API key (sent as `X-API-Key`, kept in `localStorage`), read-only runtime info |
 
+### Public pages (no app shell, no API key)
+
+| Route | Screen |
+|---|---|
+| `/essai` (FR), `/try` (EN) | **Public sandbox**, the shareable showcase for candidates. A three-step stepper: **1. The role**: paste an offer (text, or a link to LinkedIn, Welcome to the Jungle, Indeed or a careers page) → `POST /api/try/offer`, then edit the detected criteria (importance, expected level, add from the catalogue, remove, "why?" shows the offer lines that triggered each skill); or pick a typical role (`/api/try/config` presets). **2. Your profile**: CV and documents (drag and drop), GitHub links (a profile link expands to its 3 latest repositories), portfolio links, the required name (only used to mask it), and plain-language consent. **3. Result**: `POST /api/try/match`, with staged progress while it runs. Shows the animated score ring, a notice reframed for candidates ("not a verdict on you"), criterion bars, what the files prove (exact excerpts), things to strengthen (tips + gaps), questions a recruiter might ask (self-check list), what was analysed (masked items, repository files, injection flag) and credentials in a secondary panel. Actions: try another offer, edit my profile (inputs kept in memory), copy the tool's link (the canonical `/essai` URL: there is no stored result to share). Handles 422 (with a "paste the text instead" hint), 429 and 503 |
+| `/recruteurs` (FR), `/recruiters` (EN) | **Recruiter landing**: hero with two CTAs, the problem, how it works in 4 steps, what you get (with theme-aware screenshots), "Measured, not promised" (only figures published in `docs/MEASUREMENTS.md`), compliance, FAQ, final CTA |
+
+The EN aliases open in English unless the visitor already picked a language. Both pages are lazy-loaded chunks
+(the sandbox is about 8 kB gzipped on top of the shared core), so a candidate opening the shared link does not
+download the recruiter app pages. The app sidebar links to both.
+
 ## Structure
 
 ```
@@ -72,7 +102,10 @@ src/
     controls.tsx        Segmented (radio group), RangeField, SwitchRow, TagInput, DropZone
     feedback.tsx        toasts, Modal (focus trap, Esc), skeletons, empty/error states, semantic chips
     StatusStrip.tsx
-  pages/                Overview, Studio, Pipeline, Apply, Report (+ ReportSections), Audit, Settings, NotFound
+  components/PublicLayout.tsx  header/footer for the public pages (no sidebar), localised public paths
+  pages/                Overview, Studio, Pipeline, Apply, Report (+ ReportSections), Audit, Settings, NotFound,
+                        Try (public sandbox), Recruiters (public landing)
+  assets/landing/       compressed WebP screenshots used by the landing page
   styles/
     tokens.css          design tokens, dark (default) + light
     app.css             base, layout, components, pages, reduced motion, print
@@ -93,7 +126,7 @@ avoid a flash. Dark is the default. The faint grid and scanline texture is used 
 
 ## i18n
 
-`src/i18n.ts` exports `fr` (default) and `en`. `en` is typed as `typeof fr`, so a missing key or a wrong function
+`src/i18n.ts` exports `fr` (default) and `en`. The public pages' copy lives in the same dictionary under `t.pub`. `en` is typed as `typeof fr`, so a missing key or a wrong function
 signature is a compile error. Strings with values are functions, e.g. `t.pipeline.evidence(3)`. French copy is
 inclusive and neutral ("la personne candidate", "candidat·e", "Non retenu·e"). The UI language also drives the
 catalogue and preset language (`?locale=`). Reports are written in the role's own *report language*.
@@ -113,4 +146,6 @@ catalogue and preset language (`?locale=`). Reports are written in the role's ow
 
 See `../docs/images/`: `overview-{dark,light}`, `studio-dark`, `studio-full-dark`, `pipeline-{dark,light}`,
 `compare-dark`, `report-{dark,light}`, `report-evidence-dark`, `report-interview-light`, `report-glassbox-dark`,
-`audit-dark`, `settings-light-en`, `mobile-{overview,report,pipeline-light}`.
+`audit-dark`, `settings-light-en`, `mobile-{overview,report,pipeline-light}`, and for the public pages `try-offer`,
+`try-progress`, `try-result`, `try-result-mobile`, `try-presets-mobile`, `recruiters`, `recruiters-light`,
+`recruiters-mobile`.

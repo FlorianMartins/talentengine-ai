@@ -137,6 +137,26 @@ SKILLS: list[SkillDef] = [
         },
     ),
     SkillDef(
+        "cloud_infrastructure", Family.software,
+        {"fr": "Infrastructure cloud", "en": "Cloud infrastructure"},
+        {"fr": "sait concevoir et exploiter des services sur un cloud public (Azure, AWS, GCP...)",
+         "en": "can design and run services on a public cloud (Azure, AWS, GCP...)"},
+        {
+            "fr": _t("Dans {artifact} ({locator}), quels services cloud avez-vous choisis, et comment maîtrisez-"
+                     "vous les coûts et les accès ?",
+                     "Vérifier une pratique réelle du cloud, au-delà des noms de services.",
+                     ("Justifie le choix d'un service (géré ou non)", "Parle de gestion des identités et des accès",
+                      "Évoque le suivi des coûts ou un dépassement évité", "Sait comment l'environnement est recréé"),
+                     _GENERIC_WARNINGS_FR),
+            "en": _t("In {artifact} ({locator}), which cloud services did you choose, and how do you keep costs and "
+                     "access under control?",
+                     "Check real cloud practice, beyond service names.",
+                     ("Justifies a service choice (managed or not)", "Talks about identity and access management",
+                      "Mentions cost tracking or an overrun avoided", "Knows how the environment is recreated"),
+                     _GENERIC_WARNINGS_EN),
+        },
+    ),
+    SkillDef(
         "security_engineering", Family.software,
         {"fr": "Sécurité applicative et cloud", "en": "Application & cloud security"},
         {"fr": "sait intégrer la sécurité dans la conception et l'automatisation (moindre privilège, Zero-Trust)",

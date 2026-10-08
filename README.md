@@ -12,6 +12,19 @@ reports, portfolios, photos of finished work — and explains every point of eve
 > certifications restent dans la balance, mais plafonnés en second plan. Anonymisation à l'entrée,
 > aucun rejet automatique, registre d'audit infalsifiable, coûts d'IA maîtrisés (local d'abord).
 
+### 👉 Try it now — no account, nothing stored: **https://hivey.be/talentengine/essai**
+
+Paste a job offer (text or a LinkedIn / job-board link) or pick a reference role, add a CV and a GitHub
+or portfolio link, and see the compatibility score, the proof behind it, what to strengthen, and the
+questions a recruiter would ask.
+
+| The public sandbox | The recruiter landing page |
+|---|---|
+| ![Sandbox result](docs/images/try-result.png) | ![Recruiters](docs/images/recruiters.png) |
+
+**Recruiters:** read the [recruiter guide](docs/recruteurs/RECRUITER-GUIDE.md)
+([version française](docs/recruteurs/GUIDE-RECRUTEURS.md)) or the [landing page](https://hivey.be/talentengine/recruteurs).
+
 ![Candidate report](docs/images/report-dark.png)
 
 ---
@@ -139,7 +152,9 @@ Optional: `docker compose --profile vision up -d` and `ollama pull qwen2.5vl:7b`
 
 * [Architecture manifesto](docs/ARCHITECTURE.md) — modules, data flows, formulas, the system prompt, the report JSON
 * [Measurements](docs/MEASUREMENTS.md) — masking recall per origin, fairness, injection, gaming resistance
+* [Recruiter guide](docs/recruteurs/RECRUITER-GUIDE.md) · [Guide recruteurs (FR)](docs/recruteurs/GUIDE-RECRUTEURS.md) — value, daily use, objections, a 30-day pilot plan
 * [User guide](docs/USER_GUIDE.md) — installation, configuration, daily use
+* [Deployment](docs/DEPLOYMENT.md) — sub-path behind a reverse proxy, public sandbox security
 * [Compliance mapping](docs/COMPLIANCE.md) — GDPR and EU AI Act, and what remains the deployer's job
 * [Roadmap](docs/ROADMAP.md) — step-by-step plan to a production MVP by the end of December 2026
 * [Front-end](frontend/README.md) — stack, structure, design tokens
@@ -160,7 +175,7 @@ docs/          architecture, user guide, compliance, roadmap
 
 ## Status and limits
 
-This is an MVP (v0.2.0): fully working end to end, tested (91 tests, `ruff`, `mypy`, measurements in CI),
+This is an MVP (v0.3.0): fully working end to end, tested (91 tests, `ruff`, `mypy`, measurements in CI),
 but not production-hardened. The masking figures come from synthetic corpora, not yet from real CVs; storage is SQLite,
 authentication is a single API key, and signal strengths should be reviewed with practitioners of each
 trade before real use. Using it for real recruitment requires a DPIA — see

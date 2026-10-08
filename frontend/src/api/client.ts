@@ -1,4 +1,4 @@
-// Minimal typed fetch client. All URLs are relative (`/api/...`): Vite proxies them
+// Minimal typed fetch client. Every URL is `${API}/...` (base path + /api): Vite proxies them
 // in development and the FastAPI backend serves the built app in production.
 import type {
   Artifact,
@@ -18,6 +18,7 @@ import type {
   LedgerEntry,
   LedgerQuery,
   Locale,
+  OfferAnalysis,
   Preset,
   RevealResult,
   Runtime,
@@ -25,8 +26,16 @@ import type {
   SkillGraph,
   SubmissionInput,
   SubmissionResult,
+  TryConfig,
+  TryMatchInput,
+  TryMatchResult,
 } from "./types";
 import { getStored } from "../lib/storage";
+
+/** App base path ("" at the root, "/talentengine" when served under a prefix). */
+export const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, "");
+/** Root of every API call, prefixed with the base path. */
+export const API = `${BASE_PATH}/api`;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -98,21 +107,21 @@ const json = (body: unknown): RequestInit => ({
 const enc = encodeURIComponent;
 
 export const api = {
-  health: () => request<Health>("/api/health"),
-  runtime: () => request<Runtime>("/api/runtime"),
+  health: () => request<Health>(`${API}/health`),
+  runtime: () => request<Runtime>(`${API}/runtime`),
 
-  skills: (locale: Locale) => request<CatalogSkill[]>(`/api/catalog/skills?locale=${locale}`),
-  families: () => request<Family[]>("/api/catalog/families"),
-  presets: (locale: Locale) => request<Preset[]>(`/api/catalog/presets?locale=${locale}`),
+  skills: (locale: Locale) => request<CatalogSkill[]>(`${API}/catalog/skills?locale=${locale}`),
+  families: () => request<Family[]>(`${API}/catalog/families`),
+  presets: (locale: Locale) => request<Preset[]>(`${API}/catalog/presets?locale=${locale}`),
 
-  jobs: () => request<JobListItem[]>("/api/jobs"),
-  job: (id: string) => request<JobProfile>(`/api/jobs/${enc(id)}`),
-  createJob: (job: JobProfile) => request<JobProfile>("/api/jobs", json(job)),
+  jobs: () => request<JobListItem[]>(`${API}/jobs`),
+  job: (id: string) => request<JobProfile>(`${API}/jobs/${enc(id)}`),
+  createJob: (job: JobProfile) => request<JobProfile>(`${API}/jobs`, json(job)),
   updateJob: (id: string, job: JobProfile) =>
-    request<JobProfile>(`/api/jobs/${enc(id)}`, { ...json(job), method: "PUT" }),
-  candidates: (id: string) => request<CandidateSummary[]>(`/api/jobs/${enc(id)}/candidates`),
-  evaluate: (id: string) => request<EvaluationRun>(`/api/jobs/${enc(id)}/evaluate`, { method: "POST" }),
-  usage: (id: string) => request<JobUsage>(`/api/jobs/${enc(id)}/usage`),
+    request<JobProfile>(`${API}/jobs/${enc(id)}`, { ...json(job), method: "PUT" }),
+  candidates: (id: string) => request<CandidateSummary[]>(`${API}/jobs/${enc(id)}/candidates`),
+  evaluate: (id: string) => request<EvaluationRun>(`${API}/jobs/${enc(id)}/evaluate`, { method: "POST" }),
+  usage: (id: string) => request<JobUsage>(`${API}/jobs/${enc(id)}/usage`),
 
   submit: (jobId: string, s: SubmissionInput) => {
     const fd = new FormData();
@@ -126,24 +135,24 @@ export const api = {
     if (s.cv) fd.set("cv", s.cv);
     for (const d of s.documents) fd.append("documents", d);
     for (const i of s.images) fd.append("images", i.file);
-    return request<SubmissionResult>(`/api/jobs/${enc(jobId)}/candidates`, { method: "POST", body: fd });
+    return request<SubmissionResult>(`${API}/jobs/${enc(jobId)}/candidates`, { method: "POST", body: fd });
   },
 
-  report: (ref: string) => request<DashboardReport>(`/api/candidates/${enc(ref)}/report`),
-  graph: (ref: string) => request<SkillGraph>(`/api/candidates/${enc(ref)}/graph`),
-  artifacts: (ref: string) => request<Artifact[]>(`/api/candidates/${enc(ref)}/artifacts`),
-  explanation: (ref: string) => request<Explanation>(`/api/candidates/${enc(ref)}/explanation`),
+  report: (ref: string) => request<DashboardReport>(`${API}/candidates/${enc(ref)}/report`),
+  graph: (ref: string) => request<SkillGraph>(`${API}/candidates/${enc(ref)}/graph`),
+  artifacts: (ref: string) => request<Artifact[]>(`${API}/candidates/${enc(ref)}/artifacts`),
+  explanation: (ref: string) => request<Explanation>(`${API}/candidates/${enc(ref)}/explanation`),
   /** Media needs the API key header, so it is fetched as a blob (not an <img src>). */
   media: async (ref: string, artifactId: string): Promise<string | null> => {
-    const res = await fetch(`/api/candidates/${enc(ref)}/media/${enc(artifactId)}`, { headers: headers() });
+    const res = await fetch(`${API}/candidates/${enc(ref)}/media/${enc(artifactId)}`, { headers: headers() });
     if (!res.ok) return null;
     return URL.createObjectURL(await res.blob());
   },
   decide: (ref: string, d: HumanDecision) =>
-    request<DashboardReport>(`/api/candidates/${enc(ref)}/decisions`, json(d)),
+    request<DashboardReport>(`${API}/candidates/${enc(ref)}/decisions`, json(d)),
   reveal: (ref: string, reviewer: string, reason: string) =>
-    request<RevealResult>(`/api/candidates/${enc(ref)}/reveal`, json({ reviewer, reason })),
-  erase: (ref: string, actor: string) => request<EraseResult>(`/api/candidates/${enc(ref)}/erase`, json({ actor })),
+    request<RevealResult>(`${API}/candidates/${enc(ref)}/reveal`, json({ reviewer, reason })),
+  erase: (ref: string, actor: string) => request<EraseResult>(`${API}/candidates/${enc(ref)}/erase`, json({ actor })),
 
   ledger: (q: LedgerQuery = {}) => {
     const p = new URLSearchParams();
@@ -151,8 +160,24 @@ export const api = {
     if (q.offset !== undefined) p.set("offset", String(q.offset));
     if (q.candidate_ref) p.set("candidate_ref", q.candidate_ref);
     if (q.job_id) p.set("job_id", q.job_id);
-    return request<LedgerEntry[]>(`/api/audit/ledger?${p.toString()}`);
+    return request<LedgerEntry[]>(`${API}/audit/ledger?${p.toString()}`);
   },
-  verify: () => request<ChainVerification>("/api/audit/verify"),
-  seed: () => request<SeedResult>("/api/demo/seed", { method: "POST" }),
+  verify: () => request<ChainVerification>(`${API}/audit/verify`),
+  // public sandbox — no API key needed, nothing stored server-side
+  tryConfig: (locale: Locale) => request<TryConfig>(`${API}/try/config?locale=${locale}`),
+  tryOffer: (body: { text?: string; url?: string; locale: Locale }) => request<OfferAnalysis>(`${API}/try/offer`, json(body)),
+  tryMatch: (m: TryMatchInput) => {
+    const fd = new FormData();
+    fd.set("consent", String(m.consent));
+    fd.set("identity_name", m.identity_name);
+    fd.set("locale", m.locale);
+    if (m.job) fd.set("job_json", JSON.stringify(m.job));
+    if (m.preset_id) fd.set("preset_id", m.preset_id);
+    fd.set("github_urls", m.github_urls.join("\n"));
+    fd.set("portfolio_urls", m.portfolio_urls.join("\n"));
+    if (m.cv) fd.set("cv", m.cv);
+    for (const d of m.documents) fd.append("documents", d);
+    return request<TryMatchResult>(`${API}/try/match`, { method: "POST", body: fd });
+  },
+  seed: () => request<SeedResult>(`${API}/demo/seed`, { method: "POST" }),
 };

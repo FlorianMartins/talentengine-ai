@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — 2026-10-08
+
+Public sandbox and recruiter documentation.
+
+- **Public sandbox** (`/essai`, `/api/try`): paste a job offer (text, any job-board link with structured
+  data, or a LinkedIn job link through its public view) or pick a reference role, add a CV, documents,
+  GitHub profile or repositories and portfolio links, get the compatibility report and tips. Nothing is
+  stored (in-memory engine, temporary directory deleted), per-IP rate limits, SSRF-safe fetching.
+- **Offer parser**: skills, importance ("indispensable" / "un plus"), required level from years and
+  seniority, credentials named in the offer; perks and company sections ignored; every criterion shows
+  the offer lines behind it.
+- GitHub trees read with `git` partial clones (names only) instead of the rate-limited REST API.
+- New skill **Cloud infrastructure** (Azure, AWS, GCP…) in offers, CVs and repository trees.
+- Vocabulary tightened after testing real offers: "mise en place", "carte", "fonds de", "significative"
+  and "expérimentation" alone no longer count as cooking or A/B-testing evidence.
+- Front-end can be served under a path prefix (`VITE_BASE`); public recruiter landing page.
+- Recruiter guide in French and English (`docs/recruteurs/`), deployment guide.
+
 ## 0.2.0 — 2026-10-08
 
 Roadmap phases 1 and 2: the shield and the scoring are now *measured* (see `docs/MEASUREMENTS.md`).

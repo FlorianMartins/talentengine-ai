@@ -2,9 +2,11 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   ChevronRight,
+  FlaskConical,
   LayoutGrid,
   KeyRound,
   Languages,
+  Megaphone,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -120,6 +122,20 @@ export function Shell() {
                   <Plus size={18} aria-hidden="true" />
                   <span className="nav-label">{t.nav.newJob}</span>
                 </NavLink>
+              </li>
+            </ul>
+            <ul className="nav-list nav-public">
+              <li>
+                <Link to={lang === "en" ? "/try" : "/essai"} className="nav-item" title={collapsed ? t.pub.nav.try : undefined}>
+                  <FlaskConical size={18} aria-hidden="true" />
+                  <span className="nav-label">{t.pub.nav.try}</span>
+                </Link>
+              </li>
+              <li>
+                <Link to={lang === "en" ? "/recruiters" : "/recruteurs"} className="nav-item" title={collapsed ? t.pub.nav.recruiters : undefined}>
+                  <Megaphone size={18} aria-hidden="true" />
+                  <span className="nav-label">{t.pub.nav.recruiters}</span>
+                </Link>
               </li>
             </ul>
           </nav>

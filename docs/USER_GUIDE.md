@@ -62,7 +62,23 @@ Check the audit ledger at any time: `talentengine verify` (exit code 1 if it was
 
 ---
 
-## Part 2 — Daily use (recruiter)
+## Part 2 — The public sandbox (anyone)
+
+`/essai` (FR) or `/try` (EN) needs no account and stores nothing. Three steps:
+
+1. **The job** — paste an offer's text or its link (LinkedIn job links, Welcome to the Jungle, Indeed,
+   career pages with structured data), or choose a reference role. The detected criteria are editable:
+   importance, required level, add or remove a skill; "why?" shows the offer lines behind each one.
+2. **Your profile** — CV (PDF, Word, Markdown, text), up to 3 documents, GitHub links (a profile link
+   expands to its 3 most recent repositories), up to 3 portfolio links, your name (only used to hide it),
+   and consent.
+3. **The result** — score, what your material proves, what to strengthen, the questions a recruiter
+   could ask you.
+
+Limits per visitor and per hour are set by `TE_SANDBOX_MATCHES_PER_HOUR` and `TE_SANDBOX_OFFERS_PER_HOUR`;
+`TE_SANDBOX_ENABLED=false` turns the sandbox off.
+
+## Part 3 — Daily use (recruiter)
 
 ### 1. Describe what the role really needs
 

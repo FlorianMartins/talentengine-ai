@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_BASE: ${VITE_BASE:-/}
     image: talentengine-ai:local
     env_file: .env
     ports:

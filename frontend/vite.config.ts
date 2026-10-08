@@ -5,7 +5,12 @@ import react from "@vitejs/plugin-react";
 // so the app only ever calls relative `/api/...` URLs.
 const backend = process.env.TE_BACKEND_URL ?? "http://127.0.0.1:8000";
 
+// Base path: "/" by default (dev, Docker image at the root). For a prefixed deployment
+// (e.g. Caddy `handle_path /talentengine/*`), build with VITE_BASE=/talentengine/.
+const base = process.env.VITE_BASE ?? "/";
+
 export default defineConfig({
+  base,
   plugins: [react()],
   server: {
     port: 5173,

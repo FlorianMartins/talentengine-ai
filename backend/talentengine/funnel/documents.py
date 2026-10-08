@@ -72,8 +72,10 @@ _VOCAB: dict[str, str] = {
     "funnel_design": r"tunnel|funnel|landing pages?|pages? d'atterrissage|TOFU|MOFU|BOFU|lead magnet|nurturing|"
                      r"taux de conversion|conversion rate|onboarding|checkout|panier|séquence e-?mail|"
                      r"email sequence|parcours d'achat",
-    "experimentation": r"A/B|AB test|test A/B|split test|variantes?|variants?|significati\w+|p-value|hypothès\w+|"
-                       r"hypothes\w+|uplift|expérimentation|experiment\w*",
+    # Only unambiguous A/B vocabulary: "expérience significative" or a department named "Experimentation" is not it.
+    "experimentation": r"A/B|AB tests?|tests? A/B|split tests?|p-value|uplift|significativité|statistiquement "
+                       r"significati\w+|statistical(?:ly)? significan\w+|tests? multivariés?|multivariate tests?|"
+                       r"variantes? gagnantes?|winning variants?|groupe (?:de )?contrôle|control group",
     "content_strategy": r"SEO|mots[- ]clés|keywords|trafic organique|organic traffic|calendrier éditorial|"
                         r"editorial calendar|backlinks|articles? de blog|blog posts?|newsletter|ligne éditoriale",
     "sales_pipeline": r"pipeline commercial|sales pipeline|CRM|Salesforce|HubSpot|closing|deals?|quota|"
@@ -93,9 +95,12 @@ _VOCAB: dict[str, str] = {
                        r"audit|checklist|ISO\s?\d+|DTU|autocontrôle|réception",
     "food_safety": r"HACCP|traçabilité|traceability|DLC|températures?|marche en avant|plan de maîtrise sanitaire|"
                    r"PMS\b|allergènes|allergens",
-    "culinary_technique": r"cuisson|basse température|sous[- ]vide|fonds? de|sauces?|émulsion|dressage|"
-                          r"pâtisserie|pastry|fermentation|braisé|confit|mise en place|fiche technique|brigade|"
-                          r"plating|couverts|menu|carte|gastronomi\w+|chef de partie|second de cuisine",
+    # Kept specific: "mise en place", "carte" or "fonds de" alone are everyday French, not cooking.
+    "culinary_technique": r"cuisson|basse température|sous[- ]vide|fonds? (?:blanc|brun|de volaille|de veau)|"
+                          r"sauces?|émulsion|dressage|pâtisserie|pastry|fermentation|braisé|confit|"
+                          r"mise en place (?:du poste|en cuisine)|fiche technique|brigade|plating|couverts|"
+                          r"carte (?:des mets|du restaurant)|menus? (?:dégustation|du jour)|gastronomi\w+|"
+                          r"chef de partie|second de cuisine",
     "woodworking": r"tenons?|mortaises?|queue d'aronde|aronde|mi-bois|chêne|hêtre|frêne|noyer|douglas|"
                    r"lamellé|charpente|ébénisterie|menuiserie|assemblages?|dovetail|mortise|joinery|rabot|"
                    r"toupie|CNC|escalier|parquet|placage|marqueterie|timber|woodwork\w*",
@@ -107,8 +112,10 @@ _VOCAB: dict[str, str] = {
     "garment_construction": r"patrons?|patronage|toile d'essai|gradation|surjet|couture anglaise|biais|"
                             r"droit fil|ourlets?|doublure|pattern making|seams?|hems?|lining|draping|moulage|"
                             r"confection|garments?|collection",
-    "ui_design": r"Figma|Sketch|Adobe XD|maquettes?|wireframes?|prototypes?|design system|interfaces?|UI\b|"
-                 r"écrans?|screens?|responsive|accessibilit\w+|WCAG|contraste|contrast|composants|components",
+    # "interfaces", "écrans" or "components" alone are developer vocabulary too ("interfaces React"): not design.
+    "ui_design": r"Figma|Sketch|Adobe XD|maquettes?|wireframes?|prototypes? (?:interactifs?|cliquables?|Figma)|"
+                 r"design system|UI design|UX/UI|UI/UX|design d'interface|interface design|parcours d'écrans|"
+                 r"accessibilit\w+|WCAG|contraste des couleurs|colou?r contrast|mockups?",
     "visual_identity": r"logos?|charte graphique|identité visuelle|visual identity|typographi\w+|palette|"
                        r"branding|brand book|Illustrator|InDesign|Photoshop|affiches?|posters?|packaging|"
                        r"print|édition|illustration",
@@ -121,6 +128,9 @@ _VOCAB: dict[str, str] = {
     "ci_cd": r"CI/CD|intégration continue|continuous integration|déploiement continu|continuous delivery|"
              r"continuous deployment|pipelines? (?:CI|de déploiement|de livraison)|GitHub Actions|GitLab CI|Jenkins|"
              r"mise en production|release",
+    "cloud_infrastructure": r"Azure|AWS|Amazon Web Services|GCP|Google Cloud|OVH ?cloud|Scaleway|cloud public|"
+                            r"public cloud|serverless|Lambda|EC2|S3|AKS|EKS|GKE|Cloud Run|App Service|"
+                            r"Azure DevOps|landing zone",
     "containerization": r"Docker|conteneurs?|containers?|Kubernetes|K8s|Helm|OpenShift|Podman",
     "infrastructure_as_code": r"Terraform|Ansible|Pulumi|CloudFormation|Infrastructure as Code|IaC|"
                               r"provisionnement|provisioning",
