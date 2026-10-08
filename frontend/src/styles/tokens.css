@@ -1,0 +1,145 @@
+/* ==========================================================================
+   Design tokens — TalentEngine-AI
+   Dark is the default ("mission control"); light is a first-class peer.
+   Components only ever reference these custom properties.
+   ========================================================================== */
+
+:root {
+  /* type */
+  --font-display: "Space Grotesk", ui-sans-serif, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-text: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --fs-xs: 0.75rem;   /* 12 */
+  --fs-sm: 0.8125rem; /* 13 */
+  --fs-md: 0.9375rem; /* 15 */
+  --fs-lg: 1.125rem;  /* 18 */
+  --fs-xl: 1.375rem;  /* 22 */
+  --fs-2xl: 1.75rem;  /* 28 */
+  --fs-3xl: 2.25rem;  /* 36 */
+
+  /* 8px grid */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 72px;
+  --topbar-h: 60px;
+  --content-max: 1280px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 220ms;
+  --dur-slow: 900ms;
+}
+
+/* ---------------------------------------------------------------- dark (default) */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0f17;
+  --bg-elev: #0e131d;
+  --surface: #111827;
+  --surface-2: #151d2c;
+  --surface-3: #1b2538;
+  --surface-glass: rgba(17, 24, 39, 0.72);
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.28);
+  --grid-line: rgba(148, 163, 184, 0.06);
+
+  --text: #e6ebf2;
+  --text-2: #a9b3c3;
+  --text-3: #8591a5;
+  --text-inverse: #04141a;
+
+  --accent: #22d3ee;
+  --accent-text: #5ee2f4;
+  --accent-strong: #67e8f9;
+  --accent-soft: rgba(34, 211, 238, 0.12);
+  --accent-line: rgba(34, 211, 238, 0.4);
+  --accent-glow: 0 0 0 1px rgba(34, 211, 238, 0.45), 0 0 24px -4px rgba(34, 211, 238, 0.45);
+
+  --violet: #8b5cf6;
+  --violet-text: #b39dfa;
+  --violet-soft: rgba(139, 92, 246, 0.14);
+
+  --ok: #34d399;
+  --ok-text: #6ee7b7;
+  --ok-soft: rgba(52, 211, 153, 0.13);
+  --warn: #fbbf24;
+  --warn-text: #fcd34d;
+  --warn-soft: rgba(251, 191, 36, 0.13);
+  --neutral: #94a3b8;
+  --neutral-text: #b4c0d0;
+  --neutral-soft: rgba(148, 163, 184, 0.13);
+  --danger: #f87171;
+  --danger-text: #fca5a5;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 24px 64px -16px rgba(0, 0, 0, 0.75);
+  --hero-glow: radial-gradient(1200px 300px at 15% -40%, rgba(34, 211, 238, 0.14), transparent 60%),
+    radial-gradient(800px 260px at 95% -30%, rgba(139, 92, 246, 0.12), transparent 60%);
+}
+
+/* ---------------------------------------------------------------- light */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f5f9;
+  --bg-elev: #eef1f6;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --surface-3: #eaeef4;
+  --surface-glass: rgba(255, 255, 255, 0.8);
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.2);
+  --grid-line: rgba(15, 23, 42, 0.05);
+
+  --text: #0b1220;
+  --text-2: #3b475a;
+  --text-3: #5a6578;
+  --text-inverse: #ffffff;
+
+  --accent: #0891b2;
+  --accent-text: #0e7490;
+  --accent-strong: #0e7490;
+  --accent-soft: rgba(8, 145, 178, 0.1);
+  --accent-line: rgba(8, 145, 178, 0.45);
+  --accent-glow: 0 0 0 1px rgba(8, 145, 178, 0.5), 0 0 18px -6px rgba(8, 145, 178, 0.5);
+
+  --violet: #7c3aed;
+  --violet-text: #6d28d9;
+  --violet-soft: rgba(124, 58, 237, 0.1);
+
+  --ok: #059669;
+  --ok-text: #047857;
+  --ok-soft: rgba(5, 150, 105, 0.1);
+  --warn: #d97706;
+  --warn-text: #92400e;
+  --warn-soft: rgba(217, 119, 6, 0.12);
+  --neutral: #64748b;
+  --neutral-text: #475569;
+  --neutral-soft: rgba(100, 116, 139, 0.12);
+  --danger: #dc2626;
+  --danger-text: #b91c1c;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px -14px rgba(15, 23, 42, 0.2);
+  --shadow-lg: 0 24px 60px -18px rgba(15, 23, 42, 0.3);
+  --hero-glow: radial-gradient(1200px 300px at 15% -40%, rgba(8, 145, 178, 0.1), transparent 60%),
+    radial-gradient(800px 260px at 95% -30%, rgba(124, 58, 237, 0.08), transparent 60%);
+}

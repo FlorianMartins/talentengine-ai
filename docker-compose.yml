@@ -1,0 +1,23 @@
+services:
+  app:
+    build: .
+    image: talentengine-ai:local
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - talentengine-data:/data
+    restart: unless-stopped
+
+  # Local vision-language model for Module 1 (face/logo masking) and image descriptions.
+  # Start with: docker compose --profile vision up -d && docker compose exec ollama ollama pull qwen2.5vl:7b
+  ollama:
+    image: ollama/ollama:0.30.7
+    profiles: ["vision"]
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  talentengine-data:
+  ollama-models:
