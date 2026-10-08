@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENGINE_VERSION = "0.1.0"
+ENGINE_VERSION = "0.2.0"
 
 
 class Settings(BaseSettings):
@@ -30,6 +30,9 @@ class Settings(BaseSettings):
 
     # --- Module 1: vision redaction ------------------------------------------------------------------
     # "ollama": local VLM returns bounding boxes; "opencv": Haar face detector; "none": no detector.
+    # Optional statistical name detection on top of the rules: "spacy" needs the `ner` extra and the
+    # fr_core_news_sm / en_core_web_sm models (see docs/MEASUREMENTS.md for its measured effect).
+    ner: Literal["none", "spacy"] = "none"
     vision_detector: Literal["ollama", "opencv", "none"] = "ollama"
     ollama_url: str = "http://127.0.0.1:11434"
     vision_model: str = "qwen2.5vl:7b"

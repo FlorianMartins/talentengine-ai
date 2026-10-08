@@ -196,6 +196,14 @@ def analyze_repo(artifact: Artifact) -> list[Signal]:
                                  excerpt="\n".join(sample[:6])),
         ))
 
+    # Substance: practice files (CI, Dockerfile, security policy, lint config, docs) weigh less in a repository
+    # that contains almost nothing else. A "showcase" repo of config files scored 38% before this (MEASUREMENTS.md).
+    decorative = (_CI, _CONTAINER, _SECURITY, _QUALITY, _DOCS, _ADR)
+    substantial = [p for p in paths if not any(m(p) for m in decorative)]
+    substance = min(1.0, 0.25 + len(substantial) / 8)
+    decorative_kinds = {"ci_pipeline", "containers", "security_controls", "quality_tooling", "documentation",
+                        "architecture_decisions"}
+
     for rule in _RULES:
         hits = [p for p in paths if rule.match(p)]
         if not hits:
@@ -209,6 +217,8 @@ def analyze_repo(artifact: Artifact) -> list[Signal]:
             facets = rule.facets
         if rule.kind in {"frontend_code", "backend_code"} and len(hits) < 3:
             continue  # a single stray file is not a practice
+        if rule.kind in decorative_kinds:
+            strength *= substance
         locator = f"{len(hits)} file(s) in {_top_dirs(hits)}"
         add(rule.kind, rule.skills, strength, locator, sorted(hits, key=len)[:6], facets)
 

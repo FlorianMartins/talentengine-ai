@@ -25,8 +25,10 @@ from typing import Protocol
 
 from .vault import PseudonymVault
 
-_W = r"[A-Za-zÀ-ÖØ-öø-ÿ'’\-]"  # a "word" character including accents, apostrophes and hyphens
-_CAP = r"[A-ZÀ-ÖØ-Þ]"
+# Any Unicode letter, plus apostrophes and hyphens. Restricting this to Latin-1 made Polish, Romanian or
+# Vietnamese names leak more often than French ones: measured in eval/pii_recall.py, now regression-tested.
+_W = r"(?:[^\W\d_]|['’\-])"
+_CAP = r"[A-ZÀ-ÖØ-ÞĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĴĶĹĻĽĿŁŃŅŇŌŎŐŒŔŖŘŚŜŞŠŢŤŦŨŪŬŮŰŲŴŶŸŹŻŽ]"
 _SP = r"[ \t]"  # horizontal space only: a multi-word match must never swallow the next line
 
 
@@ -71,6 +73,15 @@ _RULES: list[tuple[str, re.Pattern[str]]] = [
             re.IGNORECASE,
         ),
     ),
+    (
+        "EMAIL",  # obfuscated: "jo.doe [at] example [dot] org", "jo.doe arobase example point fr"
+        re.compile(
+            r"[\w.+\-]+[ \t]*(?:\[at\]|\(at\)|\{at\}|\barobase\b)[ \t]*[\w\-]+"
+            r"(?:[ \t]*(?:\[dot\]|\(dot\)|\{dot\}|\bpoint\b|\.)[ \t]*[\w\-]+)+",
+            re.IGNORECASE,
+        ),
+    ),
+    ("BIRTHDATE", re.compile(r"\b(?:né\(e\)|née|né|born)[ \t]+(?:en|in)[ \t]+\d{4}\b", re.IGNORECASE)),
     ("AGE", re.compile(r"\b\d{2}\s?(?:ans|years old|y/o|yo)\b|\b(?:âge|age)\s*:?\s*\d{2}\b", re.IGNORECASE)),
     (
         "ADDRESS",
@@ -116,6 +127,7 @@ _LABELLED: list[tuple[str, re.Pattern[str]]] = [
         ("AGE", r"âge|age|date de naissance|date of birth|birth date"),
         ("ADDRESS", r"adresse|address|domicile"),
         ("PHOTO", r"photo"),
+        ("PROFILE_URL", r"linkedin|github|gitlab|behance|dribbble|twitter|instagram|mastodon|bluesky|facebook"),
     ]
 ]
 
@@ -126,30 +138,104 @@ _SCHOOL = re.compile(
     r"(?:[ \t]+(?:(?:of|de|du|des|la|le|en|et|and|the|für)[ \t]+|d'|d’|l'|l’)?" + _CAP + _W + r"*){0,6}",
 )
 
-# A CV usually starts with the person's name. These words mean the first line is a title instead.
+# A CV usually starts with the person's name. These words mean a segment is a title instead.
 _HEADER_STOPWORDS = {
-    "cv", "curriculum", "vitae", "resume", "résumé", "portfolio", "profil", "profile", "développeur",
-    "developer", "designer", "ingénieur", "engineer", "chef", "manager", "consultant", "responsable",
-    "menuisier", "cuisinier", "graphiste", "marketing", "commercial", "data", "senior", "junior",
-    "freelance", "expérience", "experience", "compétences", "skills", "contact", "lead", "head",
+    "cv", "curriculum", "vitae", "resume", "résumé", "portfolio", "profil", "profile", "contact", "lead", "head",
+    "développeur", "développeuse", "developer", "designer", "ingénieur", "ingénieure", "engineer", "chef", "cheffe",
+    "manager", "consultant", "consultante", "responsable", "directeur", "directrice", "director", "assistant",
+    "assistante", "technicien", "technicienne", "menuisier", "menuisière", "cuisinier", "cuisinière", "couturier",
+    "couturière", "graphiste", "artisan", "marketing", "commercial", "commerciale", "sales", "account", "growth",
+    "product", "owner", "project", "projet", "data", "cloud", "web", "mobile", "full", "stack", "software", "senior",
+    "junior", "freelance", "stagiaire", "alternant", "alternante", "analyste", "analyst", "architecte", "architect",
+    "administrateur", "administratrice", "expérience", "experience", "compétences", "skills", "formation",
+    "education", "plateforme", "platform", "devops", "sécurité", "security", "systèmes", "réseaux", "officer",
 }
+_PARTICLES = {"de", "du", "des", "da", "das", "do", "dos", "di", "del", "della", "van", "von", "der", "den",
+              "ter", "ten", "la", "le", "el", "al", "bin", "ben", "y", "e", "af"}
+_SEGMENT = re.compile(r"[^—–|•·,:;\n]+")
 
 
-def _header_name_span(text: str) -> Span | None:
-    for match in re.finditer(r"[^\n]+", text):
-        line = match.group(0).strip(" \t#*•-")
-        if not line:
-            continue
-        words = line.split()
-        if not 2 <= len(words) <= 4:
-            return None
-        if any(w.lower().strip(",.") in _HEADER_STOPWORDS for w in words):
-            return None
-        if all(re.fullmatch(_CAP + _W + r"*\.?", w) for w in words):
-            start = match.start() + match.group(0).index(line)
-            return Span(start, start + len(line), "PERSON")
+def _name_token(word: str) -> str | None:
+    """Classify a header word: "name", "particle" or None (not part of a name)."""
+    core = word.strip(".")
+    if core.lower() in _PARTICLES:
+        return "particle"
+    letters = re.sub(r"['’\-]", "", core)
+    if not letters.isalpha():
         return None
-    return None
+    if core[:2].lower() in ("d'", "d’", "l'", "l’") and core[2:3].isupper():
+        return "name"
+    return "name" if core[0].isupper() else None
+
+
+def _name_run(words: list[str]) -> int:
+    """Length of the name at the start of ``words`` (0 if there is none): 2+ name tokens, particles inside."""
+    kinds: list[str] = []
+    for w in words[:5]:
+        kind = _name_token(w.rstrip(",.;:!?"))
+        if kind is None or w.lower().strip(",.") in _HEADER_STOPWORDS:
+            break
+        kinds.append(kind)
+        if w[-1:] in ",.;:!?":
+            break
+    while kinds and kinds[-1] == "particle":
+        kinds.pop()
+    return len(kinds) if kinds.count("name") >= 2 and kinds[0] == "name" else 0
+
+
+# "Je suis" / "I am" are deliberately absent: they introduce job titles far more often than names.
+_INTRO = re.compile(r"(?:je m['’]appelle|my name is|je me nomme)[ \t]+", re.IGNORECASE)
+_CLOSING = re.compile(r"^[ \t]*(?:cordialement|bien cordialement|bien à vous|sincères salutations|"
+                      r"best regards|kind regards|regards|sincerely)[ \t]*[,.!]?[ \t]*$", re.IGNORECASE | re.MULTILINE)
+_SURNAME_FIRST = re.compile(r"^[ \t]*(?P<a>[^,\n]{2,40}),[ \t]*(?P<b>[^,\n]{2,40}?)[ \t]*$")
+
+
+def _context_name_spans(text: str) -> list[Span]:
+    """Names introduced by a sentence ("Je m'appelle ...") or standing in a closing signature."""
+    spans: list[Span] = []
+    for m in _INTRO.finditer(text):
+        words = re.findall(r"\S+", text[m.end():m.end() + 120].split("\n")[0])
+        if n := _name_run(words):
+            name = " ".join(words[:n]).rstrip(",.;:!?")
+            spans.append(Span(m.end(), m.end() + len(name), "PERSON"))
+    for m in _CLOSING.finditer(text):
+        nxt = re.search(r"[^\n]*\S[^\n]*", text[m.end():])
+        if nxt:
+            words = nxt.group(0).split()
+            if (n := _name_run(words)) == len(words):
+                start = m.end() + nxt.start() + nxt.group(0).index(words[0])
+                spans.append(Span(start, start + len(" ".join(words)), "PERSON"))
+    return spans
+
+
+def _header_name_spans(text: str, lines: int = 3) -> list[Span]:
+    """Names in the first lines of a document, alone or between separators ("Profil — Jo Doe, 34 ans")."""
+    spans: list[Span] = []
+    seen = 0
+    for line in re.finditer(r"[^\n]+", text):
+        if not line.group(0).strip():
+            continue
+        seen += 1
+        if seen > lines:
+            break
+        inverted = _SURNAME_FIRST.match(line.group(0))  # administrative "ROUSSEAU, Camille"
+        if inverted and inverted.group("a").isupper() and _name_run(inverted.group("b").split()) == 0 \
+                and all(_name_token(w) for w in (inverted.group("a") + " " + inverted.group("b")).split()):
+            begin = line.start() + inverted.start("a")
+            spans.append(Span(begin, line.start() + inverted.end("b"), "PERSON"))
+            continue
+        for seg in _SEGMENT.finditer(line.group(0)):
+            raw = seg.group(0)
+            words = raw.strip(" \t#*•-").split()
+            if not 2 <= len(words) <= 5 or any(w.lower() in _HEADER_STOPWORDS for w in words):
+                continue
+            kinds = [_name_token(w) for w in words]
+            if None in kinds or kinds[0] == "particle" or kinds[-1] == "particle" or kinds.count("name") < 2:
+                continue
+            inner = raw.strip(" \t#*•-")
+            begin = line.start() + seg.start() + raw.index(inner)
+            spans.append(Span(begin, begin + len(inner), "PERSON"))
+    return spans
 
 
 # --------------------------------------------------------------------------------------------------
@@ -259,8 +345,9 @@ class TextPseudonymizer:
         for value in _identity_terms(known_identity):
             pattern = re.compile(r"(?<![\w@])" + re.escape(value) + r"(?![\w@])", re.IGNORECASE)
             spans.extend(Span(m.start(), m.end(), "PERSON") for m in pattern.finditer(text))
-        if header_name and (span := _header_name_span(text)):
-            spans.append(span)
+        if header_name:
+            spans.extend(_header_name_spans(text))
+        spans.extend(_context_name_spans(text))
         if self.mask_school_names:
             spans.extend(Span(m.start(), m.end(), "SCHOOL") for m in _SCHOOL.finditer(text))
         if self.ner is not None:

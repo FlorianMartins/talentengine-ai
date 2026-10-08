@@ -247,6 +247,8 @@ class Signal(BaseModel):
     # "quantified" (measured result), "control" (tests/checks), "ownership" (end-to-end, self-driven),
     # "complex" (scale, multi-step, advanced technique).
     facets: list[str] = Field(default_factory=list)
+    # True for sentences of the CV itself: a self-description, never enough on its own for a high level.
+    self_reported: bool = False
 
 
 class CredentialItem(BaseModel):

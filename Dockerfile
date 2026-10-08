@@ -12,11 +12,14 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     TE_DATA_DIR=/data \
-    TE_FRONTEND_DIST=/app/frontend/dist
+    TE_FRONTEND_DIST=/app/frontend/dist \
+    TE_NER=spacy
 WORKDIR /app
 COPY backend/pyproject.toml backend/README.md backend/
 COPY backend/talentengine backend/talentengine
-RUN pip install --no-cache-dir "./backend[anthropic]" \
+RUN pip install --no-cache-dir "./backend[anthropic,ner]" \
+ && python -m spacy download fr_core_news_sm \
+ && python -m spacy download en_core_web_sm \
  && useradd --system --uid 10001 --home /app talentengine \
  && mkdir -p /data && chown talentengine /data
 COPY --from=web /web/dist /app/frontend/dist

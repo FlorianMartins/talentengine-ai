@@ -27,6 +27,7 @@ Maîtrise de Kubernetes, Terraform, Docker, CI/CD, sécurité cloud.
 
 
 def _submit(engine: Engine, job_id: str, cv: str, repo: list[str] | None = None, **kw: Any) -> str:
+    kw.setdefault("identity_name", "Alex Martin")
     sub = Submission(consent=True, documents=[TextDocument(name="cv.txt", content=cv, kind="cv")],
                      repositories=[RepositoryInput(paths=repo)] if repo else [], **kw)
     return engine.ingest(job_id, sub).ref
@@ -67,9 +68,10 @@ def test_report_is_explainable_and_ledgered(engine: Engine, devsecops_job) -> No
 
 def test_consent_and_content_are_required(engine: Engine, devsecops_job) -> None:
     with pytest.raises(PolicyError, match="consent"):
-        engine.ingest(devsecops_job.id, Submission(consent=False, documents=[TextDocument(name="a", content="b")]))
+        engine.ingest(devsecops_job.id, Submission(consent=False, identity_name="Alex Martin",
+                                                   documents=[TextDocument(name="a", content="b")]))
     with pytest.raises(PolicyError, match="at least one"):
-        engine.ingest(devsecops_job.id, Submission(consent=True))
+        engine.ingest(devsecops_job.id, Submission(consent=True, identity_name="Alex Martin"))
 
 
 def test_human_decision_reveal_and_erasure(engine: Engine, devsecops_job) -> None:
@@ -105,7 +107,8 @@ def test_images_without_detector_are_quarantined(engine: Engine, devsecops_job) 
     from talentengine.pipeline import ImageInput
     from tests.test_shield_ledger_vision import _jpeg_with_exif
 
-    sub = Submission(consent=True, documents=[TextDocument(name="cv.txt", content=PROOF_CV, kind="cv")])
+    sub = Submission(consent=True, identity_name="Alex Martin",
+                     documents=[TextDocument(name="cv.txt", content=PROOF_CV, kind="cv")])
     cand = engine.ingest(devsecops_job.id, sub, [ImageInput("me.jpg", _jpeg_with_exif(), "Oak table")])
     image = next(a for a in engine.artifacts(cand.ref) if a.kind == "image")
     assert image.status == "quarantined" and image.text == ""

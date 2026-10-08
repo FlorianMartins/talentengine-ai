@@ -174,7 +174,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     async def submit_multipart(
         job_id: str,
         consent: Annotated[bool, Form()],
-        identity_name: Annotated[str, Form()] = "",
+        identity_name: Annotated[str, Form(min_length=2, max_length=200)],
         identity_email: Annotated[str, Form()] = "",
         github_urls: Annotated[str, Form(description="One repository URL per line")] = "",
         portfolio_json: Annotated[str, Form(description='[{"title": "...", "description": "..."}]')] = "[]",

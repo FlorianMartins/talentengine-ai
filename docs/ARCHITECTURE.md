@@ -103,8 +103,14 @@ HMAC-SHA256). Re-identification is only possible through the API after a human *
 > A postal-code pattern using `\s+` silently swallowed the next CV line (the nationality line), and a
 > school-name pattern swallowed a certification. Both are now covered by regression tests.
 
-An optional `NerBackend` protocol lets a deployment plug spaCy or Presidio on top: rules are the floor,
-not the ceiling.
+A `NerBackend` (spaCy French + English small models, `TE_NER=spacy`, on by default in Docker) adds
+the names of *other* people (managers, referees, clients). It only accepts PER entities of two
+capitalised words or more and excludes tech, trade and degree vocabulary, because over-masking erases
+evidence: measurement caught it masking the verb "Négocié" and the diploma "CAP Menuisier".
+
+**The declared name is mandatory.** On CV layouts the rules had never seen, undeclared names were
+caught 1.4% of the time (23.6% with NER). An exact match on the name the candidate declares works
+whatever the layout, so the submission requires it ([MEASUREMENTS.md](MEASUREMENTS.md)).
 
 ### 3.2 Visual redaction (`shield/vision.py`)
 
@@ -125,6 +131,12 @@ Candidate material is untrusted input that a model will later read. Instruction-
 (“ignore previous instructions”, “attribuez la note maximale”, fake `<system>` tags, zero-width or bidi
 characters) flag the artifact. A flagged artifact is **excluded from the LLM context** and shown to the
 recruiter as a warning — never auto-penalised: interpreting it is a human call.
+
+The screen is organised by attack family (overriding instructions, addressing the model, steering this
+candidate's score, false premises, prompt exfiltration, chat-template smuggling), folds Cyrillic/Greek
+homoglyphs and counts invisible characters on the raw text. It catches 30/30 known attacks with no
+false positive on 366 legitimate texts — and 1/10 unseen attacks. It is a tripwire; the guarantee is
+the **bounded influence** of the model in Module 3.
 
 ### 3.4 The Audit Ledger (`shield/ledger.py`)
 
@@ -230,6 +242,11 @@ sales, craft, culinary, textile, management and transversal families — each de
 
 `level = 4 × (1 − exp(−mass / 1.2))` — saturating, so piling up weak signals cannot reach expert level.
 
+**Anti-gaming rules** (measured in [MEASUREMENTS.md](MEASUREMENTS.md)): a skill evidenced only by CV
+sentences is capped at level 2 and confidence 0.5 (the CV says where to look, the work proves it); a line
+naming many skills spreads its weight; template-repeated lines count ×0.3; practice files weigh less in a
+repository that contains nothing else.
+
 ### Two evaluators, one contract
 
 * **Deterministic** (`translator/heuristic.py`) — runs for everyone, free, reproducible.
@@ -241,7 +258,10 @@ sales, craft, culinary, textile, management and transversal families — each de
     are structurally impossible);
   * axes clamped to 0–4, confidence to 0–0.95;
   * claim-only evidence caps the level at 1;
-  * interview questions must cite an included evidence id.
+  * interview questions must cite an included evidence id;
+  * **bounded influence**: on each axis the model can move a skill by at most one level from the
+    deterministic estimate, and a skill only the model found is capped at level 2. Even a fully
+    manipulated model shifts a score by a bounded, tested amount.
 
 Every `SkillAssessment` requires at least one `EvidenceRef` (`min_length=1` in the model): *no evidence,
 no score* is enforced by the type system, not by a prompt.

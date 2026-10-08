@@ -7,7 +7,12 @@ Validation rules (each rejection is logged in the ledger with the reason):
   (no evidence, no score: this is what makes hallucinated competences impossible);
 * axis scores are clamped to 0-4 and confidence to 0-0.95;
 * an assessment resting only on declared (claim) evidence is capped at level 1;
-* interview questions must cite an included evidence id.
+* interview questions must cite an included evidence id;
+* **bounded influence**: on each axis the model may move a skill at most ``LLM_MAX_SHIFT`` (one level)
+  away from the deterministic, evidence-based estimate, and a skill only the model found is capped at
+  ``LLM_NEW_SKILL_CAP``. Pattern screens never catch every injection (see docs/MEASUREMENTS.md), so
+  the guarantee is architectural: even a fully manipulated model can only shift a score by a bounded,
+  tested amount.
 
 Validated LLM assessments replace the heuristic one for the same skill; skills the model did not
 cover keep their heuristic assessment. Scoring itself stays deterministic (Module 4).
@@ -30,6 +35,9 @@ from ..models import (
 from .catalog import CATALOG
 from .heuristic import build_edges
 from .prompts import key_file_refs
+
+LLM_MAX_SHIFT = 1.0
+LLM_NEW_SKILL_CAP = 2.0
 
 
 @dataclass
@@ -75,6 +83,7 @@ def merge_llm_output(
             return _key_file_evidence(art, path, content), False
         return None
 
+    baseline = {a.skill_id: a for a in heuristic.assessments}
     validated: dict[str, SkillAssessment] = {}
     for item in data.get("assessments", []) or []:
         skill_id = str(item.get("skill_id", ""))
@@ -87,6 +96,13 @@ def merge_llm_output(
             continue
         axes = AxisScores(autonomy=_clamp(item.get("autonomy"), 4), complexity=_clamp(item.get("complexity"), 4),
                           reliability=_clamp(item.get("reliability"), 4))
+        base = baseline.get(skill_id)
+        if base is None:
+            axes = AxisScores(**{k: min(v, LLM_NEW_SKILL_CAP) for k, v in axes.model_dump().items()})
+        else:
+            ref = base.axes.model_dump()
+            axes = AxisScores(**{k: round(min(max(v, ref[k] - LLM_MAX_SHIFT), ref[k] + LLM_MAX_SHIFT), 2)
+                                 for k, v in axes.model_dump().items()})
         if all(claim for _, claim in resolved):
             axes = AxisScores(autonomy=min(axes.autonomy, 1), complexity=min(axes.complexity, 1),
                               reliability=min(axes.reliability, 1))

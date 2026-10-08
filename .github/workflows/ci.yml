@@ -26,10 +26,15 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/pyproject.toml
-      - run: pip install -e ".[dev,anthropic]"
+      - run: pip install -e ".[dev,anthropic,ner]"
+      - run: python -m spacy download fr_core_news_sm && python -m spacy download en_core_web_sm
       - run: ruff check .
       - run: mypy talentengine
       - run: pytest -q
+      - name: Shield measurements (published in docs/MEASUREMENTS.md)
+        run: |
+          python eval/pii_recall.py --ner | tee -a "$GITHUB_STEP_SUMMARY"
+          python eval/pii_recall.py --ner --heldout | tee -a "$GITHUB_STEP_SUMMARY"
 
   frontend:
     name: Front-end (typecheck, build)
@@ -62,6 +67,7 @@ jobs:
           curl -fsS -X POST localhost:8000/api/demo/seed > /dev/null
           curl -fsS localhost:8000/api/audit/verify | grep -q '"valid":true'
           curl -fsS localhost:8000/ | grep -qi '<div id="root"'
+          docker exec te python -c "from talentengine.shield.ner import SpacyNer; assert SpacyNer().persons('Avec Sophie Bernard.')"
 
   secrets:
     name: Secret scan

@@ -87,9 +87,10 @@ export function ApplyPage() {
   const problems = useMemo(() => {
     const p: string[] = [];
     if (!hasContent) p.push(t.apply.needContent);
+    if (name.trim().length < 2) p.push(t.apply.nameRequired);
     if (!consent) p.push(t.apply.consentRequired);
     return p;
-  }, [hasContent, consent, t]);
+  }, [hasContent, name, consent, t]);
 
   const reset = () => {
     setCv(null);
@@ -255,6 +256,9 @@ export function ApplyPage() {
                   id="ap-name"
                   className="input"
                   autoComplete="name"
+                  required
+                  aria-required="true"
+                  minLength={2}
                   maxLength={200}
                   value={name}
                   onChange={(e) => setName(e.target.value)}

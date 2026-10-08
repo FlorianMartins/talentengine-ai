@@ -1,7 +1,7 @@
 {
   "name": "talentengine-ai-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Web front-end of TalentEngine-AI — skills-first, privacy-first applicant evaluation.",
   "license": "MIT",

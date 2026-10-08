@@ -93,3 +93,33 @@ def test_injection_screen_flags_instructions_and_hidden_text() -> None:
     assert screen("normal​​​ text")
     assert not screen("Built a CI pipeline that ignores flaky tests after 3 retries")
     assert strip_hidden("a​b‮c") == "abc"
+
+
+def test_optional_ner_masks_third_parties_but_not_diplomas_or_tools(vault: PseudonymVault) -> None:
+    pytest.importorskip("spacy")
+    try:
+        from talentengine.shield.ner import SpacyNer
+
+        ner = SpacyNer()
+    except OSError:
+        pytest.skip("spaCy models not installed")
+    text = ("- Travaillé sous la direction de Sophie Bernard sur un cluster Kubernetes.\n"
+            "CAP Menuisier\n- Négocié 14 contrats avec Jenkins et Terraform.")
+    out = TextPseudonymizer(vault, ner=ner, neutralise_gendered_terms=False).run(text, "C", header_name=False).text
+    assert "Sophie" not in out and "Bernard" not in out
+    for kept in ("CAP Menuisier", "Kubernetes", "Négocié", "Jenkins", "Terraform"):
+        assert kept in out, kept
+
+
+def test_measured_recall_does_not_regress() -> None:
+    """Guards the numbers published in docs/MEASUREMENTS.md (rules only, so it runs everywhere)."""
+    from eval.pii_corpus import generate, generate_heldout
+    from eval.pii_recall import run
+
+    for samples in (generate(70), generate_heldout(56)):
+        stats = run(samples, use_ner=False)
+        for category, (hit, total) in stats["category"].items():
+            if category != "PERSON_OTHER":  # third parties need the NER backend
+                assert hit == total, (category, hit, total)
+        hit, total = stats["evidence"]["intact"]
+        assert hit == total, "masking must never alter evidence lines"

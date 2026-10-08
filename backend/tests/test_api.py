@@ -51,12 +51,16 @@ def test_end_to_end_over_http(settings: Settings) -> None:
 def test_rejects_wrong_upload_types_and_missing_consent(settings: Settings) -> None:
     client = _client(settings)
     job = client.post("/api/jobs", json=preset_job("ui_designer", "fr").model_dump(mode="json")).json()
-    no_consent = client.post(f"/api/jobs/{job['id']}/candidates", data={"consent": "false"},
+    no_consent = client.post(f"/api/jobs/{job['id']}/candidates",
+                             data={"consent": "false", "identity_name": "Alex Martin"},
                              files={"cv": ("cv.txt", io.BytesIO(b"hello"), "text/plain")})
     assert no_consent.status_code == 422
-    exe = client.post(f"/api/jobs/{job['id']}/candidates", data={"consent": "true"},
+    exe = client.post(f"/api/jobs/{job['id']}/candidates", data={"consent": "true", "identity_name": "Alex Martin"},
                       files={"images": ("x.exe", io.BytesIO(b"MZ"), "application/octet-stream")})
     assert exe.status_code == 415
+    anonymous = client.post(f"/api/jobs/{job['id']}/candidates", data={"consent": "true"},
+                            files={"cv": ("cv.txt", io.BytesIO(b"hello"), "text/plain")})
+    assert anonymous.status_code == 422, "the declared name is required: it is what makes masking layout-proof"
 
 
 def test_unknown_skill_and_credential_cap_rejected(settings: Settings) -> None:

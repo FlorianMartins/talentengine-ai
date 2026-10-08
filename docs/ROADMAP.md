@@ -25,15 +25,18 @@ Legend: ✅ delivered in the initial skeleton · 🔜 to do · ⭐ highest value
 
 The shield is the legal foundation; it has to hold on messy real CVs before anything else matters.
 
-1. **Build a private evaluation set** (never committed): 30–50 real CVs from consenting friends or
+Status (v0.2.0): items 2–4 ✅ on synthetic corpora — see [MEASUREMENTS.md](MEASUREMENTS.md); the declared
+name became mandatory after held-out measurements; items 1 and 5 🔜 need real, consented data.
+
+1. 🔜 **Build a private evaluation set** (never committed): 30–50 real CVs from consenting friends or
    public sample CVs, in French and English, PDF and DOCX. Annotate the PII by hand.
-2. **Measure recall per PII category** with a small script (`eval/pii_recall.py`): target ≥ 99% on
+2. ✅ **Measure recall per PII category** with a small script (`eval/pii_recall.py`): target ≥ 99% on
    e-mails/phones, ≥ 95% on names. Record the numbers in `docs/MEASUREMENTS.md`.
-3. **Plug an NER backend** through `NerBackend` (spaCy `fr_core_news_md` + `en_core_web_sm`, or
+3. ✅ **Plug an NER backend** through `NerBackend` (spaCy `fr_core_news_md` + `en_core_web_sm`, or
    Presidio) as an optional extra, and compare recall with/without.
-4. **DOCX support** (`python-docx`) and better PDF extraction (column layouts): `pypdf` first, then
+4. ✅ **DOCX support** (`python-docx`) and better PDF extraction (column layouts): `pypdf` first, then
    `pdfplumber` as a fallback.
-5. **Real images**: pull `qwen2.5vl:7b` in Ollama, run 20 portfolio photos (with and without people),
+5. 🔜 **Real images**: pull `qwen2.5vl:7b` in Ollama, run 20 portfolio photos (with and without people),
    measure face-masking recall, tune the detection prompt. Write the result honestly in the docs.
 
 *Done when:* recall numbers are published and the CI runs the anonymised regression subset.
@@ -42,13 +45,16 @@ The shield is the legal foundation; it has to hold on messy real CVs before anyt
 
 High-risk systems must show they do not discriminate. Make it a test, not a promise.
 
-1. **Counterfactual tests**: same CV, swap names, genders, ages, nationalities, schools → the score
+Status (v0.2.0): ✅ delivered — `tests/test_fairness_robustness.py`, `eval/gaming.py`. Remaining: text hidden
+in PDFs (white on white, 1-pt fonts) is not detected yet.
+
+1. ✅ **Counterfactual tests**: same CV, swap names, genders, ages, nationalities, schools → the score
    must be *identical* (it should be, since the shield removes them — prove it in CI).
-2. **Credential invariants** as property tests (Hypothesis): for any job configuration, paper alone
+2. ✅ **Credential invariants** as property tests (Hypothesis): for any job configuration, paper alone
    ≤ `c`, and adding a diploma never moves a candidate by more than `c × 100` points.
-3. **Prompt-injection suite**: 30 attack variants (hidden text, white-on-white PDF text, Unicode tricks,
+3. ✅ **Prompt-injection suite**: 30 attack variants (hidden text, white-on-white PDF text, Unicode tricks,
    French/English) → every one flagged or harmless.
-4. **Gaming resistance**: keyword-stuffed CVs, empty repositories with only CI files, copied
+4. ✅ **Gaming resistance**: keyword-stuffed CVs, empty repositories with only CI files, copied
    templates → document what moves the score and adjust signal strengths.
 
 ## Phase 3 — Level 2 for real (weeks 6–7, ~14 h)

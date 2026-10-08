@@ -128,7 +128,9 @@ def test_llm_output_cannot_invent_evidence_or_skills() -> None:
     }
     merged = merge_llm_output(data, heuristic, [sig, claim], {}, {"S-A1-001", "S-A1-002"})
     by = {a.skill_id: a for a in merged.graph.assessments}
-    assert by["automated_testing"].source == "llm" and by["automated_testing"].axes.autonomy == 4
+    base = {a.skill_id: a for a in heuristic.assessments}["automated_testing"].axes
+    assert by["automated_testing"].source == "llm"
+    assert by["automated_testing"].axes.autonomy == round(base.autonomy + 1, 2), "bounded influence: +1 at most"
     assert by["automated_testing"].confidence == 0.95
     assert "machine_learning" not in by and "telepathy" not in by
     assert by["security_engineering"].axes.complexity <= 1  # claims cannot justify more than level 1

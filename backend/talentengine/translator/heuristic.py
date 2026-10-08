@@ -45,6 +45,9 @@ _FACET_BONUS = {
     "ownership": (0.45, 0.0, 0.0),
     "complex": (0.0, 0.4, 0.0),
 }
+# A skill evidenced only by sentences of the CV is capped: the CV says what to look for, the work proves it.
+CV_ONLY_LEVEL_CAP = 2.0
+CV_ONLY_CONFIDENCE_CAP = 0.5
 _CONTROL_KINDS = {"tests", "ci_pipeline", "quality_tooling", "security_controls"}
 
 
@@ -102,11 +105,18 @@ def build_skill_graph(candidate_ref: str, signals: list[Signal], locale: Locale)
         confidence = (1 - math.exp(-(0.5 * len(items) + 0.4 * len(artifacts)))) * (0.6 + 0.4 * mean_strength)
         evidence: list[EvidenceRef] = [s.evidence for s in sorted(items, key=lambda s: -s.strength)[:5]]
         labels = sorted({s.evidence.artifact_label for s in items})
+        axes = AxisScores(autonomy=_level(auto), complexity=_level(comp), reliability=_level(rel))
+        rationale = _rationale(locale, len(items), labels, facets)
+        if all(s.self_reported for s in items):
+            axes = AxisScores(**{k: min(v, CV_ONLY_LEVEL_CAP) for k, v in axes.model_dump().items()})
+            confidence = min(confidence, CV_ONLY_CONFIDENCE_CAP)
+            rationale += (" Uniquement décrit dans le CV : à confirmer par une réalisation." if locale == "fr"
+                          else " Only described in the CV: to be confirmed by a piece of work.")
         assessments.append(SkillAssessment(
             skill_id=skill_id,
-            axes=AxisScores(autonomy=_level(auto), complexity=_level(comp), reliability=_level(rel)),
+            axes=axes,
             confidence=round(min(0.95, confidence), 3),
-            rationale=_rationale(locale, len(items), labels, facets),
+            rationale=rationale,
             evidence=evidence,
             source="heuristic",
         ))

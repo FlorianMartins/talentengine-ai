@@ -48,6 +48,7 @@ profiles (DevSecOps, growth marketing, joinery) and eleven fictional candidates.
 | `TE_VAULT_KEY` | generated | Fernet key encrypting identities. **Set it in production** (`talentengine keygen`). |
 | `TE_LEDGER_SEAL_KEY` | generated | HMAC key sealing the audit ledger. **Set it in production.** |
 | `TE_API_KEY` | empty | If set, every API call must send `X-API-Key`. The UI asks for it in Settings. |
+| `TE_NER` | `none` (`spacy` in Docker) | Statistical name detection on top of the rules; masks other people named in a CV (managers, referees). From source: `pip install -e "backend[ner]"` then `python -m spacy download fr_core_news_sm` and `en_core_web_sm`. |
 | `TE_VISION_DETECTOR` | `ollama` | `ollama` (local VLM), `opencv` (faces only, `pip install .[vision]`), `none` (images quarantined). |
 | `TE_OLLAMA_URL` / `TE_VISION_MODEL` | `http://127.0.0.1:11434` / `qwen2.5vl:7b` | Local vision model. |
 | `TE_LLM_PROVIDER` | `none` | Escalation tier: `none`, `ollama`, `anthropic`, `openai_compatible`. |
@@ -89,9 +90,14 @@ Every saved change creates a new version of the profile, recorded in the audit l
 
 ### 2. Collect applications
 
-Share the **Add candidate** form or upload on the candidate's behalf (with their consent): CV,
-documents (reports, case studies), GitHub links, portfolio items with a short description, and
-photos of work. The candidate's name is only used to hide it and is stored encrypted.
+Share the **Add candidate** form or upload on the candidate's behalf (with their consent): CV (PDF,
+Word .docx, Markdown or text), documents (reports, case studies), GitHub links, portfolio items with a
+short description, and photos of work. The candidate's **name is required**: it is what lets the
+system hide it everywhere, whatever the layout of the files. It is stored encrypted and only revealed
+after a human decision.
+
+A skill described only in the CV is shown as "to be confirmed": it can reach *Proficient* at most until
+a piece of work (repository, document, photo, portfolio item) proves it.
 
 ### 3. Run the evaluation
 

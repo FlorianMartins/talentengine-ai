@@ -301,7 +301,8 @@ const fr = {
     identity: "Identité",
     identityHint:
       "Utilisée uniquement pour masquer votre nom dans les pièces, puis chiffrée. L'équipe ne la voit qu'après une décision de présélection, et cet accès est consigné.",
-    name: "Nom complet",
+    name: "Nom complet (obligatoire)",
+    nameRequired: "Indiquez votre nom : c'est lui qui permet de le masquer partout, quelle que soit la mise en page de vos pièces.",
     email: "E-mail",
     retention: "Durée de conservation",
     retentionHint: (d: number) => `Vos données seront effacées après ${d} jours (1 à 730).`,
@@ -799,7 +800,8 @@ const en: Dict = {
     identity: "Identity",
     identityHint:
       "Used only to mask your name in the files, then encrypted. The team only sees it after a shortlist decision, and that access is logged.",
-    name: "Full name",
+    name: "Full name (required)",
+    nameRequired: "Enter your name: it is what lets us mask it everywhere, whatever the layout of your files.",
     email: "Email",
     retention: "Retention period",
     retentionHint: (d: number) => `Your data will be erased after ${d} days (1 to 730).`,

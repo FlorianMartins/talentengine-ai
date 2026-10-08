@@ -56,9 +56,10 @@ from .models import (
     SkillGraph,
     utcnow,
 )
-from .shield.injection import screen, strip_hidden
+from .shield.injection import hidden_count, screen, strip_hidden
 from .shield.keys import resolve_seal_key, resolve_vault_key
 from .shield.ledger import AuditLedger, ChainVerification, LedgerEntry
+from .shield.ner import build_ner
 from .shield.pii import TextPseudonymizer
 from .shield.vault import PseudonymVault
 from .shield.vision import DetectorUnavailable, RegionDetector, build_detector, redact_image
@@ -105,7 +106,10 @@ class PortfolioItem(BaseModel):
 
 class Submission(BaseModel):
     consent: bool
-    identity_name: str = Field("", max_length=200, description="Used only to mask the name, then encrypted.")
+    # Required: an exact match on the declared name is the only defence that works whatever the CV layout.
+    # Measured on unseen layouts, rules alone caught 1.4% of undeclared names (docs/MEASUREMENTS.md).
+    identity_name: str = Field(..., min_length=2, max_length=200,
+                               description="Used only to mask the name everywhere, then stored encrypted.")
     identity_email: str = Field("", max_length=200)
     retention_days: int = Field(180, ge=1, le=730)
     documents: list[TextDocument] = Field(default_factory=list, max_length=20)
@@ -138,12 +142,43 @@ class PolicyError(ValueError):
 
 
 def extract_text(name: str, data: bytes) -> str:
-    """Plain text from an uploaded document (PDF, Markdown, text)."""
-    if name.lower().endswith(".pdf") or data[:5] == b"%PDF-":
+    """Plain text from an uploaded document (PDF, Word .docx, Markdown, text)."""
+    lower = name.lower()
+    if lower.endswith(".pdf") or data[:5] == b"%PDF-":
         from pypdf import PdfReader
+        from pypdf.errors import PdfReadError
 
-        reader = PdfReader(io.BytesIO(data))
-        return "\n".join(page.extract_text() or "" for page in reader.pages[:60])
+        try:
+            reader = PdfReader(io.BytesIO(data))
+            pages = [page.extract_text() or "" for page in reader.pages[:60]]
+        except (PdfReadError, ValueError) as exc:
+            raise PolicyError(f"{name}: unreadable PDF ({exc})") from exc
+        # Layout mode keeps multi-column CVs readable when the default extraction collapses them.
+        if sum(len(p) for p in pages) < 200:
+            pages = [page.extract_text(extraction_mode="layout") or "" for page in reader.pages[:60]]
+        return "\n".join(pages)
+    if lower.endswith(".docx") or (data[:2] == b"PK" and b"word/document.xml" in data[:4000]):
+        import zipfile
+
+        from docx import Document
+
+        try:
+            doc = Document(io.BytesIO(data))
+        except (zipfile.BadZipFile, KeyError, ValueError) as exc:
+            raise PolicyError(f"{name}: unreadable Word document ({exc})") from exc
+        lines = [p.text for p in doc.paragraphs]
+        for table in doc.tables:  # many CV templates put the whole layout in tables
+            for row in table.rows:
+                cells = []
+                for cell in row.cells:
+                    if cell.text not in cells:  # merged cells repeat their text
+                        cells.append(cell.text)
+                lines.append(" | ".join(cells))
+        for section in doc.sections:  # contact details often live in the header
+            lines = [p.text for p in section.header.paragraphs] + lines
+        return "\n".join(lines)
+    if lower.endswith((".doc", ".odt", ".rtf", ".pages")):
+        raise PolicyError(f"{name}: unsupported format, please send PDF, DOCX, Markdown or plain text")
     return data.decode("utf-8", errors="replace")
 
 
@@ -170,6 +205,7 @@ class Engine:
         self.provider: LLMProvider | None = build_provider(settings) if provider is True else (provider or None)
         self.budget = BudgetGuard(self.store, Price(settings.llm_price_input_per_mtok,
                                                     settings.llm_price_output_per_mtok))
+        self.ner = build_ner(settings.ner)
         self.media_dir = settings.data_dir / "media"
         self.media_dir.mkdir(parents=True, exist_ok=True)
 
@@ -219,7 +255,8 @@ class Engine:
                 self.vault.token(kind, value, ref)
 
         text_shield = TextPseudonymizer(self.vault, mask_school_names=job.privacy.mask_school_names,
-                                        neutralise_gendered_terms=job.privacy.neutralize_gendered_terms)
+                                        neutralise_gendered_terms=job.privacy.neutralize_gendered_terms,
+                                        ner=self.ner)
         path_shield = TextPseudonymizer(self.vault, mask_school_names=False, neutralise_gendered_terms=False)
         artifacts: list[Artifact] = []
         counters: dict[str, int] = {}
@@ -233,7 +270,8 @@ class Engine:
         def shield_text(raw: str, *, header: bool) -> tuple[str, RedactionReport]:
             cleaned = strip_hidden(raw)
             result = text_shield.run(cleaned, ref, known, header_name=header)
-            hits = screen(result.text)
+            # Excerpts come from the pseudonymised text (no PII); invisible characters are counted on the raw one.
+            hits = screen(result.text, hidden=hidden_count(raw))
             return result.text, RedactionReport(
                 pii_replaced=dict(result.counts), gendered_terms_neutralised=result.gendered_terms,
                 injection_suspected=bool(hits), injection_excerpts=hits, detector="rules",
@@ -275,7 +313,7 @@ class Engine:
             for path, content in snapshot.files.items():
                 shielded = text_shield.run(strip_hidden(content), ref, known, header_name=False)
                 files[path_shield.run(path, ref, known, header_name=False).text] = shielded.text
-                hits += screen(shielded.text)
+                hits += screen(shielded.text, hidden=hidden_count(content))
                 for k, v in shielded.counts.items():
                     pii[k] = pii.get(k, 0) + v
             report = RedactionReport(pii_replaced=pii, injection_suspected=bool(hits), injection_excerpts=hits[:5],

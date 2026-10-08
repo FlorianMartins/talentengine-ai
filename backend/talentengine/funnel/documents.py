@@ -187,16 +187,26 @@ def analyze_text(artifact: Artifact) -> list[Signal]:
     portfolio = artifact.kind == ArtifactKind.portfolio_note
     lines = _sections(artifact.text)
     raw: list[tuple[str, _Line, float, list[str], bool]] = []  # (skill, line, strength, facets, claim)
+    seen_lines: list[set[str]] = []
     for line in lines:
         if line.section == "education":
             continue  # credentials are handled by extract_credentials
         quant = bool(_QUANT.search(line.text))
         action = bool(_ACTION.search(line.text))
         claim = line.section == "claims" or bool(_CLAIM_LINE.match(line.text))
-        for skill, pattern in _VOCAB_RE.items():
-            hits = pattern.findall(line.text)
-            if not hits:
-                continue
+        matches = {skill: hits for skill, pattern in _VOCAB_RE.items() if (hits := pattern.findall(line.text))}
+        if not matches:
+            continue
+        # Anti-gaming, measured in docs/MEASUREMENTS.md: a templated CV ("Réalisé 15 déploiements Kubernetes
+        # Terraform Docker CI/CD... (+15 %)" x10) out-scored a real repository before these two factors.
+        # 1. Dilution: one line naming many skills spreads its weight instead of multiplying it.
+        dilution = 1.0 if len(matches) <= 2 else 2 / len(matches)
+        # 2. Repetition: a line built on the same template as an earlier one adds little.
+        words = {w for w in re.findall(r"[^\W\d_]{4,}", line.text.lower())}
+        repeated = any(len(words & prev) / max(1, len(words | prev)) > 0.5 for prev in seen_lines)
+        seen_lines.append(words)
+        damping = dilution * (0.3 if repeated else 1.0)
+        for skill, hits in matches.items():
             facets: list[str] = []
             if visual:
                 # A photo or render of finished work is tangible evidence in itself.
@@ -219,7 +229,7 @@ def analyze_text(artifact: Artifact) -> list[Signal]:
                 facets.append("control")
             if len(set(h.lower() for h in hits)) >= 2 or re.search(r"\d{2,}\s?(?:k€|K€|M€|k\$|M\$|000)", line.text):
                 facets.append("complex")
-            raw.append((skill, line, min(1.0, strength), facets, claim))
+            raw.append((skill, line, min(1.0, strength * damping), facets, claim))
 
     # Merge adjacent lines that support the same skill into one evidence range.
     signals: list[Signal] = []
@@ -236,7 +246,8 @@ def analyze_text(artifact: Artifact) -> list[Signal]:
         for group in groups:
             first, last = group[0][0], group[-1][0]
             claim = group[0][3]
-            strength = 0.0 if claim else min(1.0, max(i[1] for i in group) + 0.08 * (len(group) - 1))
+            strength = 0.0 if claim else min(1.0, max(i[1] for i in group) + 0.08 * sum(
+                1 for i in group[1:] if i[1] >= 0.25))  # only substantial lines extend a range
             facets = sorted({f for i in group for f in i[2]})
             excerpt = " / ".join(i[0].text for i in group)[:400]
             locator = "image" if visual else (f"line {first.no}" if first.no == last.no
@@ -245,6 +256,7 @@ def analyze_text(artifact: Artifact) -> list[Signal]:
                 id=f"S-{artifact.id}-{len(signals) + 1:03d}", artifact_id=artifact.id,
                 kind=("visual_work" if visual else ("declared" if claim else "documented_outcome")),
                 skills=[skill], strength=round(strength, 3), claim_only=claim, facets=facets,
+                self_reported=artifact.kind == ArtifactKind.cv,
                 evidence=EvidenceRef(artifact_id=artifact.id, artifact_label=artifact.label, locator=locator,
                                      excerpt=excerpt, line_start=None if visual else first.no,
                                      line_end=None if visual else last.no),
