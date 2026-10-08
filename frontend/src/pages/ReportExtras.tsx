@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ClipboardCopy, FileDown, Link2, Loader2, Printer, ShieldCheck } from "lucide-react";
 import { api, BASE_PATH } from "../api/client";
-import type { CandidateAssessment, DashboardReport, ExplanationLink } from "../api/types";
+import type { CandidateAssessment, CandidatePilot, DashboardReport, ExplanationLink } from "../api/types";
 import { usePrefs, useToast } from "../lib/prefs";
 import { dateTime, levelIndex } from "../lib/format";
 import { printDoc } from "../lib/print";
@@ -138,7 +138,15 @@ function ExplanationLinkModal({ candidateRef, onClose }: { candidateRef: string;
 }
 
 /** The full report as a print document: shown only when printing via `printDoc()`. */
-export function ReportPrintDoc({ report: r, tests = [] }: { report: DashboardReport; tests?: CandidateAssessment[] }) {
+export function ReportPrintDoc({
+  report: r,
+  tests = [],
+  pilots = [],
+}: {
+  report: DashboardReport;
+  tests?: CandidateAssessment[];
+  pilots?: CandidatePilot[];
+}) {
   const { t, lang } = usePrefs();
   const credW = r.credentials.weight_applied;
   return (
@@ -322,6 +330,66 @@ export function ReportPrintDoc({ report: r, tests = [] }: { report: DashboardRep
                   </p>
                   <p className="pd-small">
                     <b>{t.verif.integrityNote}</b>
+                  </p>
+                </div>
+              );
+            })}
+        </section>
+      )}
+
+      {pilots.some((s) => s.report) && (
+        <section className="pd-section">
+          <h2>{t.pilot.name}</h2>
+          {pilots
+            .filter((s) => s.report)
+            .map((s) => {
+              const pr = s.report!;
+              const pp = t.pilot.report;
+              return (
+                <div key={s.id} className="pd-q">
+                  <h3>
+                    {pp.index} {pr.pilot_index_pct.toFixed(0)} %
+                    {pr.authenticity_pct !== null ? ` · ${pp.authenticity} ${Math.round(pr.authenticity_pct)} %` : ""} · {pr.scenario_title} ·{" "}
+                    {t.pilot.levels[pr.level]} · {s.id}
+                  </h3>
+                  <table className="pd-table">
+                    <tbody>
+                      {pr.metrics.map((m) => (
+                        <tr key={m.id}>
+                          <td>{pp.metricLabels[m.id] ?? m.label}</td>
+                          <td>{m.final_pct.toFixed(0)} %</td>
+                          <td>
+                            {pp.factual} {m.factual_pct.toFixed(0)} %
+                            {m.judge_pct !== null ? ` · ${pp.judgeProposal} ${m.judge_pct.toFixed(0)} % (${m.judge_applied ? pp.applied : pp.notApplied})` : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <table className="pd-table">
+                    <tbody>
+                      {pr.faults.map((f) => (
+                        <tr key={f.id}>
+                          <td>
+                            {f.title} <span className="pd-small">({f.category}{f.cwe ? ` · ${f.cwe}` : ""})</span>
+                          </td>
+                          <td>
+                            {pp.colDetected} {f.detected ? `${pp.yes} — ${pp.detectedBy[f.detected_by] ?? f.detected_by}` : pp.no}
+                          </td>
+                          <td>
+                            {pp.colFixed} — {f.fixed_at_close ? pp.yes : pp.no}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="pd-small">
+                    {pp.iterations} {pp.iterationsVal(pr.velocity.iterations, pr.velocity.par)} · {pp.greenAtClose} —{" "}
+                    {pr.velocity.green_at_close ? pp.yes : pp.no}
+                    {pr.ownership ? ` · ${pp.ownershipTitle} — ${pp.band[pr.ownership.band] ?? pr.ownership.band}` : ""}
+                  </p>
+                  <p className="pd-small">
+                    <b>{pp.signal}</b> {pp.bounded}
                   </p>
                 </div>
               );

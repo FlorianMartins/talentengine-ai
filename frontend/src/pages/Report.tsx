@@ -23,6 +23,7 @@ import { ScoreRing } from "../components/charts";
 import { Segmented } from "../components/controls";
 import { ReportActions, ReportPrintDoc } from "./ReportExtras";
 import { ExplanationLinksPanel, VerificationPanel } from "./ReportVerification";
+import { PilotPanel } from "./ReportPilot";
 import {
   ArtifactsPanel,
   CredentialsPanel,
@@ -52,6 +53,7 @@ export function ReportPage() {
   const graph = useAsync(() => api.graph(ref).catch(() => null), [ref]);
   const artifacts = useAsync(() => api.artifacts(ref), [ref]);
   const tests = useAsync(() => api.candidateAssessments(ref).catch(() => []), [ref]);
+  const pilots = useAsync(() => api.candidatePilots(ref).catch(() => []), [ref]);
   const links = useAsync(() => api.explanationLinks(ref).catch(() => []), [ref]);
 
   const r = report.data;
@@ -101,7 +103,7 @@ export function ReportPage() {
     <div className="page">
       <ReportHero report={r} />
       <ReportActions report={r} onLinkCreated={links.reload} />
-      <ReportPrintDoc report={r} tests={tests.data ?? []} />
+      <ReportPrintDoc report={r} tests={tests.data ?? []} pilots={pilots.data ?? []} />
 
       <div className="tabs no-print" role="tablist" aria-label={t.report.tabsLabel}>
         {TABS.map(({ id, icon: Icon }) => (
@@ -136,6 +138,7 @@ export function ReportPage() {
           <>
             <CriteriaMatrix report={r} />
             <VerificationPanel candidateRef={r.candidate_ref} tests={tests} />
+            <PilotPanel candidateRef={r.candidate_ref} sessions={pilots} />
             <div className="grid-2" style={{ alignItems: "start" }}>
               <GapsPanel report={r} />
               <DecisionPanel report={r} onDecided={onDecided} />

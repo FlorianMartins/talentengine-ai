@@ -237,6 +237,7 @@ def build_router(settings: Settings, seeds: Any = None, limiter: _RateLimiter | 
             except FetchError as exc:
                 raise HTTPException(422, str(exc)) from exc
             sandbox = Settings(data_dir=tmp, vision_detector="none", llm_provider="none", ner=settings.ner,
+                               ownership_source_files=0,
                                enable_demo=False, github_token=settings.github_token,
                                max_repos_per_submission=MAX_REPOS, retention_sweep_hours=0)
             engine = Engine(sandbox, store=Store(":memory:"), detector=NoDetector(), provider=False)

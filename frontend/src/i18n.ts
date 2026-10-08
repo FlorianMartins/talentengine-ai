@@ -1,6 +1,8 @@
 // Bilingual UI strings. French is the default; `en` must match `fr` key-for-key (enforced by the type).
 // French copy uses inclusive, neutral wording ("la personne candidate", "candidat·e").
 
+import { enPilot, frPilot } from "./i18n.pilot";
+
 export type Lang = "fr" | "en";
 
 // ---------------------------------------------------------------- public pages (sandbox + recruiter landing)
@@ -1331,6 +1333,7 @@ const enV5: typeof frV5 = {
 };
 const fr = {
   ...frV5,
+  pilot: frPilot,
   ...frV4,
   pub: frPublic,
   app: {
@@ -1848,6 +1851,7 @@ export type Dict = typeof fr;
 
 const en: Dict = {
   ...enV5,
+  pilot: enPilot,
   ...enV4,
   pub: enPublic,
   app: {

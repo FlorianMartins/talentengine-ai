@@ -203,6 +203,8 @@ class Artifact(BaseModel):
     text: str = ""  # pseudonymised text (CV, documents, image captions, notes)
     repo_paths: list[str] = Field(default_factory=list)  # repository tree (paths only, never code)
     repo_files: dict[str, str] = Field(default_factory=dict)  # key files fetched for escalation only
+    # a few likely-logic source files, for the AI-pilot task on the candidate's own code (never sent to a model)
+    source_files: dict[str, str] = Field(default_factory=dict)
     # How this repository works with the candidate's other repositories and tools (pseudonymised):
     # links, orchestrated tools, job dependencies, services, declared stack. See funnel/crossrepo.py.
     integration: dict[str, Any] = Field(default_factory=dict)
@@ -418,3 +420,7 @@ class CandidateSummary(BaseModel):
     warnings: int
     decision: str | None
     created_at: datetime
+    # AI-pilot test (latest closed session), shown next to the portfolio-based compatibility
+    pilot_index_pct: float | None = None
+    authenticity_pct: float | None = None
+    verified_pct: float | None = None

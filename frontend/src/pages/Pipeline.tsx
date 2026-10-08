@@ -14,6 +14,7 @@ import {
   UserPlus,
   Users,
   X,
+  Workflow,
 } from "lucide-react";
 import { api } from "../api/client";
 import type { CandidateSummary, DashboardReport, DecisionKind, EvidenceBand } from "../api/types";
@@ -410,6 +411,21 @@ function CandidateRow({
           </Link>
           <BandChip band={c.evidence_band} />
           {c.escalated && <EscalatedChip />}
+          {c.pilot_index_pct !== null && c.pilot_index_pct !== undefined && (
+            <span className="chip is-pilot" title={t.pilot.pipeline.tooltip}>
+              <Workflow size={12} aria-hidden="true" />
+              <span>
+                {t.pilot.pipeline.index} <b className="num">{Math.round(c.pilot_index_pct)} %</b>
+                {c.verified_pct !== null && c.verified_pct !== undefined && (
+                  <>
+                    {" · "}
+                    {t.pilot.pipeline.verified} <b className="num">{Math.round(c.verified_pct)} %</b>
+                  </>
+                )}
+              </span>
+              <span className="sr-only">{t.pilot.pipeline.tooltip}</span>
+            </span>
+          )}
           {c.warnings > 0 && (
             <span className="chip chip-warn">
               <AlertTriangle size={12} aria-hidden="true" />

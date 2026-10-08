@@ -263,6 +263,28 @@ That is why timers are tight, questions are personal, every leak is traceable th
 and why the interview remains the final check. No camera and no microphone are used — emotion recognition
 in recruitment is prohibited in the EU.
 
+### For technical roles: the AI-pilot test
+
+Your future engineer will work with AI every day. Rather than pretending otherwise, the **AI-pilot test**
+watches them do exactly that: they get a realistic mission (secure an LLM gateway, ship a pseudonymised
+banking export, put an API in production) and an AI assistant that is **deliberately imperfect**. It
+delivers a "secure" solution that passes the CI but hides a subtle flaw — customer IBANs written to the
+logs, a filter that a capital letter defeats, a container running as root. You receive:
+
+- **Intent precision** — did they frame the work (standards such as OWASP, GDPR, FINMA; acceptance
+  criteria; guarantees), or type "make it secure"?
+- **Critical thinking** — did they catch each planted flaw, how fast, and is it gone at the end? Each
+  flaw is listed with the exact turn where it appeared and where they called it out.
+- **Orchestration velocity** — green CI in how many iterations, compared with an expert's par.
+- **Authenticity of the evidence** — five minutes to change a real function of *their own* GitHub
+  repository under a new constraint. People who wrote the code mention the module next door; people
+  presenting someone else's work ask the AI to explain "their" function.
+
+Every figure comes with the quotes it rests on. An optional AI judge can nudge two of them by 15 points at
+most, and only by citing the transcript. You can even **arm an extra flaw live** during an interview and
+watch how the candidate reacts. It is a signal for the conversation, never an automatic rejection. Details:
+[AI-pilot test](../PILOT_TEST.md).
+
 ## 8. Worked examples with numbers
 
 These figures come from the demonstration set (fictitious profiles) and from the measurements

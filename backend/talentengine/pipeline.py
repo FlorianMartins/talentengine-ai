@@ -61,6 +61,7 @@ from .models import (
     SkillGraph,
     utcnow,
 )
+from .pilot.scoring import PILOT_BLEND
 from .shield.injection import hidden_count, screen, strip_hidden
 from .shield.keys import resolve_seal_key, resolve_vault_key
 from .shield.ledger import AuditLedger, ChainVerification, LedgerEntry
@@ -295,7 +296,8 @@ class Engine:
                                                snapshot=RepoSnapshot(list(repo.paths), dict(repo.files or {}))))
             urls = [r.url for r in sub.repositories if r.paths is None and r.url]
             if urls:
-                fetched += fetch_repositories(urls, self.settings.github_token, self.settings.max_repos_per_submission)
+                fetched += fetch_repositories(urls, self.settings.github_token, self.settings.max_repos_per_submission,
+                                              sources=self.settings.ownership_source_files)
             elif not fetched and sub.repositories:
                 raise PolicyError("a repository needs a url or a list of paths")
         except RepoFetchError as exc:
@@ -351,6 +353,13 @@ class Engine:
                 hits += screen(text, hidden=hidden_count(content))
                 for k, v in shielded.counts.items():
                     pii[k] = pii.get(k, 0) + v
+            sources: dict[str, str] = {}
+            for path, content in list(fetched_repo.sources.items())[:self.settings.ownership_source_files]:
+                shielded = text_shield.run(strip_hidden(content), ref, known, header_name=False)
+                text = shielded.text
+                for rx, other in name_rx:
+                    text = rx.sub(other, text)
+                sources[path_shield.run(path, ref, known, header_name=False).text] = text
             integration: dict[str, Any] = {}
             if fetched_repo.owner:
                 analysis = analyse_repository(fetched_repo)
@@ -369,7 +378,8 @@ class Engine:
             report = RedactionReport(pii_replaced=pii, injection_suspected=bool(hits), injection_excerpts=hits[:5],
                                      detector="rules", notes=[f"{len(paths)} paths read, {len(files)} key files kept"])
             artifacts.append(Artifact(id=aid, candidate_ref=ref, kind=ArtifactKind.repository, label=label,
-                                      repo_paths=paths, repo_files=files, integration=integration,
+                                      repo_paths=paths, repo_files=files, source_files=sources,
+                                      integration=integration,
                                       content_sha256=_sha("\n".join(paths)), redaction=report,
                                       media_type="application/x-git-tree"))
 
@@ -611,6 +621,9 @@ class Engine:
         out = []
         for cand in self.store.list("candidates", Candidate, parent=job_id):
             report = self.store.get("reports", cand.ref, DashboardReport)
+            pilot = self.latest_pilot_report(cand.ref)
+            pilot_index = pilot.get("pilot_index_pct") if pilot else None
+            compat = report.compatibility_pct if report else None
             out.append(CandidateSummary(
                 candidate_ref=cand.ref,
                 compatibility_pct=report.compatibility_pct if report else None,
@@ -623,8 +636,17 @@ class Engine:
                 warnings=len(report.warnings) if report else 0,
                 decision=report.decision.decision if report and report.decision else None,
                 created_at=cand.created_at,
+                pilot_index_pct=pilot_index,
+                authenticity_pct=pilot.get("authenticity_pct") if pilot else None,
+                verified_pct=round((1 - PILOT_BLEND) * compat + PILOT_BLEND * pilot_index, 1)
+                if compat is not None and pilot_index is not None else None,
             ))
         return sorted(out, key=lambda s: (s.compatibility_pct is None, -(s.compatibility_pct or 0)))
+
+    def latest_pilot_report(self, ref: str) -> dict[str, Any] | None:
+        rows = self.store.query("SELECT body FROM documents WHERE collection = 'pilot_sessions' AND parent = ?", (ref,))
+        reports = [b["report"] for b in (json.loads(r["body"]) for r in rows) if b.get("report")]
+        return max(reports, key=lambda r: r.get("generated_at", "")) if reports else None
 
     def explanation(self, ref: str) -> dict[str, Any]:
         cand = self.get_candidate(ref)
@@ -665,6 +687,7 @@ class Engine:
         shredded = self.vault.shred(ref)
         artifacts = self.store.delete_children("artifacts", ref)
         self.store.delete_children("assessments", ref)
+        self.store.delete_children("pilot_sessions", ref)
         for media in self.media_dir.glob(f"{ref}-*"):
             media.unlink(missing_ok=True)
         for collection in ("reports", "graphs", "l1", "candidates"):
@@ -704,6 +727,8 @@ class Engine:
             "audit_trail": [e.model_dump(mode="json") for e in self.ledger.entries(candidate_ref=ref, limit=1000)],
             "verification_tests": [json.loads(r["body"]) for r in self.store.query(
                 "SELECT body FROM documents WHERE collection = 'assessments' AND parent = ?", (ref,))],
+            "ai_pilot_tests": [json.loads(r["body"]) for r in self.store.query(
+                "SELECT body FROM documents WHERE collection = 'pilot_sessions' AND parent = ?", (ref,))],
         }
         self.ledger.append("data_export", {"legal_basis": "GDPR Art. 15/20", "sections": sorted(data)},
                            actor=actor, job_id=cand.job_id, candidate_ref=ref)

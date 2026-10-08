@@ -435,6 +435,18 @@ flowchart LR
   `assessment_completed`); the candidate sees only that the test is complete. Sandbox tests live in memory
   for two hours and show the results to the visitor.
 
+### 9b. The AI-pilot test (`pilot/`)
+
+The verification test checks knowledge; the **AI-pilot test** checks the skill that matters now that AI
+help cannot be banned: getting a reliable system delivered by an AI that is sometimes wrong. The candidate
+pilots an internal assistant (reference assistant, or Llama-3 / Qwen-Coder) through a timed mission; a
+**hallucination injector** makes the assistant plant subtle, realistic flaws (OWASP LLM01/LLM02, PII in
+logs, unkeyed hashing, root containers, the Docker socket) while a static **virtual CI** stays green. Three
+metrics are computed by code from the telemetry — intent precision, critical thinking, orchestration
+velocity — and an optional **LLM judge** may adjust two of them by ±15 points, only with verified citations.
+A five-minute task on **a real function of the candidate's own repository** gives an *authenticity of the
+evidence* signal. Full design, formulas, API and the judge's system prompt: [PILOT_TEST.md](PILOT_TEST.md).
+
 ## 10. ATS bridge (`integrations/`)
 
 TalentEngine-AI also works as an **add-on** to Greenhouse, Lever, Ashby or any tool through a signed generic

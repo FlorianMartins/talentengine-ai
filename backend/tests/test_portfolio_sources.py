@@ -70,7 +70,7 @@ def test_orchestration_and_declared_stack() -> None:
 
 def test_profile_ingestion_is_blind_and_finds_integration(engine: Engine, devsecops_job,
                                                           monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("talentengine.pipeline.fetch_repositories", lambda urls, token, limit: [PLATFORM, SCANNER])
+    monkeypatch.setattr("talentengine.pipeline.fetch_repositories", lambda urls, token, limit, sources=0: [PLATFORM, SCANNER])
     sub = Submission(consent=True, identity_name="Jane Doe",
                      documents=[TextDocument(name="cv.txt", content="EXPERIENCE\n- Built agent-platform.\n", kind="cv")],
                      repositories=[RepositoryInput(url="https://github.com/jdoe")])

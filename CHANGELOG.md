@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.6.0 — 2026-10-09
+
+The AI-pilot test: measure how candidates get work done *with* an AI that is sometimes wrong.
+
+- **Adversarial sandbox** (`pilot/`): three missions (secure an LLM gateway, pseudonymised banking export
+  under FINMA/GDPR, production container), an internal assistant — reference (scripted, identical for
+  everyone) or a real model (Llama-3 / Qwen-Coder via Ollama, vLLM or any provider) — and a static virtual
+  CI that never executes candidate code.
+- **Hallucination injector**: subtle, realistic flaws (OWASP LLM01/LLM02, PII in logs, unkeyed hash, root
+  container, Docker socket) planted once each by hidden directive, verified by a hidden audit and spliced
+  from the reference when a model does not comply; per-candidate draws from a standard pool; recruiters can
+  arm one more flaw during a live session.
+- **Piloting metrics** computed from the telemetry: intent precision and framing, critical thinking and
+  redirection (anticipated / called out / removed by hand / accepted, speed, fixed at close), orchestration
+  velocity (green CI vs par, regressions); pilot index 0.30/0.45/0.25.
+- **LLM-as-a-judge** with a published system prompt: proposals must cite transcript turns, move a metric
+  by ±15 points at most, cannot raise anything when the candidate addressed the evaluator, and call-outs
+  need a verbatim quote.
+- **Authenticity of the evidence**: a five-minute task on a real function of the candidate's own repository
+  (Python AST and brace parsing for JS/TS, Go, Java, Kotlin, Rust, C#, PHP), constraint fitted to the
+  function; signals = names from elsewhere in the repository, precision, location, "explain my function"
+  requests, time to first instruction.
+- **Front end**: pilot player (`/pilote/:token`, IDE-like chat + editor + CI, server clock, own-code step), shared report view (metrics with factual vs judge, cited evidence linked to the transcript, flaws revealed with explanations), sandbox entry, recruiter panel with live flaw arming, pipeline chip, landing section.
+- **HR dashboard**: `pilot_index_pct`, `authenticity_pct`, `verified_pct` per candidate (ranking unchanged);
+  ledger events `pilot_created`, `pilot_fault_armed`, `pilot_completed`; sessions erased and exported with
+  the application. Applications keep three pseudonymised source files per repository for the own-code task.
+- Docs: [PILOT_TEST.md](docs/PILOT_TEST.md) and updates across the architecture, measurements, instructions
+  for use, user and recruiter guides. 156 backend tests; validated with qwen2.5-coder:7b as the assistant.
+
 ## 0.5.0 — 2026-10-08
 
 Filtering impostors, real-world compliance, and an ATS add-on.

@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENGINE_VERSION = "0.5.0"
+ENGINE_VERSION = "0.6.0"
 
 
 class Settings(BaseSettings):
@@ -46,6 +46,22 @@ class Settings(BaseSettings):
     # USD per million tokens, used by the budget guard. Defaults match claude-opus-5-5 list prices.
     llm_price_input_per_mtok: float = 4.0
     llm_price_output_per_mtok: float = 20.0
+
+    # --- Module 3: AI-pilot test -----------------------------------------------------------------------
+    # The assistant candidates pilot: "scripted" (reference assistant: offline, identical for everyone) or
+    # "llm" (a real model such as Qwen-Coder or Llama-3 on Ollama / vLLM; planted flaws are verified, and
+    # spliced in when the model did not comply).
+    pilot_assistant: Literal["scripted", "llm"] = "scripted"
+    pilot_llm_provider: Literal["ollama", "anthropic", "openai_compatible"] = "ollama"
+    pilot_llm_model: str = "qwen2.5-coder:7b"
+    pilot_llm_base_url: str = ""
+    pilot_llm_api_key: str = ""
+    # LLM-as-a-judge: uses the escalation provider (TE_LLM_*) when one is configured; false disables it.
+    pilot_judge: bool = True
+    pilot_starts_per_hour: int = 6
+    # Source files kept per repository of an application, for the AI-pilot task on the candidate's own code
+    # (pseudonymised like key files, never sent to the escalation model). 0 disables.
+    ownership_source_files: int = 3
 
     # A GitHub profile link expands to all its public repositories, up to this many.
     max_repos_per_submission: int = 30

@@ -25,6 +25,7 @@ import {
   Timer,
   UserCheck,
   Webhook,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "../i18n";
@@ -183,6 +184,40 @@ function Landing() {
             <p>{t.landing2.honest}</p>
           </li>
         </ul>
+      </section>
+
+      {/* ---------------------------------------------------------- AI-pilot test (v0.6) */}
+      <section className="land-section" aria-labelledby="land-pilot">
+        <header className="land-head">
+          <h2 id="land-pilot">{t.pilot.landing.title}</h2>
+          <p>{t.pilot.landing.lead}</p>
+        </header>
+        <ul className="land-cards cols-3">
+          {(
+            [
+              [Smartphone, t.pilot.landing.whyTitle, t.pilot.landing.why, "tone-neutral"],
+              [Workflow, t.pilot.landing.whatTitle, t.pilot.landing.what, ""],
+              [ShieldCheck, t.pilot.landing.guaranteesTitle, t.pilot.landing.guarantees, "tone-ok"],
+            ] as [LucideIcon, string, string[], string][]
+          ).map(([Icon, title, items, tone]) => (
+            <li key={title} className="card land-card land-pilot-col">
+              <span className={`land-icon ${tone}`}>
+                <Icon size={20} aria-hidden="true" />
+              </span>
+              <h3>{title}</h3>
+              <ul>
+                {items.map((it) => (
+                  <li key={it}>{it}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+        <Link to={paths.try} className="btn" style={{ width: "max-content", maxWidth: "100%" }}>
+          <Workflow size={16} aria-hidden="true" />
+          {t.pilot.landing.cta}
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
       </section>
 
       {/* ---------------------------------------------------------- ATS (v0.5) */}

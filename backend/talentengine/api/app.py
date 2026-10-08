@@ -78,6 +78,19 @@ class NewAssessment(BaseModel):
     valid_hours: int = Field(72, ge=1, le=336)
 
 
+class NewPilot(BaseModel):
+    level: int = Field(2, ge=1, le=3, description="1 junior, 2 confirmed, 3 senior")
+    scenario_id: str = Field("", description="Empty: the scenario that best fits the job")
+    fault_ids: list[str] = Field(default_factory=list, max_length=4, description="Empty: drawn at random")
+    build_minutes: int | None = Field(None, ge=10, le=90)
+    ownership: bool = Field(True, description="Add the five-minute task on a function of the candidate's own code")
+    valid_hours: int = Field(72, ge=1, le=336)
+
+
+class ArmFault(BaseModel):
+    fault_id: str = Field(..., min_length=2, max_length=60)
+
+
 class IncidentReport(BaseModel):
     severity: Literal["serious", "widespread", "death"] = "serious"
     description: str = Field(..., min_length=20, max_length=4000)
@@ -86,6 +99,19 @@ class IncidentReport(BaseModel):
 
 class EraseRequest(BaseModel):
     actor: str = Field("", max_length=120, description="Ignored for named accounts: the account name is used")
+
+
+def pilot_assistant(settings: Settings) -> Any:
+    """The assistant candidates pilot: the reference (scripted) one, or a real model when configured."""
+    from ..funnel.llm import build_provider
+    from ..pilot.assistant import LLMAssistant, ScriptedAssistant
+
+    if settings.pilot_assistant != "llm":
+        return ScriptedAssistant()
+    provider = build_provider(settings.model_copy(update={
+        "llm_provider": settings.pilot_llm_provider, "llm_model": settings.pilot_llm_model,
+        "llm_base_url": settings.pilot_llm_base_url, "llm_api_key": settings.pilot_llm_api_key}))
+    return LLMAssistant(provider) if provider else ScriptedAssistant()
 
 
 def create_app(settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
@@ -196,6 +222,34 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         }, actor="candidate", job_id=session.job_id, candidate_ref=session.candidate_ref)
 
     app.include_router(build_assess_router(settings, tests, seeds, test_limit, test_finished))
+
+    # ------------------------------------------------------------------ AI-pilot test (Module 3)
+    from ..pilot.api import build_router as build_pilot_router
+    from ..pilot.api import scenario_for
+    from ..pilot.engine import PilotEngine, PilotError
+    from ..pilot.ownership import choose_task
+    from ..pilot.sources import fetch_sources
+
+    pilot = PilotEngine(engine.store, assistant=pilot_assistant(settings),
+                        judge_provider=engine.provider if settings.pilot_judge and engine.provider else None)
+    app.state.pilot = pilot
+
+    def pilot_limit(request: Request) -> None:
+        limiter.check("pilot", _client_ip(request, settings.trust_proxy), settings.pilot_starts_per_hour)
+
+    def pilot_closed(session: Any, report: dict[str, Any]) -> None:
+        engine.ledger.append("pilot_completed", {
+            "session": session.id, "scenario": session.scenario_id, "level": session.level,
+            "pilot_index_pct": report.get("pilot_index_pct"), "authenticity_pct": report.get("authenticity_pct"),
+            "metrics": {m["id"]: {"factual": m["factual_pct"], "final": m["final_pct"], "judge": m["judge_applied"]}
+                        for m in report.get("metrics", [])},
+            "faults": [{k: f[k] for k in ("id", "detected", "fixed_at_close", "injection_method")}
+                       for f in report.get("faults", [])],
+            "assistant": report.get("assistant"), "judge": report.get("judge"),
+        }, actor="candidate", job_id=session.job_id, candidate_ref=session.candidate_ref)
+
+    app.include_router(build_pilot_router(settings, pilot, pilot_limit,
+                                          lambda urls: fetch_sources(urls, settings.github_token), pilot_closed))
 
     # ------------------------------------------------------------------ meta
 
@@ -424,6 +478,55 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
             "expires_at": session.expires_at.isoformat()}, actor=who.name, job_id=job.id, candidate_ref=ref)
         return {"token": token, "path": f"/test/{token}", "expires_at": session.expires_at.isoformat(),
                 "questions": len(session.questions), "untestable_skills": session.untestable_skills}
+
+    @app.post("/api/candidates/{ref}/pilot")
+    def create_pilot(ref: str, body: NewPilot, who: Principal = CAN_DECIDE) -> dict[str, Any]:
+        cand = engine.get_candidate(ref)
+        job = engine.get_job(cand.job_id)
+        scenario = scenario_for(job, body.scenario_id)
+        task, note = None, ""
+        if body.ownership:
+            repos = [(a.label, a.repo_paths, {**a.repo_files, **a.source_files}) for a in engine.artifacts(ref)
+                     if a.kind == ArtifactKind.repository]
+            task = choose_task(repos, random.SystemRandom(), job.locale) if repos else None
+            if task is None:
+                note = ("no function long and rich enough in the candidate's stored repository files: "
+                        "the session has no task on their own code")
+        token, session = pilot.create(scenario, body.level, locale=job.locale, mode="candidate", job_title=job.title,
+                                      job_id=job.id, candidate_ref=ref, fault_ids=body.fault_ids,
+                                      build_minutes=body.build_minutes, ownership=task, valid_hours=body.valid_hours)
+        engine.ledger.append("pilot_created", {
+            "session": session.id, "scenario": scenario.id, "level": body.level,
+            "faults": [f.id for f in session.faults], "ownership": task is not None,
+            "build_minutes": session.build_minutes, "expires_at": session.expires_at.isoformat(),
+        }, actor=who.name, job_id=job.id, candidate_ref=ref)
+        return {"token": token, "path": f"/pilote/{token}", "session_id": session.id, "scenario": scenario.id,
+                "faults": [f.id for f in session.faults], "ownership": task is not None, "note": note,
+                "build_minutes": session.build_minutes, "expires_at": session.expires_at.isoformat()}
+
+    @app.get("/api/candidates/{ref}/pilot", dependencies=auth)
+    def list_pilot(ref: str) -> list[dict[str, Any]]:
+        engine.get_candidate(ref)
+        return [{"id": s.id, "phase": s.phase, "scenario_id": s.scenario_id, "level": s.level,
+                 "created_at": s.created_at.isoformat(), "expires_at": s.expires_at.isoformat(),
+                 "faults": [f.model_dump(mode="json") for f in s.faults],
+                 "ownership": s.ownership.public() if s.ownership else None,
+                 "transcript": [t.public() for t in s.turns], "report": s.report}
+                for s in sorted(pilot.list_for(ref), key=lambda x: x.created_at, reverse=True)]
+
+    @app.post("/api/pilot-sessions/{session_id}/inject")
+    def arm_fault(session_id: str, body: ArmFault, who: Principal = CAN_DECIDE) -> dict[str, Any]:
+        try:
+            session = pilot.arm_fault(session_id, body.fault_id)
+        except KeyError as exc:
+            raise HTTPException(404, "unknown AI-pilot session") from exc
+        except PilotError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        engine.ledger.append("pilot_fault_armed", {"session": session.id, "fault": body.fault_id}, actor=who.name,
+                             job_id=session.job_id, candidate_ref=session.candidate_ref)
+        return {"armed": True, "faults": [f.id for f in session.faults]}
 
     @app.get("/api/candidates/{ref}/assessments", dependencies=auth)
     def list_assessments(ref: str) -> list[dict[str, Any]]:

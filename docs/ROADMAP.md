@@ -97,6 +97,15 @@ Status (v0.4.0): items 1–3 ✅ (public sandbox, explanation links, print-to-PD
 2. Hosted demo with the fictional data set only.
 3. Write-up for the portfolio: architecture, measurements, what did not work.
 
+## Next — the AI-pilot test (delivered as v0.6.0, to be calibrated)
+
+1. ✅ Three scenarios with planted flaws, factual metrics, bounded judge, own-code task ([PILOT_TEST.md](PILOT_TEST.md)).
+2. 🔜 Double-blind review of 30 recorded sessions by two engineers; publish agreement between factual
+   metrics, judge and humans; recalibrate weights, thresholds and par values.
+3. 🔜 Grow the flaw pool (at least five per scenario) and add scenarios for data science (leakage in a
+   train/test split), front end (XSS in a rendered template) and IaC (public bucket, wildcard IAM).
+4. 🔜 Isolated test runner on a separate worker (gVisor, no network) so the CI can execute test suites.
+
 ---
 
 ## Weekly rhythm that works in spare time

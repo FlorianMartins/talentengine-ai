@@ -14,6 +14,16 @@ import type {
   AssessStart,
   AssessState,
   CandidateAssessment,
+  CandidatePilot,
+  NewPilot,
+  PilotCatalog,
+  PilotChatResult,
+  PilotClose,
+  PilotEditResult,
+  PilotLink,
+  PilotStart,
+  PilotState,
+  PilotTurn,
   ChainVerification,
   ExplanationLinkRow,
   IncidentResult,
@@ -194,6 +204,25 @@ export const assess = {
   finish: (token: string) => assessRequest<AssessFinish>(token, "/finish", {}),
 };
 
+// ------------------------------------------------------------------ AI-pilot test (public, token-addressed)
+
+const pilotUrl = (token: string, path = "") => `${API}/pilot/${enc(token)}${path}`;
+
+export const pilot = {
+  scenarios: (locale: Locale) => request<PilotCatalog>(`${API}/pilot/scenarios?locale=${locale}`),
+  start: (body: { preset_id?: string; job?: JobProfile; scenario_id?: string; level: AssessLevel; locale: Locale; github_urls?: string[] }) =>
+    request<PilotStart>(`${API}/pilot/start`, json(body)),
+  state: (token: string) => request<PilotState>(pilotUrl(token)),
+  begin: (token: string) => request<PilotState>(pilotUrl(token, "/begin"), json({})),
+  chat: (token: string, message: string) => request<PilotChatResult>(pilotUrl(token, "/chat"), json({ message })),
+  /** `content: null` deletes the file */
+  edit: (token: string, path: string, content: string | null) =>
+    request<PilotEditResult>(pilotUrl(token, "/files"), { ...json({ path, content }), method: "PUT" }),
+  ci: (token: string) => request<PilotTurn>(pilotUrl(token, "/ci"), json({})),
+  startOwnership: (token: string) => request<PilotState>(pilotUrl(token, "/ownership/start"), json({})),
+  close: (token: string) => request<PilotClose>(pilotUrl(token, "/close"), json({})),
+};
+
 export const api = {
   health: () => request<Health>(`${API}/health`),
   runtime: () => request<Runtime>(`${API}/runtime`),
@@ -284,6 +313,10 @@ export const api = {
   candidateAssessments: (ref: string) => request<CandidateAssessment[]>(`${API}/candidates/${enc(ref)}/assessments`),
   createAssessment: (ref: string, body: NewAssessment) =>
     request<AssessmentLink>(`${API}/candidates/${enc(ref)}/assessments`, json(body)),
+  candidatePilots: (ref: string) => request<CandidatePilot[]>(`${API}/candidates/${enc(ref)}/pilot`),
+  createPilot: (ref: string, body: NewPilot) => request<PilotLink>(`${API}/candidates/${enc(ref)}/pilot`, json(body)),
+  armPilotFault: (sessionId: string, faultId: string) =>
+    request<{ armed: boolean; faults: string[] }>(`${API}/pilot-sessions/${enc(sessionId)}/inject`, json({ fault_id: faultId })),
   explanationLinks: (ref: string) => request<ExplanationLinkRow[]>(`${API}/candidates/${enc(ref)}/explanation-links`),
   revokeExplanationLink: (ref: string, id: string) =>
     request<{ revoked: boolean }>(`${API}/candidates/${enc(ref)}/explanation-links/${enc(id)}`, { method: "DELETE" }),

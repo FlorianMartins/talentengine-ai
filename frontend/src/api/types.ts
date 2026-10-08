@@ -199,6 +199,11 @@ export interface CandidateSummary {
   warnings: number;
   decision: DecisionKind | null;
   created_at: string;
+  /** AI-pilot test (v0.6): latest closed session, null when none */
+  pilot_index_pct?: number | null;
+  authenticity_pct?: number | null;
+  /** 0.6 × compatibility + 0.4 × pilot index; display only, ranking stays on compatibility */
+  verified_pct?: number | null;
 }
 
 export interface SubmissionResult {
@@ -808,4 +813,252 @@ export interface IntegrationInput {
   candidate_notice_confirmed: boolean;
   write_notes: boolean;
   explanation_link_days: number;
+}
+
+// ------------------------------------------------------------------ AI-pilot test (v0.6)
+
+export type PilotPhase = "brief" | "build" | "ownership" | "closed" | "expired";
+export type PilotTurnKind = "prompt" | "assistant" | "edit" | "ci" | "phase";
+export type PilotMetricId = "intent_precision" | "critical_thinking" | "orchestration_velocity" | "ownership";
+export type OwnershipBand = "knows_the_code" | "partial" | "navigates_blind" | "not_taken";
+
+export interface PilotFileChange {
+  path: string;
+  before_sha: string;
+  after_sha: string;
+  added_lines: number;
+  removed_lines: number;
+}
+
+export interface PilotCheck {
+  id: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface PilotTurn {
+  index: number;
+  kind: PilotTurnKind;
+  phase: PilotPhase;
+  at: string;
+  text: string;
+  changes: PilotFileChange[];
+  checks: PilotCheck[];
+  passed: boolean | null;
+}
+
+export interface PilotOwnershipTask {
+  repository: string;
+  path: string;
+  function: string;
+  language: string;
+  start_line: number;
+  end_line: number;
+  complexity: number;
+  constraint_id: string;
+  instruction: string;
+  seconds: number;
+  started_at: string | null;
+  deadline: string | null;
+}
+
+export interface PilotEvidence {
+  turn: number | null;
+  quote: string;
+  note: string;
+}
+
+export interface PilotMetric {
+  id: PilotMetricId;
+  label: string;
+  factual_pct: number;
+  judge_pct: number | null;
+  final_pct: number;
+  judge_applied: boolean;
+  breakdown: Record<string, number>;
+  evidence: PilotEvidence[];
+  rationale: string;
+}
+
+export interface PilotFaultOutcome {
+  id: string;
+  title: string;
+  category: string;
+  /** why it matters, shown after the test (v0.6.0+) */
+  explanation?: string;
+  cwe: string;
+  injected_turn: number | null;
+  injection_method: string;
+  detected: boolean;
+  detected_turn: number | null;
+  detected_by: string;
+  anticipated: boolean;
+  fixed_at_close: boolean;
+  judge_detection: boolean;
+}
+
+export interface PilotVelocity {
+  iterations: number;
+  par: number;
+  first_green_turn: number | null;
+  green_at_close: boolean;
+  regressions: number;
+  ci_runs: number;
+  minutes_used: number;
+}
+
+export interface PilotOwnershipFacts {
+  function: string;
+  path: string;
+  repository: string;
+  constraint: string;
+  seconds_used: number | null;
+  first_prompt_seconds: number | null;
+  hidden_identifiers_used: string[];
+  visible_identifiers_used: string[];
+  location_precision: boolean;
+  explain_requests: number;
+  constraint_implemented: boolean;
+  band: OwnershipBand;
+}
+
+export interface PilotReport {
+  session_id: string;
+  scenario_id: string;
+  scenario_title: string;
+  locale: Locale;
+  level: AssessLevel;
+  job_title: string;
+  generated_at: string;
+  assistant: string;
+  judge: string;
+  judge_errors: string[];
+  metrics: PilotMetric[];
+  pilot_index_pct: number;
+  authenticity_pct: number | null;
+  faults: PilotFaultOutcome[];
+  velocity: PilotVelocity;
+  ownership: PilotOwnershipFacts | null;
+  prompts: number;
+  duration_minutes: number;
+  weights: Record<string, number>;
+  notice: string;
+  limits: string[];
+}
+
+export interface PilotState {
+  id: string;
+  mode: "sandbox" | "candidate";
+  phase: PilotPhase;
+  locale: Locale;
+  level: AssessLevel;
+  job_title: string;
+  scenario: { id: string; title: string; brief: string };
+  build_minutes: number;
+  build_remaining: number | null;
+  files: Record<string, string>;
+  transcript: PilotTurn[];
+  ownership: PilotOwnershipTask | null;
+  ownership_available: boolean;
+  ownership_remaining: number | null;
+  assistant: "reference" | "model";
+  expires_at: string;
+  notice: string;
+  report: PilotReport | null;
+}
+
+export interface PilotStart extends PilotState {
+  token: string;
+  path: string;
+  warning: string;
+}
+
+export interface PilotChatResult {
+  reply: PilotTurn;
+  files: Record<string, string>;
+}
+
+export interface PilotEditResult {
+  turn: PilotTurn;
+  files: Record<string, string>;
+}
+
+export interface PilotClose {
+  closed: boolean;
+  mode: "sandbox" | "candidate";
+  report?: PilotReport;
+}
+
+export interface PilotScenarioFault {
+  id: string;
+  title: string;
+  category: string;
+  cwe: string;
+}
+
+export interface PilotScenario {
+  id: string;
+  title: string;
+  brief: string;
+  par: number;
+  skills: string[];
+  faults: PilotScenarioFault[];
+}
+
+export interface PilotCatalog {
+  scenarios: PilotScenario[];
+  build_minutes: Record<string, number>;
+  faults_per_level: Record<string, number>;
+  ownership_seconds: number;
+  assistant: string;
+  judge: string;
+}
+
+export interface NewPilot {
+  level: AssessLevel;
+  scenario_id?: string;
+  fault_ids?: string[];
+  build_minutes?: number | null;
+  ownership: boolean;
+  valid_hours: number;
+}
+
+export interface PilotLink {
+  token: string;
+  path: string;
+  session_id: string;
+  scenario: string;
+  faults: string[];
+  ownership: boolean;
+  note: string;
+  build_minutes: number;
+  expires_at: string;
+}
+
+export interface PilotSessionFault {
+  id: string;
+  category: string;
+  cwe: string;
+  title: string;
+  armed: boolean;
+  injected_turn: number | null;
+  injection_method: string;
+  detected_turn: number | null;
+  detected_by: string;
+  prevented_turn: number | null;
+  fixed: boolean | null;
+}
+
+export interface CandidatePilot {
+  id: string;
+  phase: PilotPhase;
+  scenario_id: string;
+  level: AssessLevel;
+  created_at: string;
+  expires_at: string;
+  faults: PilotSessionFault[];
+  ownership: PilotOwnershipTask | null;
+  transcript: PilotTurn[];
+  report: PilotReport | null;
 }

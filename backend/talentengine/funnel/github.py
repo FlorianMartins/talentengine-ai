@@ -23,6 +23,7 @@ from pathlib import Path
 
 import httpx
 
+from ..pilot.ownership import candidate_source_paths
 from .repo import KEY_FILE_MAX_BYTES, RepoFetchError, RepoSnapshot, select_key_files
 
 _PROFILE = re.compile(r"^(?:https?://)?(?:www\.)?github\.com/(?P<user>[A-Za-z0-9-]{1,39})/?$")
@@ -30,6 +31,7 @@ _REPO = re.compile(r"^(?:https?://)?(?:www\.)?github\.com/(?P<owner>[A-Za-z0-9-]
                    r"(?:\.git)?(?:/.*)?$")
 GIT_TIMEOUT = 30
 INTEGRATION_MAX_BYTES = 40_000
+SOURCE_MAX_BYTES = 60_000
 
 # Files that reveal how a repository depends on, deploys or orchestrates other projects and tools.
 _INTEGRATION_PATTERNS = [
@@ -47,6 +49,7 @@ class FetchedRepo:
     name: str
     snapshot: RepoSnapshot
     extra: dict[str, str] = field(default_factory=dict)  # integration files (raw, before the shield)
+    sources: dict[str, str] = field(default_factory=dict)  # source files for the ownership task (raw)
 
 
 def parse_repo_url(url: str) -> tuple[str, str]:
@@ -103,7 +106,7 @@ def select_integration_files(paths: list[str], limit: int = 24) -> list[str]:
     return picks[:limit]
 
 
-def snapshot_with_git(url: str) -> FetchedRepo:
+def snapshot_with_git(url: str, sources: int = 0) -> FetchedRepo:
     owner, repo = parse_repo_url(url)
     git = shutil.which("git")
     if git is None:
@@ -132,7 +135,13 @@ def snapshot_with_git(url: str) -> FetchedRepo:
     integration = select_integration_files(paths)
     files: dict[str, str] = {}
     extra: dict[str, str] = {}
+    source: dict[str, str] = {}
+    source_paths = [p for p in candidate_source_paths(paths, sources + len(key)) if p not in key][:sources]
     with httpx.Client(timeout=10) as client:
+        for path in source_paths:
+            raw = client.get(f"https://raw.githubusercontent.com/{owner}/{repo}/{sha}/{path}")
+            if raw.status_code == 200 and len(raw.content) <= SOURCE_MAX_BYTES:
+                source[path] = raw.content.decode("utf-8", errors="replace")
         for path in dict.fromkeys(key + integration):
             raw = client.get(f"https://raw.githubusercontent.com/{owner}/{repo}/{sha}/{path}")
             if raw.status_code != 200:
@@ -142,10 +151,11 @@ def snapshot_with_git(url: str) -> FetchedRepo:
             if path in integration:
                 extra[path] = raw.content[:INTEGRATION_MAX_BYTES].decode("utf-8", errors="replace")
     return FetchedRepo(url=f"https://github.com/{owner}/{repo}", owner=owner, name=repo,
-                       snapshot=RepoSnapshot(paths, files), extra=extra)
+                       snapshot=RepoSnapshot(paths, files), extra=extra, sources=source)
 
 
-def fetch_repositories(urls: list[str], token: str = "", max_repos: int = 30, workers: int = 6) -> list[FetchedRepo]:
+def fetch_repositories(urls: list[str], token: str = "", max_repos: int = 30, workers: int = 6,
+                       sources: int = 0) -> list[FetchedRepo]:
     """Expand profiles and read every repository in parallel. Unreadable repositories are skipped."""
     expanded = expand_github_urls(urls, token, max_repos)
     if not expanded:
@@ -155,7 +165,7 @@ def fetch_repositories(urls: list[str], token: str = "", max_repos: int = 30, wo
 
     def one(i: int, url: str) -> None:
         try:
-            results[i] = snapshot_with_git(url)
+            results[i] = snapshot_with_git(url, sources)
         except RepoFetchError as exc:
             errors.append(str(exc))
 

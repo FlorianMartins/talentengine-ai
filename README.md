@@ -113,6 +113,20 @@ reported to the recruiter as signals, never acted on automatically. An optional 
 the desktop. No web page can stop a phone camera — tight timers, personal questions and a traceable
 watermark make it of little use, and the interview stays the final check. No camera, no microphone.
 
+### The AI-pilot test: measure how people work *with* AI
+
+AI help cannot be banned, and memorisation tests reject the people who know what to look up. So the
+**AI-pilot test** hands the candidate an internal coding assistant and a realistic mission — secure an LLM
+gateway, ship a pseudonymised banking export, containerise an API for production. The assistant is
+**deliberately imperfect**: it slips subtle, realistic flaws into its "secure" solution (raw prompts with
+IBANs in the logs, a case-sensitive injection filter, an unkeyed hash, a root container, the Docker socket
+mounted), while the CI stays green. The test measures **intent precision** (does the candidate frame the
+work with standards, criteria and guarantees?), **critical thinking** (do they catch and redirect the
+flaws?) and **orchestration velocity** (green CI in few iterations), then gives five minutes to change
+**a real function of the candidate's own repository** under a new constraint — people who wrote the code
+reach for the names around it. Metrics are computed by code from the telemetry; an optional LLM judge can
+adjust them by ±15 points at most, only by citing the transcript ([AI-pilot test](docs/PILOT_TEST.md)).
+
 ### An add-on to your ATS
 
 Recruiters keep Greenhouse, Lever, Ashby or their own tool: a signed webhook sends each application, and a
@@ -178,6 +192,7 @@ Optional: `docker compose --profile vision up -d` and `ollama pull qwen2.5vl:7b`
 * [AI Act readiness](docs/AI_ACT_READINESS.md) — provider vs deployer obligations, verified timeline, French labour law, go-to-market checklist
 * [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) (Art. 13) · [Technical documentation](docs/TECHNICAL_DOCUMENTATION.md) (Annex IV)
 * [Compliance mapping](docs/COMPLIANCE.md) — GDPR and EU AI Act, feature by feature
+* [AI-pilot test](docs/PILOT_TEST.md) — piloting an imperfect AI assistant: fault injection, metrics, judge prompt, own-code task
 * [ATS bridge](docs/ATS_BRIDGE.md) — Greenhouse, Lever, Ashby and a generic signed webhook
 * [Roadmap](docs/ROADMAP.md) — step-by-step plan to a production MVP by the end of December 2026
 * [Front-end](frontend/README.md) — stack, structure, design tokens
@@ -191,6 +206,7 @@ backend/talentengine/
   translator/  ③ catalog.py · heuristic.py · prompts.py · llm_eval.py
   dashboard/   ④ scoring.py · interview.py · presets.py
   assessment/  verification tests: bank/*.json · engine.py · personal.py · api.py
+  pilot/       AI-pilot test: scenarios.py · assistant.py · scoring.py · judge.py · ownership.py · engine.py
   integrations/ ATS bridge: adapters.py · bridge.py
   sandbox/     public trial: fetch.py · offer.py · api.py
   pipeline.py  the only place where the modules meet
@@ -201,10 +217,11 @@ docs/          architecture, user guide, compliance, roadmap
 
 ## Status and limits
 
-This is an MVP (v0.5.0): fully working end to end, tested (130+ tests, `ruff`, `mypy`, measurements in CI),
+This is an MVP (v0.6.0): fully working end to end, tested (150+ tests, `ruff`, `mypy`, measurements in CI),
 but not production-hardened. The masking figures come from synthetic corpora, not yet from real CVs; storage is SQLite,
 authentication uses named API keys (no SSO yet), and signal strengths should be reviewed with practitioners of each
-trade before real use. Using it for real recruitment requires a DPIA and, for a provider selling it, the
+trade before real use. The AI-pilot test's weights and thresholds are expert choices awaiting calibration
+on real sessions. Using it for real recruitment requires a DPIA and, for a provider selling it, the
 AI Act conformity steps — see [AI_ACT_READINESS.md](docs/AI_ACT_READINESS.md).
 
 ## License

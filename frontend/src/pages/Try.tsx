@@ -54,6 +54,7 @@ import { BandChip, ErrorState, ImportanceChip, Skeleton, StatusChip } from "../c
 import { RangeField, Segmented } from "../components/controls";
 import { PresetPicker } from "../components/PresetPicker";
 import { StartTestCard } from "../components/StartTestCard";
+import { StartPilotCard } from "../components/StartPilotCard";
 import { CandidateNotice } from "../components/CandidateNotice";
 import { DocumentZones, EMPTY_DOCS, hasAnyDoc, type DocSet } from "../components/DocumentZones";
 import { Meter, ScoreRing } from "../components/charts";
@@ -340,7 +341,15 @@ function Sandbox() {
             </button>
           </div>
           {(mode === "preset" || (mode === "offer" && job)) && (
-            <StartTestCard variant="compact" presetId={mode === "preset" ? presetId : undefined} job={mode === "offer" ? job : null} />
+            <>
+              <StartTestCard variant="compact" presetId={mode === "preset" ? presetId : undefined} job={mode === "offer" ? job : null} />
+              <StartPilotCard
+                variant="compact"
+                presetId={mode === "preset" ? presetId : undefined}
+                job={mode === "offer" ? job : null}
+                githubUrls={githubUrls}
+              />
+            </>
           )}
         </section>
       )}
@@ -484,6 +493,7 @@ function Sandbox() {
           }}
           onEdit={() => setStep(2)}
           presetId={mode === "preset" ? presetId : ""}
+          githubUrls={githubUrls}
         />
       )}
     </div>
@@ -732,11 +742,13 @@ function Result({
   onAgain,
   onEdit,
   presetId,
+  githubUrls,
 }: {
   result: TryMatchResult;
   onAgain: () => void;
   onEdit: () => void;
   presetId: string;
+  githubUrls: string[];
 }) {
   const { t, lang } = usePrefs();
   const toast = useToast();
@@ -821,6 +833,7 @@ function Result({
       </section>
 
       <StartTestCard variant="hero" presetId={presetId || undefined} job={result.job ?? null} seed={result.assessment_seed} />
+      <StartPilotCard variant="hero" presetId={presetId || undefined} job={result.job ?? null} githubUrls={githubUrls} />
 
       {r.warnings.length > 0 && (
         <div className="callout callout-warn" role="note">

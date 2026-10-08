@@ -144,6 +144,57 @@ curl -X POST localhost:8000/api/demo/seed   # or use the "Load demo data" button
   sandbox profile step. A 403 uses the `X-Required-Permission` header. Apply limits come from
   `runtime.upload_limits`.
 
+### AI-pilot test (v0.6)
+
+AI on a phone next to the screen cannot be blocked, so this test does not try. The candidate **pilots** an internal
+AI assistant to deliver a mission (secure an LLM gateway, a pseudonymised banking export, a production container).
+The assistant is deliberately imperfect and quietly plants subtle flaws (OWASP LLM, personal data in logs, unkeyed
+hash, root container, `docker.sock`). The candidate is told that reviewing it is part of the test, never which
+flaws or when. There is **no anti-cheat layer**: copy and paste and any external tool are allowed ("ce qui est
+mesuré, c'est la direction que vous donnez").
+
+- **Player** `/pilote/:token` (also `/en/pilote/:token`; the UI language follows the session's `locale`), no app
+  shell, `pages/PilotPlayer.tsx`.
+  - **Brief**: mission title and brief, level, time budget, the own-code step if any, the rules, what is recorded
+    (instructions, edits, CI runs, timings), "no camera or microphone", the server's notice, an "I understand"
+    checkbox and **Commencer**. A `warning` from `/api/pilot/start` (unreadable GitHub profile…) is shown here.
+  - **Build**: an IDE-like screen. Left, the chat with the assistant (prompts, replies with "files changed" chips
+    and +/− lines that open the file, edits, CI runs and phase markers; `role="log"`), a composer with a 4,000
+    character counter and Ctrl/Cmd + Enter. Centre, the file tree (last-change badges, new file, delete) and a
+    monospace editor with line numbers (save with the button or Ctrl/Cmd + S; unsaved and "the assistant changed
+    this file meanwhile" states; ligatures off so `->` stays `->`). Right, the virtual CI ("Lancer la CI", checks
+    with pass/fail and detail, run history). Below 1100 px the three panels become tabs (Assistant / Code / CI).
+  - **Clock**: the server keeps time (`build_remaining`, `ownership_remaining`). The countdown turns amber under
+    2 minutes with a banner and screen-reader announcements; at 0 the client re-reads the state and follows the new
+    phase. Reloading resumes with the server's remaining time. A 409 (time over, turn limit) re-reads the state.
+  - **Finish the mission** asks for confirmation, then goes to the own-code intro if the session has one, or closes.
+  - **Own code** (optional): an intro ("a function from your own repository, 5 minutes, a new constraint") with the
+    constraint and `function() in path`; "Revenir à la mission" stays possible until the step starts. Then the same
+    workspace with the instruction pinned on top, the function's lines highlighted (`start_line`–`end_line`) and a
+    5-minute clock.
+  - **End**: the sandbox shows the full report (flaws revealed as a learning moment); a candidate link only shows
+    a thank-you screen, never the evaluation.
+- **Report** `components/PilotReportView.tsx` (sandbox and recruiter): pilot-index ring and authenticity ring,
+  "signal pour l'entretien, jamais un motif de rejet automatique", one card per metric (final %, factual %, the
+  judge's proposal and whether it was applied, "bounded to ±15 pts", breakdown bars, evidence with turn links that
+  open and highlight the turn in the transcript), the flaws table (title, category + CWE, turn it appeared,
+  spotted? how, fixed at the end, injection method), velocity facts, own-code facts (band: knows their code /
+  partial / navigates blind / not taken, names from the rest of the repository used, explain requests…), limits,
+  notice and the collapsible transcript. The backend's evidence notes, limits and phase markers are fixed English
+  templates: the known ones are localised client-side, anything else is shown as is.
+- **Sandbox**: on `/essai` step 1 "Ou passez directement le Test du Pilote d'IA" (role, level, mission auto or
+  chosen, optional GitHub link), and on the result step a "Test du Pilote d'IA" card next to "Prouvez que vous
+  maîtrisez" that reuses the GitHub links of step 2 for the own-code task. A 422 "no scenario fits" and a 429 get
+  plain-language messages.
+- **Recruiter report**: a "Test du Pilote d'IA" panel under the verification test (`pages/ReportPilot.tsx`):
+  create a link (level, mission auto or chosen, flaws to plant when a mission is chosen, mission length 10–90 min,
+  own-code task, validity) → full URL with the base path and copy; sessions with their phase and flaws; for running
+  sessions **Arm a flaw** (live interviews; journalled, the candidate is not told); the report when closed, the
+  transcript otherwise. The pilot results are also in the PDF document.
+- **Pipeline**: a "Pilote 70 % · Vérifié 32 %" chip when a candidate has a closed session, with a tooltip: verified
+  = 0.6 × compatibility + 0.4 × pilot index, display only; the ranking stays on compatibility.
+- **Landing** `/recruteurs`: a "Le Test du Pilote d'IA" section (why, what the person does, guarantees).
+
 ### Public pages (no app shell, no API key)
 
 | Route | Screen |
@@ -176,6 +227,7 @@ src/
   main.tsx              fonts + global CSS + <App/>
   App.tsx               providers + routes
   i18n.ts               typed FR/EN dictionary (`en` must match `fr` key-for-key)
+  i18n.pilot.ts         FR/EN strings of the AI-pilot test (t.pilot)
   api/
     types.ts            types mirroring the FastAPI contract
     client.ts           typed fetch client: X-API-Key / X-Actor headers, FastAPI {detail} → ApiError
@@ -198,11 +250,15 @@ src/
   components/AssessResultsView.tsx  test results + integrity panel (sandbox and recruiter)
   components/StartTestCard.tsx      starts a sandbox test (POST /api/assess/start)
   components/CandidateNotice.tsx    candidate information notice
+  components/PilotReportView.tsx    AI-pilot report (sandbox and recruiter)
+  components/PilotTurns.tsx         one transcript turn (chat + transcripts), localised server markers
+  components/StartPilotCard.tsx     starts a sandbox AI-pilot test (POST /api/pilot/start)
   lib/presetSearch.ts   client-side preset search (same rule as the backend)
   pages/                Overview, Studio, Pipeline, Apply, Report (+ ReportSections), Audit, Settings, NotFound,
                         Try (public sandbox), Recruiters (public landing), Explanation (candidate view),
                         Accounts (admin), ReportExtras (report actions + print document),
-                        TestPlayer, ReportVerification, Compliance, Integrations
+                        TestPlayer, ReportVerification, Compliance, Integrations,
+                        PilotPlayer, ReportPilot (v0.6)
   assets/landing/       compressed WebP screenshots used by the landing page
   styles/
     tokens.css          design tokens, dark (default) + light
@@ -250,4 +306,6 @@ See `../docs/images/`: `overview-{dark,light}`, `studio-dark`, `studio-full-dark
 `explanation-public-light`, `explanation-public-mobile`, `report-print` (print-emulated), `try-result-print`,
 `audit-retention`, `try-presets-search`, `try-documents`, `try-result-github-profile`, `evidence-orchestration`,
 `apply-categories`; v0.5: `test-intro`, `test-question`, `test-question-mobile`, `test-blurred`, `test-results`,
-`test-print-blocked`, `report-verification`, `report-print-verification`, `compliance`, `integrations`.
+`test-print-blocked`, `report-verification`, `report-print-verification`, `compliance`, `integrations`; v0.6:
+`pilot-brief`, `pilot-build`, `pilot-build-mobile`, `pilot-ci`, `pilot-ownership`, `pilot-report`, `report-pilot`
+(and `recruiters`, `recruiters-mobile` refreshed).

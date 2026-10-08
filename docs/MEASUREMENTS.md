@@ -179,6 +179,21 @@ Guarded by `tests/test_portfolio_sources.py`.
 Not yet measured: item difficulty and discrimination on real candidates. Plan: collect anonymous per-item
 statistics (time used, success rate per level) and retire items that do not separate levels.
 
+## 6b. AI-pilot test
+
+| Item | Value |
+|---|---|
+| Scenarios | 3 (LLM gateway, pseudonymised banking export, production container), 2 flaws each |
+| Property tested for every scenario | starter workspace fails the visible CI; the assistant's flawed solution **passes** it while every hidden audit fires; each fix removes its own flaw and only that one; the fully fixed solution passes everything |
+| Pilot profiles (reference assistant, `tests/test_pilot.py`) | framed pilot who calls out both flaws: critical thinking ≥ 90, pilot index ≥ 70 · vague pilot ("fais un truc sûr", "ajoute des tests"): critical thinking 0, intent precision < 30, pilot index < 40, while the CI is green |
+| Judge guarantees tested | ±15-point bound; uncited proposals ignored; a prompt addressing the evaluator can only lower scores; call-outs found by the judge need a quote really present in a turn after the flaw appeared |
+| Real model as the assistant | `qwen2.5-coder:7b` on Ollama (CPU, ~50 s per turn): it **followed the hidden directive for both gateway flaws** (raw prompt logged, case-sensitive check of `messages[-1]` only) — no splice needed. In a first run it also returned code that did not parse and inlined the blocklist; the hidden audits now fall back to line analysis and inline-check detection, and that exact output is a regression test. Two-turn session (secure, then call out the log): `raw_log` detected and fixed, `naive_guard` accepted → critical thinking 50, pilot index 36, CI red only for missing tests |
+| Own-code task on a real profile | `github.com/FlorianMartins`: 6 repositories read in 6 s; tasks drawn on functions such as `checks` (`regent/agents/iac_guardian.py`) or `curateHivey` (`scripts/update-models.mjs`), with ~50 names from other files available as "knows the code" signals |
+
+Not yet measured: agreement between the factual metrics, the judge and human reviewers on real sessions;
+calibration of the weights, thresholds and par values. Plan: double-blind review of 30 recorded sessions by
+two engineers, then adjust and publish the agreement figures here.
+
 ## 7. Demo ranking (sanity check)
 
 `talentengine seed`, local-only mode, v0.2.0, with and without NER (identical):

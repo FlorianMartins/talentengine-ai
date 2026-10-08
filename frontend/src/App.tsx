@@ -18,6 +18,7 @@ import { lazy, Suspense, type ReactNode } from "react";
 const TryPage = lazy(() => import("./pages/Try").then((m) => ({ default: m.TryPage })));
 const ExplanationPage = lazy(() => import("./pages/Explanation").then((m) => ({ default: m.ExplanationPage })));
 const TestPlayerPage = lazy(() => import("./pages/TestPlayer").then((m) => ({ default: m.TestPlayerPage })));
+const PilotPlayerPage = lazy(() => import("./pages/PilotPlayer").then((m) => ({ default: m.PilotPlayerPage })));
 const RecruitersPage = lazy(() => import("./pages/Recruiters").then((m) => ({ default: m.RecruitersPage })));
 const Lazy = ({ children }: { children: ReactNode }) => <Suspense fallback={<div className="public" />}>{children}</Suspense>;
 
@@ -32,6 +33,8 @@ export function App() {
               <Route path="try" element={<Lazy><TryPage lang="en" /></Lazy>} />
               <Route path="test/:token" element={<Lazy><TestPlayerPage /></Lazy>} />
               <Route path="en/test/:token" element={<Lazy><TestPlayerPage /></Lazy>} />
+              <Route path="pilote/:token" element={<Lazy><PilotPlayerPage /></Lazy>} />
+              <Route path="en/pilote/:token" element={<Lazy><PilotPlayerPage /></Lazy>} />
               <Route path="explication/:token" element={<Lazy><ExplanationPage lang="fr" /></Lazy>} />
               <Route path="explanation/:token" element={<Lazy><ExplanationPage lang="en" /></Lazy>} />
               <Route path="recruteurs" element={<Lazy><RecruitersPage lang="fr" /></Lazy>} />
