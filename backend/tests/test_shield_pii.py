@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from cryptography.fernet import Fernet
 
 from talentengine.shield.injection import screen, strip_hidden
 from talentengine.shield.pii import TextPseudonymizer, neutralise_gender
@@ -24,7 +25,7 @@ Master Informatique — Université de Rennes
 
 @pytest.fixture
 def vault() -> PseudonymVault:
-    return PseudonymVault(Store(":memory:"), "Tm9UaGlzSXNOb3RBUmVhbEtleUJ1dEl0SXNWYWxpZDE=")
+    return PseudonymVault(Store(":memory:"), Fernet.generate_key().decode())
 
 
 def test_masks_every_direct_identifier(vault: PseudonymVault) -> None:

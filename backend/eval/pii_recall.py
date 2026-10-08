@@ -19,12 +19,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from cryptography.fernet import Fernet
+
 from eval.pii_corpus import Sample, generate, generate_heldout
 from talentengine.shield.pii import TextPseudonymizer
 from talentengine.shield.vault import PseudonymVault
 from talentengine.store import Store
-
-_VAULT_KEY = "Tm9UaGlzSXNOb3RBUmVhbEtleUJ1dEl0SXNWYWxpZDE="
 
 
 def leaked(value: str, output: str, category: str = "") -> bool:
@@ -43,7 +43,8 @@ def run(samples: list[Sample], use_ner: bool) -> dict[str, dict[str, list[int]]]
         from talentengine.shield.ner import SpacyNer
 
         ner = SpacyNer()
-    shield = TextPseudonymizer(PseudonymVault(Store(":memory:"), _VAULT_KEY), neutralise_gendered_terms=False, ner=ner)
+    vault = PseudonymVault(Store(":memory:"), Fernet.generate_key().decode())
+    shield = TextPseudonymizer(vault, neutralise_gendered_terms=False, ner=ner)
     stats: dict[str, dict[str, list[int]]] = {"category": defaultdict(lambda: [0, 0]),
                                                "origin": defaultdict(lambda: [0, 0]),
                                                "declared": defaultdict(lambda: [0, 0]),
