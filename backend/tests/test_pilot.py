@@ -620,3 +620,46 @@ def test_question_clock_is_kept_by_the_server() -> None:
     assert pilot.state(token)["questions"]["current"] == 1  # the late question closed itself
     with pytest.raises(PilotError):
         pilot.answer(token, 0, 1)
+
+
+# ---------------------------------------------------------------------------------------- real test execution
+
+
+def test_tests_really_run_and_behaviour_confirms_the_flaws() -> None:
+    from talentengine.pilot.runner import LocalRunner
+
+    pilot = PilotEngine(runner=LocalRunner())
+    _, token = _session(pilot, faults=["raw_log", "naive_guard"])
+    pilot.chat(token, "Sécurise la passerelle et ajoute des tests")
+    ci = pilot.run_ci(token)
+    executed = next(c for c in ci["checks"] if c["id"] == "executed")
+    assert executed["passed"] and executed["detail"].startswith("3 passed")
+    assert ci["test_run"]["passed"] == 3 and "passed" in ci["test_run"]["output"]
+    pilot.chat(token, GOOD_RAW_LOG)  # fixes the log, the guard stays naive
+    _, report, _ = pilot.close(token)
+    outcomes = {f["id"]: f for f in report["faults"]}
+    assert outcomes["raw_log"]["confirmed_by_test"] is False and outcomes["raw_log"]["fixed_at_close"]
+    assert outcomes["naive_guard"]["confirmed_by_test"] is True and not outcomes["naive_guard"]["fixed_at_close"]
+
+
+def test_a_test_that_fails_for_real_turns_the_ci_red() -> None:
+    from talentengine.pilot.runner import LocalRunner
+
+    pilot = PilotEngine(runner=LocalRunner())
+    _, token = _session(pilot, faults=["raw_log"])
+    pilot.chat(token, "Sécurise la passerelle et ajoute des tests")
+    _, s = pilot.get(token)
+    broken = s.files["tests/test_gateway.py"] + "\n\ndef test_a_wrong_expectation():\n    assert 1 == 2\n"
+    pilot.edit(token, "tests/test_gateway.py", broken)
+    ci = pilot.run_ci(token)
+    assert ci["passed"] is False and ci["test_run"]["failed"] == 1  # every static check is green, pytest is not
+    assert all(c["passed"] for c in ci["checks"] if c["id"] != "executed")
+
+
+def test_the_runner_refuses_paths_outside_the_workspace_and_enforces_time() -> None:
+    from talentengine.pilot.runner import LocalRunner
+
+    runner = LocalRunner()
+    assert "invalid path" in runner.run({"../evil.py": "x = 1"}).error
+    slow = runner.run({"tests/test_slow.py": "import time\n\ndef test_slow():\n    time.sleep(30)\n"}, ["tests"], 2)
+    assert slow.timed_out and not slow.green

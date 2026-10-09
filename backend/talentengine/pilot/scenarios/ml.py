@@ -164,6 +164,7 @@ def _ml_tests(files: Files) -> tuple[bool, str]:
 
 
 ML = Scenario(
+    runnable=True,
     id="ml_leakage",
     title={"fr": "Un modèle de churn dont le score veut dire quelque chose",
            "en": "A churn model whose score means something"},

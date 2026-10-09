@@ -145,6 +145,7 @@ def critical_thinking(
     judge_callouts: dict[str, int] | None = None,
     question_scores: dict[str, float] | None = None,
     question_evidence: list[Evidence] | None = None,
+    behaviour: dict[str, bool | None] | None = None,
 ) -> tuple[MetricScore, list[FaultOutcome]]:
     """Mission flaws (anticipated, called out, fixed) and section 2 traps (followed or caught), averaged."""
     label = "Esprit critique et redirection" if session.locale == "fr" else "Critical thinking and redirection"
@@ -156,7 +157,8 @@ def critical_thinking(
     for state in session.faults if scenario is not None else []:
         assert scenario is not None
         fault = scenario.fault(state.id)
-        fixed = not fault.present(final_files)
+        confirmed = (behaviour or {}).get(state.id)
+        fixed = not fault.present(final_files) and confirmed is not True  # behaviour has the last word
         anticipated = state.prevented_turn is not None
         judge_turn = judge_callouts.get(state.id) if state.detected_turn is None else None
         detected = state.detected_turn is not None or judge_turn is not None
@@ -207,6 +209,7 @@ def critical_thinking(
         per_fault[state.id] = round(score, 1)
         outcomes.append(
             FaultOutcome(
+                confirmed_by_test=confirmed,
                 id=state.id,
                 title=fault.title[session.locale],
                 category=fault.category,

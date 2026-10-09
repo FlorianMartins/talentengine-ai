@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.0 — 2026-10-09
+
+Real tests, and a professional design.
+
+- **The missions' tests run for real**: the Python missions' `tests/` run with pytest in an isolated runner
+  container; the CI shows passed/failed tests and pytest's output; a real failure turns the CI red even when
+  every static check is green.
+- **Hidden behavioural audits** at close exercise each planted flaw (injection in capitals or in an earlier
+  message, personal data in logs, a failing screen, a pseudonym recomputable without a key, IBANs in debug
+  logs); a confirmed flaw counts as present even if the static audit missed it (`confirmed_by_test`).
+- **Runner** (`runner/`): its own container, no network, no secret, no volume, read-only, no capabilities,
+  128 processes, 2 GB, 1.5 CPU, per-run temporary directory, rlimits and timeout; escape attempts measured
+  (no network, no DNS, read-only file system, no secret in the environment, fork bomb capped).
+- Running the tests found a real defect static analysis could not see: the reference export's own tests failed
+  because the KMS key is read at import — the reference tests now set a test-only key, as a real pipeline does.
+
 ## 0.9.0 — 2026-10-09
 
 Bring your own model key.

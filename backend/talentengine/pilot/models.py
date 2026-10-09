@@ -57,6 +57,7 @@ class Turn(BaseModel):
     changes: list[FileChange] = Field(default_factory=list)
     checks: list[CheckResult] = Field(default_factory=list)  # visible CI result (kind == "ci")
     passed: bool | None = None  # CI verdict (kind == "ci")
+    test_run: dict[str, Any] | None = None  # the workspace's tests, executed in the isolated runner (kind == "ci")
     question: int | None = None  # index of the question on screen (questions phase)
     # hidden telemetry
     faults_active: list[str] = Field(default_factory=list)  # hidden audits failing after this event
@@ -66,7 +67,8 @@ class Turn(BaseModel):
 
     def public(self) -> dict[str, Any]:
         out = self.model_dump(
-            mode="json", include={"index", "kind", "phase", "at", "text", "changes", "checks", "passed", "question"}
+            mode="json",
+            include={"index", "kind", "phase", "at", "text", "changes", "checks", "passed", "question", "test_run"},
         )
         return out
 
@@ -186,6 +188,7 @@ class MetricScore(BaseModel):
 
 
 class FaultOutcome(BaseModel):
+    confirmed_by_test: bool | None = None  # a hidden behavioural test failed (True), passed (False), or n/a
     id: str
     title: str
     category: str

@@ -10,6 +10,29 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - talentengine-data:/data
+    environment:
+      TE_RUNNER_URL: http://runner:8090
+    networks: [default, runner-net]
+    restart: unless-stopped
+
+  # Executes the missions' tests (pytest) for the technical test. Untrusted code: no network (internal network
+  # shared only with the app), no secrets, no volume, read-only root, no capabilities, hard limits.
+  # Set the same RUNNER_TOKEN / TE_RUNNER_TOKEN in .env.
+  runner:
+    build: ./runner
+    image: talentengine-runner:local
+    environment:
+      RUNNER_TOKEN: ${TE_RUNNER_TOKEN:?set TE_RUNNER_TOKEN in .env}
+    networks: [runner-net]
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 1.5
     restart: unless-stopped
 
   # Local vision-language model for Module 1 (face/logo masking) and image descriptions.
@@ -20,6 +43,10 @@ services:
     volumes:
       - ollama-models:/root/.ollama
     restart: unless-stopped
+
+networks:
+  runner-net:
+    internal: true
 
 volumes:
   talentengine-data:

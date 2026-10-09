@@ -132,11 +132,30 @@ Each scenario has **visible checks** (the feature exists, it is wired in, it is 
 solution passes every visible check. That is the point: in real life the CI is green and the code is
 still unsafe. A test asserts this for every scenario.
 
-No candidate code is executed on the server. Checks are `ast` analysis for Python and line rules for
-Dockerfiles, Compose, TSX and Terraform files; when a model returns code that does not parse, the hidden
-audits fall back to line analysis so a flaw in broken code is still seen. `IsolatedRunner` (in `ci.py`) documents the exact command to run test suites
-later in a separate worker: no network, read-only root, no capabilities, non-root user, CPU/memory/process
-and time limits, gVisor — never through the application's own Docker socket.
+**The tests run for real** (v0.10) for the Python missions (LLM gateway, banking export, churn model): the
+candidate's `tests/` folder is executed with **pytest** in an isolated runner, and the CI shows which tests
+pass or fail, with pytest's output — like a real pipeline. A test that fails for real turns the CI red even
+when every static check is green. The other missions (Dockerfile/Compose, React, Terraform) keep static
+checks; executing them would need Docker, Node or Terraform with network access inside the sandbox.
+
+**Hidden behavioural audits.** At close, small hidden tests *exercise* each planted flaw of the Python
+missions in the same runner: an injection written in capitals or placed in an earlier message, an e-mail and
+an IBAN sent through the gateway then looked for in the logs, a screen function forced to fail, a pseudonym
+compared with unkeyed hashes of the IBAN, an export's debug logs. Each test first checks it can exercise the
+candidate's code and *skips* when it cannot (the code is shaped differently), so it never penalises an
+alternative design. A failing hidden test confirms the flaw by behaviour (`confirmed_by_test: true`) and the
+flaw counts as still present even if the static audit missed it; a passing one is reported as such.
+
+**The runner** (`runner/server.py`, its own container) has no network (Docker `internal` network shared only
+with the application), no secret, no volume, a read-only root, no Linux capabilities, an unprivileged user,
+128 processes at most, 2 GB of memory and 1.5 CPU; each run gets a fresh temporary directory, `setrlimit`
+limits (CPU time, address space, file size, open files) and a wall-clock timeout after which its process group
+is killed. The application talks to it over HTTP with a shared token and never holds a Docker socket. Escape
+attempts measured on the production image: no network ("network unreachable"), no DNS, read-only file system
+outside `/tmp`, no secret in the environment, a fork bomb stopped at 125 processes.
+
+When a model returns code that does not parse, the static audits fall back to line analysis so a flaw in
+broken code is still seen. `IsolatedRunner` (in `ci.py`) documents a stronger variant under gVisor.
 
 ### The injector
 
@@ -304,6 +323,7 @@ pushed down; the recruiter can sort by the verified figure. Erasure and the GDPR
 | `TE_PILOT_JUDGE` | `true` | use the escalation provider (`TE_LLM_*`) as judge when one is configured |
 | `TE_PILOT_STARTS_PER_HOUR` | `6` | sandbox starts per IP |
 | `TE_OWNERSHIP_SOURCE_FILES` | `3` | source files kept per repository of an application (0 disables) |
+| `TE_RUNNER_URL`, `TE_RUNNER_TOKEN` | — | the isolated test runner (`http://runner:8090` in docker-compose); empty: static checks only; `local` runs in-process for development and tests only |
 
 ### Bring your own key (per recruiter)
 
@@ -361,7 +381,8 @@ model* (`GET/PUT/DELETE /api/me/llm`, `POST /api/me/llm/test`, `GET /api/me/llm/
   Growing the pool remains a priority.
 * Call-out detection by markers can miss unusual phrasings; the judge closes part of the gap. Read the
   transcript before concluding.
-* The CI is static analysis, not test execution (see `IsolatedRunner` for the planned isolated runner).
+* Tests run for real only for the three Python missions; Docker, React and Terraform missions keep static checks.
+* The runner relies on container isolation (namespaces, seccomp, no network); gVisor would add a kernel boundary.
 * The reference assistant is scripted: it is consistent and fair, but less fluid than a real model. The
   `llm` mode trades some comparability for realism; its reports say which flaws were planted by
   directive and which were spliced.

@@ -18,6 +18,7 @@ from .base import (
     _parse,
     _syntax,
 )
+from .hidden_gateway import HIDDEN as GATEWAY_HIDDEN
 
 _GW = "gateway/proxy.py"
 _GW_TESTS = "tests/test_gateway.py"
@@ -174,6 +175,8 @@ def _gw_naive_guard(files: Files) -> bool:
 
 
 GATEWAY = Scenario(
+    runnable=True,
+    hidden_tests=GATEWAY_HIDDEN,
     id="llm_gateway",
     title={"fr": "Sécuriser une passerelle LLM", "en": "Secure an LLM gateway"},
     brief={

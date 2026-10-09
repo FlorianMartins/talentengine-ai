@@ -1,0 +1,5 @@
+# What the missions' tests may import. Pinned; no network at run time.
+pytest==8.3.3
+numpy==2.1.2
+pandas==2.2.3
+scikit-learn==1.5.2

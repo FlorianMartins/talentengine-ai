@@ -182,6 +182,10 @@ class Scenario:
     reply_done: dict[str, str] = field(default_factory=dict)
     reply_tests: dict[str, str] = field(default_factory=dict)
     reply_fix: dict[str, dict[str, str]] = field(default_factory=dict)
+    # Real execution (pytest in the isolated runner): the visible CI runs the workspace's tests, and at close
+    # ``hidden_tests`` (fault id → pytest file) exercise each planted flaw by behaviour.
+    runnable: bool = False
+    hidden_tests: dict[str, str] = field(default_factory=dict)
 
     def t(self, attr: str, locale: Locale) -> str:
         return str(getattr(self, attr)[locale])

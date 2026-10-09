@@ -220,7 +220,7 @@ docs/          architecture, user guide, compliance, roadmap
 
 ## Status and limits
 
-This is an MVP (v0.9.0): fully working end to end, tested (150+ tests, `ruff`, `mypy`, measurements in CI),
+This is an MVP (v0.10.0): fully working end to end, tested (150+ tests, `ruff`, `mypy`, measurements in CI),
 but not production-hardened. The masking figures come from synthetic corpora, not yet from real CVs; storage is SQLite,
 authentication uses named API keys (no SSO yet), and signal strengths should be reviewed with practitioners of each
 trade before real use. The technical test's weights and thresholds are expert choices awaiting calibration

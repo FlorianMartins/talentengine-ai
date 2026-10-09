@@ -36,6 +36,7 @@ from ..models import (
     HumanDecision,
     JobProfile,
 )
+from ..pilot.runner import build_runner
 from ..pipeline import (
     Engine,
     ImageInput,
@@ -238,7 +239,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     byok = ByokStore(engine.store, engine.vault_key)  # each recruiter's own model key (bring your own key)
     pilot = PilotEngine(engine.store, sandbox_key=engine.vault_key, assistant=pilot_assistant(settings),
                         judge_provider=engine.provider if settings.pilot_judge and engine.provider else None,
-                        byok=byok)
+                        byok=byok, runner=build_runner(settings.runner_url, settings.runner_token))
     app.state.pilot = pilot
 
     def pilot_judged(session: Any, report: dict[str, Any]) -> None:

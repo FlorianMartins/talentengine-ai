@@ -70,6 +70,23 @@ jobs:
           docker exec te python -c "from talentengine.shield.ner import SpacyNer; assert SpacyNer().persons('Avec Sophie Bernard.')"
           docker exec te python -c "from talentengine.assessment.bank import load_bank; assert len(load_bank()) >= 200"
           docker exec te git --version
+      - run: docker build -t talentengine-runner:ci runner/
+      - name: Runner smoke test (production hardening, no network)
+        run: |
+          docker network create --internal runnernet
+          docker run -d --name runner --network runnernet -e RUNNER_TOKEN=ci --read-only \
+            --tmpfs /tmp:size=256m,mode=1777 --cap-drop ALL --security-opt no-new-privileges:true \
+            --pids-limit 128 --memory 2g talentengine-runner:ci
+          sleep 3
+          cat > job.json <<'JSON'
+          {"files": {"tests/test_ok.py": "import socket\n\ndef test_math():\n    assert 1 + 1 == 2\n\ndef test_no_network():\n    s = socket.socket()\n    s.settimeout(2)\n    try:\n        s.connect(('1.1.1.1', 443))\n        raise AssertionError('network reachable')\n    except OSError:\n        pass\n"}, "tests": ["tests"], "timeout": 20}
+          JSON
+          docker run --rm --network runnernet -v "$PWD/job.json:/job.json:ro" python:3.12.7-slim python -c "
+          import json, urllib.request
+          req = urllib.request.Request('http://runner:8090/run', data=open('/job.json','rb').read(), headers={'X-Runner-Token': 'ci', 'Content-Type': 'application/json'})
+          r = json.load(urllib.request.urlopen(req, timeout=60))
+          print(r['passed'], 'passed', r['failed'], 'failed')
+          assert r['passed'] == 2 and r['failed'] == 0, r['output']"
 
   secrets:
     name: Secret scan

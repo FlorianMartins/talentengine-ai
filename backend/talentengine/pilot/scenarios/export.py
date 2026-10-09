@@ -19,6 +19,7 @@ from .base import (
     _syntax,
     _without_docstring,
 )
+from .hidden_export import HIDDEN as EXPORT_HIDDEN
 
 _EX = "export/transactions.py"
 _EX_TESTS = "tests/test_export.py"
@@ -100,8 +101,11 @@ def export_transactions(rows, out):
 '''
     if "tests" in flags:
         files[_EX_TESTS] = """import io
+import os
 
-from export.transactions import export_transactions
+os.environ.setdefault("EXPORT_PSEUDONYM_KEY", "test-only-key")  # the real key lives in the KMS
+
+from export.transactions import export_transactions  # noqa: E402
 
 ROWS = [{"date": "2026-09-01", "amount": "12.50", "currency": "CHF", "merchant": "Cafe",
          "iban": "CH93 0076 2011 6238 5295 7"}]
@@ -152,6 +156,8 @@ def _ex_unkeyed(files: Files) -> bool:
 
 
 EXPORT = Scenario(
+    runnable=True,
+    hidden_tests=EXPORT_HIDDEN,
     id="payments_export",
     title={"fr": "Export bancaire pseudonymisé (FINMA / RGPD)", "en": "Pseudonymised banking export (FINMA / GDPR)"},
     brief={

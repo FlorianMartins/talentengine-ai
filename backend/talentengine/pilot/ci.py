@@ -5,7 +5,8 @@ Compose rules) and never execute anything. Code written by a model that a candid
 by definition; running it on the application server would hand the server to whoever writes the best
 prompt.
 
-``IsolatedRunner`` documents — and builds the exact command for — the next step: executing the
+Since v0.10 the Python missions' tests also run **for real** in the isolated runner container
+(``runner/server.py``, ``pilot/runner.py``). ``IsolatedRunner`` below documents the gVisor variant: executing the
 workspace's test suite in a throw-away container with no network, a read-only root, no capabilities, a
 non-root user and hard CPU, memory, process and time limits. It must run on a **separate worker host**
 (never through the application's own Docker socket, which is precisely the flaw of scenario 3), ideally
@@ -18,7 +19,28 @@ from pathlib import Path
 
 from ..models import Locale
 from .models import CheckResult
+from .runner import Runner, TestRun
 from .scenarios import Files, Scenario
+
+
+def run_ci(scenario: Scenario, files: Files, locale: str, runner: Runner | None) -> tuple[list[CheckResult], bool,
+                                                                                         TestRun | None]:
+    """The visible CI: static checks, plus the workspace's own tests executed for real when a runner exists."""
+    checks, passed = run_static(scenario, files, locale)
+    if runner is None or not scenario.runnable:
+        return checks, passed, None
+    run = runner.run(files, ["tests"], timeout=40)
+    if run.error:  # the runner is down: say so, and do not fail the candidate for it
+        checks.append(CheckResult(id="executed", label=_EXEC[locale == "en"], passed=True,
+                                  detail=f"not run: {run.error}"))
+        return checks, passed, run
+    detail = f"{run.passed} passed, {run.failed} failed, {run.errors} errors" + (" — timed out" if run.timed_out
+                                                                               else "")
+    checks.append(CheckResult(id="executed", label=_EXEC[locale == "en"], passed=run.green, detail=detail))
+    return checks, passed and run.green, run
+
+
+_EXEC = {False: "Les tests s'exécutent et passent (pytest)", True: "Tests run and pass (pytest)"}
 
 
 def run_static(scenario: Scenario, files: Files, locale: str) -> tuple[list[CheckResult], bool]:

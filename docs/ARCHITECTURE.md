@@ -458,6 +458,10 @@ interview questions and the candidate explanation link is written back. Details 
 
 ## 11. Security posture (MVP)
 
+* Untrusted code (written by a candidate or a model during a technical test) only ever runs in the isolated
+  runner container: no network, no secret, no volume, read-only root, no capabilities, hard limits — never in
+  the application, which has no Docker socket.
+
 * Local-first by default: no candidate data leaves the machine unless a job explicitly opts into
   escalation, and even then only pseudonymised Level-1 excerpts are sent.
 * Named accounts with roles (`recruiter`, `dpo`, `admin`): personal keys stored as SHA-256 hashes

@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENGINE_VERSION = "0.9.0"
+ENGINE_VERSION = "0.10.0"
 
 
 class Settings(BaseSettings):
@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     # LLM-as-a-judge: uses the escalation provider (TE_LLM_*) when one is configured; false disables it.
     pilot_judge: bool = True
     pilot_starts_per_hour: int = 6
+    # Isolated test runner (runner/ container): executes the missions' tests for real. Empty: static checks only;
+    # "local": in-process, for development and tests only (never for real candidates).
+    runner_url: str = ""
+    runner_token: str = ""
     # Source files kept per repository of an application, for the AI-pilot task on the candidate's own code
     # (pseudonymised like key files, never sent to the escalation model). 0 disables.
     ownership_source_files: int = 3

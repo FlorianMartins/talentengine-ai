@@ -38,6 +38,15 @@ hivey.be {
 | `TE_CORS_ORIGINS` | `["https://hivey.be"]` | |
 | `TE_SANDBOX_MATCHES_PER_HOUR` / `..._OFFERS_...` | `12` / `40` | per-IP limits of the public sandbox |
 
+## The test runner (technical tests)
+
+The `runner` service of `docker-compose.yml` executes the missions' tests (pytest). Set the same random
+`TE_RUNNER_TOKEN` for both services in `.env` (`python -c "import secrets; print(secrets.token_urlsafe(32))"`);
+the application reaches it at `TE_RUNNER_URL=http://runner:8090` over an `internal` network that has no route
+to the Internet. Keep its hardening (read-only, `cap_drop: ALL`, `no-new-privileges`, `pids_limit`, memory and
+CPU limits) and never give it a volume or a secret. Without a runner, the technical test falls back to static
+checks. Optional: run it under gVisor (`runtime: runsc`) for a kernel boundary.
+
 ## Security notes for the public sandbox
 
 * **Tests in progress survive a restart**: sandbox test sessions (technical tests and legacy verification tests) are

@@ -27,7 +27,7 @@ from ..sandbox.sessions import SandboxSessions
 from ..shield.injection import screen
 from ..store import Store
 from .assistant import Assistant, HallucinationInjector, LLMAssistant, ScriptedAssistant
-from .ci import run_static
+from .ci import run_ci
 from .judge import LLMError, apply_judge, manipulation_suspected, run_judge, valid_callouts
 from .models import (
     MAX_FILE_BYTES,
@@ -51,6 +51,7 @@ from .questions import (
     score_answer,
     trap_scores,
 )
+from .runner import HIDDEN_DIR, hidden_verdicts
 from .scenarios import SCENARIOS, Files, Scenario, fold
 from .scoring import WEIGHTS, critical_thinking, detect_callouts, intent_precision, orchestration_velocity, pilot_index
 
@@ -130,10 +131,12 @@ class PilotEngine:
         judge_provider: Any = None,
         sandbox_key: str | None = None,
         byok: Any = None,
+        runner: Any = None,
     ) -> None:
         self.store = store
         self.assistant: Assistant = assistant or ScriptedAssistant()
         self.judge_provider = judge_provider  # the deployment's own model, if any
+        self.runner = runner  # isolated test runner (pilot/runner.py); None: static checks only
         self.byok = byok  # ByokStore: each recruiter's own model key, used for the tests they send
         self.judge_in_background = True  # a candidate's close never waits for a judge model
         self.on_judged: Any = None  # callback(session, report) once a background judge has run
@@ -512,8 +515,11 @@ class PilotEngine:
         scenario = SCENARIOS.get(s.scenario_id)
         if scenario is None:
             raise PilotError("this test has no practical mission")
-        checks, passed = run_static(scenario, s.files, s.locale)
-        turn = s.add_turn("ci", text="CI " + ("passed" if passed else "failed"), checks=checks, passed=passed)
+        checks, passed, run = run_ci(scenario, s.files, s.locale, self.runner)
+        turn = s.add_turn("ci", text="CI " + ("passed" if passed else "failed"), checks=checks, passed=passed,
+                          test_run=run.model_dump(include={"passed", "failed", "errors", "skipped", "timed_out",
+                                                           "tests", "output", "duration", "error"})
+                          if run else None)
         self._save(key, s)
         return turn.public()
 
@@ -611,6 +617,15 @@ class PilotEngine:
             threading.Thread(target=self._judge_later, args=(token,), daemon=True).start()
         return s, s.report, True
 
+    def _hidden_audits(self, s: AISandboxSession, scenario: Scenario) -> dict[str, bool | None]:
+        """Behavioural tests of the planted flaws, run once at close in the isolated runner."""
+        wanted = {f.id for f in s.faults} & set(scenario.hidden_tests)
+        if self.runner is None or not wanted:
+            return {}
+        files = {f"{HIDDEN_DIR}/test_{fid}.py": scenario.hidden_tests[fid] for fid in wanted}
+        run = self.runner.run({**s.files, **files}, [HIDDEN_DIR], timeout=40)
+        return hidden_verdicts(run, {fid: f"{HIDDEN_DIR}/test_{fid}.py" for fid in wanted})
+
     def _judge_later(self, token: str) -> None:
         """Re-evaluate with the judge after the candidate has left (models can take a minute, or fail)."""
         try:
@@ -647,9 +662,10 @@ class PilotEngine:
         knowledge, ai_pct, own_work_pct = applied_knowledge(s)
         q_scores, q_evidence = trap_scores(s)
         m1 = intent_precision(s)
-        m2, faults = critical_thinking(s, scenario, s.files, callouts, q_scores, q_evidence)
+        behaviour = self._hidden_audits(s, scenario) if scenario is not None else {}
+        m2, faults = critical_thinking(s, scenario, s.files, callouts, q_scores, q_evidence, behaviour)
         if scenario is not None:
-            checks, green = run_static(scenario, s.files, s.locale)
+            checks, green, _ = run_ci(scenario, s.files, s.locale, self.runner)
             passing = sum(c.passed for c in checks) / max(1, len(checks))
             m3, velocity = orchestration_velocity(s, scenario, green, passing)
         own_prompts = (
