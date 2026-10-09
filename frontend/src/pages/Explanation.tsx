@@ -25,7 +25,7 @@ import { cx, dateTime, levelIndex } from "../lib/format";
 import { printPage } from "../lib/print";
 import { PublicLayout, publicPaths } from "../components/PublicLayout";
 import { BandChip, DecisionChip, EmptyState, ErrorState, ImportanceChip, Skeleton, StatusChip } from "../components/feedback";
-import { Meter, ScoreRing } from "../components/charts";
+import { Meter, ScoreFigure } from "../components/charts";
 import { SkillCard } from "./ReportSections";
 
 export function ExplanationPage({ lang }: { lang?: Lang }) {
@@ -84,7 +84,7 @@ function Explanation({ data: d }: { data: PublicExplanation }) {
       {/* ------------------------------------------------ hero */}
       <section className="hero try-result-hero" aria-labelledby="x-title">
         <div className="report-hero">
-          <ScoreRing value={d.compatibility_pct} size={168} stroke={12} glow caption={t.report.compatibility} />
+          <ScoreFigure value={d.compatibility_pct} size="lg" caption={t.report.compatibility} />
           <div className="stack" style={{ minWidth: 0, width: "100%" }}>
             <div className="stack-sm" style={{ gap: 6 }}>
               <span className="eyebrow">{e.eyebrow}</span>

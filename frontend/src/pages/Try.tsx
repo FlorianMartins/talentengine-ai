@@ -56,7 +56,7 @@ import { PresetPicker } from "../components/PresetPicker";
 import { StartTechTestCard } from "../components/StartTechTestCard";
 import { CandidateNotice } from "../components/CandidateNotice";
 import { DocumentZones, EMPTY_DOCS, hasAnyDoc, type DocSet } from "../components/DocumentZones";
-import { Meter, ScoreRing } from "../components/charts";
+import { Meter, ScoreFigure } from "../components/charts";
 import { SkillCard } from "./ReportSections";
 import type { Lang } from "../i18n";
 
@@ -710,7 +710,6 @@ function Progress({ github }: { github: string[] }) {
   }, [stages.length]);
   return (
     <section className="panel progress-panel" role="status" aria-live="polite" aria-label={p.title}>
-      <div className="scan" aria-hidden="true" />
       <h3 className="panel-title">
         <Loader2 size={18} className="spin" aria-hidden="true" />
         {p.title}
@@ -785,7 +784,7 @@ function Result({
     <div className="stack-lg">
       <section className="hero try-result-hero" aria-labelledby="res-h">
         <div className="report-hero">
-          <ScoreRing value={r.compatibility_pct} size={176} stroke={12} glow caption={t.report.compatibility} />
+          <ScoreFigure value={r.compatibility_pct} size="lg" caption={t.report.compatibility} />
           <div className="stack" style={{ minWidth: 0, width: "100%" }}>
             <div className="stack-sm" style={{ gap: 6 }}>
               <span className="eyebrow">{s.eyebrow}</span>

@@ -34,10 +34,8 @@ export function PublicLayout({ children, lang: routeLang }: { children: ReactNod
       </a>
       <header className="pub-bar">
         <Link to={paths.try} className="brand" aria-label={t.pub.nav.home} style={{ padding: 0 }}>
-          <Logo size={30} />
-          <span className="brand-name pub-brand-name">
-            TalentEngine<b>‑AI</b>
-          </span>
+          <Logo size={26} />
+          <span className="brand-name pub-brand-name">TalentEngine</span>
         </Link>
         <nav className="pub-nav" aria-label={t.nav.label}>
           <NavLink to={paths.try} className={({ isActive }) => cx("pub-link", isActive && "active")}>

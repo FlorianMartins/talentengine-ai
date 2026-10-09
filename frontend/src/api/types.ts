@@ -850,6 +850,20 @@ export interface PilotTurn {
   passed: boolean | null;
   /** index of the question on screen (section 2 chat turns), null otherwise */
   question?: number | null;
+  /** the workspace's tests, executed for real by pytest in the isolated runner (kind "ci", v0.10) */
+  test_run?: PilotTestRun | null;
+}
+
+export interface PilotTestRun {
+  passed: number;
+  failed: number;
+  errors: number;
+  skipped: number;
+  timed_out: boolean;
+  tests: { name: string; file: string; outcome: "passed" | "failed" | "error" | "skipped"; message: string }[];
+  output: string;
+  duration: number;
+  error: string;
 }
 
 export interface PilotOwnershipTask {

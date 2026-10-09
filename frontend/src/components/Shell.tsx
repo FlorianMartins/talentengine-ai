@@ -28,20 +28,12 @@ import { getStored, setStored } from "../lib/storage";
 import { cx } from "../lib/format";
 import { ToastRegion } from "./feedback";
 
-/** Geometric mark: a hexagonal "evidence cell" with a 3-axis core. Original drawing. */
-export function Logo({ size = 32 }: { size?: number }) {
+/** Minimal mark: a "T" monogram on the brand ink-blue square. Original drawing. */
+export function Logo({ size = 28 }: { size?: number }) {
   return (
     <svg className="brand-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <defs>
-        <linearGradient id="te-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="var(--accent)" />
-          <stop offset="1" stopColor="var(--violet)" />
-        </linearGradient>
-      </defs>
-      <rect x="0.5" y="0.5" width="31" height="31" rx="9" fill="var(--surface-2)" stroke="var(--border-strong)" />
-      <path d="M16 5.5 25 10.75v10.5L16 26.5 7 21.25v-10.5Z" fill="none" stroke="url(#te-g)" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M16 11v5m0 0-4.3 2.5M16 16l4.3 2.5" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="16" cy="16" r="2.1" fill="var(--accent)" />
+      <rect width="32" height="32" rx="7" fill="var(--accent)" />
+      <path d="M9 10h14M16 10v13" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -83,9 +75,9 @@ export function Shell() {
 
   const nav = useMemo(
     () => [
-      { to: "/", label: t.nav.overview, icon: LayoutGrid, end: true },
-      { to: "/audit", label: t.nav.audit, icon: ScrollText, end: false },
-      { to: "/settings", label: t.nav.settings, icon: Settings, end: true },
+      { to: "/", label: t.nav.overview, icon: LayoutGrid, end: true, jobs: true },
+      { to: "/audit", label: t.nav.audit, icon: ScrollText, end: false, jobs: false },
+      { to: "/settings", label: t.nav.settings, icon: Settings, end: true, jobs: false },
     ],
     [t],
   );
@@ -103,9 +95,7 @@ export function Shell() {
           <Link to="/" className="brand" title={t.app.name}>
             <Logo />
             <span className="brand-text">
-              <span className="brand-name">
-                TalentEngine<b>‑AI</b>
-              </span>
+              <span className="brand-name">TalentEngine</span>
               <span className="brand-tag">{t.app.tagline}</span>
             </span>
           </Link>
@@ -116,7 +106,7 @@ export function Shell() {
                   <NavLink
                     to={n.to}
                     end={n.end}
-                    className={({ isActive }) => cx("nav-item", (isActive || (n.end && isJobs)) && "active")}
+                    className={({ isActive }) => cx("nav-item", (isActive || (n.jobs && isJobs)) && "active")}
                     title={collapsed ? n.label : undefined}
                   >
                     <n.icon size={18} aria-hidden="true" />
@@ -245,7 +235,7 @@ export function Shell() {
 
       <nav className="mobile-nav" aria-label={t.nav.label}>
         {nav.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cx((isActive || (n.end && isJobs)) && "active")}>
+          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cx((isActive || (n.jobs && isJobs)) && "active")}>
             <n.icon size={20} aria-hidden="true" />
             {n.label}
           </NavLink>

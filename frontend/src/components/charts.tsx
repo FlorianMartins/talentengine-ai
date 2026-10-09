@@ -1,62 +1,44 @@
-// Hand-drawn SVG data visualisations: score ring, 3-axis radar, level meter, skill graph.
-import { useEffect, useId, useMemo, useState } from "react";
+// Hand-drawn data visualisations: score figure, 3-axis radar, level meter, skill graph.
+import { useId, useMemo, useState } from "react";
 import type { AxisWeights, SkillEdge } from "../api/types";
 import { AXES } from "../api/types";
 import { useT } from "../lib/prefs";
 import { cx } from "../lib/format";
 
-// ------------------------------------------------------------------ score ring
+// ------------------------------------------------------------------ score figure
 
-interface RingProps {
+interface FigureProps {
   value: number | null; // 0..100
-  size?: number;
-  stroke?: number;
+  /** lg: report / result headers; md: secondary results; sm: list rows and tables. */
+  size?: "lg" | "md" | "sm";
   caption?: string;
-  glow?: boolean;
-  color?: string;
+  color?: string; // bar colour; defaults to the brand accent
   label?: string; // accessible label
 }
 
-export function ScoreRing({ value, size = 64, stroke, caption, glow, color, label }: RingProps) {
-  const sw = stroke ?? Math.max(4, Math.round(size / 13));
-  const r = (size - sw) / 2;
-  const c = 2 * Math.PI * r;
-  const target = value === null ? 0 : Math.max(0, Math.min(100, value));
-  // Animate from 0 on mount (CSS transition; disabled under prefers-reduced-motion).
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setShown(target));
-    return () => cancelAnimationFrame(id);
-  }, [target]);
+/** A plain large number with a thin horizontal bar (no ring, no glow). */
+export function ScoreFigure({ value, size = "sm", caption, color, label }: FigureProps) {
+  const pct = value === null ? 0 : Math.max(0, Math.min(100, value));
   const display = value === null ? "—" : Math.round(value).toString();
   return (
     <div
-      className={cx("score-ring", glow && "glow")}
-      style={{ width: size, height: size, ["--ring-color" as string]: color }}
+      className={cx("score-figure", `is-${size}`, value === null && "is-empty")}
+      style={color ? { ["--sf-color" as string]: color } : undefined}
       role="img"
-      aria-label={label ?? (value === null ? "—" : `${value.toFixed(1)} %`)}
+      aria-label={label ?? `${caption ? `${caption} ` : ""}${value === null ? "—" : `${value.toFixed(1)} %`}`}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle className="ring-track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={sw} />
-        <circle
-          className="ring-fill"
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          strokeWidth={sw}
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - shown / 100)}
-        />
-      </svg>
-      <div className="ring-label" aria-hidden="true">
-        <span className="ring-value" style={{ fontSize: size * 0.3 }}>
-          {display}
-          {value !== null && <span className="ring-unit">%</span>}
+      {caption && size !== "sm" && (
+        <span className="sf-caption" aria-hidden="true">
+          {caption}
         </span>
-        {caption && <span className="ring-caption">{caption}</span>}
-      </div>
+      )}
+      <span className="sf-value" aria-hidden="true">
+        {display}
+        {value !== null && <span className="sf-unit">%</span>}
+      </span>
+      <span className="sf-bar" aria-hidden="true">
+        <span style={{ width: `${pct}%` }} />
+      </span>
     </div>
   );
 }
@@ -143,11 +125,7 @@ interface MeterProps {
 }
 
 export function Meter({ value, max, mark, color, label, scale }: MeterProps) {
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setShown(value));
-    return () => cancelAnimationFrame(id);
-  }, [value]);
+  const shown = value;
   const pctOf = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   return (
     <div>

@@ -6,7 +6,7 @@ import { useAccess, useAsync, useSystem, useT, useToast } from "../lib/prefs";
 import { PageHeader, useCrumbs } from "../components/Shell";
 import { StatusStrip } from "../components/StatusStrip";
 import { EmptyState, ErrorState, FamilyIcon, Gate, Skeleton } from "../components/feedback";
-import { ScoreRing } from "../components/charts";
+import { ScoreFigure } from "../components/charts";
 
 export function OverviewPage() {
   const t = useT();
@@ -129,7 +129,7 @@ export function OverviewPage() {
                 </div>
                 {j.summary && <p className="summary">{j.summary}</p>}
                 <div className="job-metrics">
-                  <ScoreRing value={j.best_pct} size={52} label={`${t.overview.best}: ${j.best_pct ?? "—"}`} />
+                  <ScoreFigure value={j.best_pct} size="sm" label={`${t.overview.best}: ${j.best_pct ?? "—"}`} />
                   <div className="metric">
                     <span style={{ whiteSpace: "nowrap" }}>{t.overview.best}</span>
                     <span className="small muted">

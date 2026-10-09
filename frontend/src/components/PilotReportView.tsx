@@ -30,7 +30,7 @@ import type { PilotMetric, PilotQuestionOutcome, PilotReport, PilotTurn } from "
 import type { Dict } from "../i18n";
 import { usePrefs } from "../lib/prefs";
 import { cx } from "../lib/format";
-import { Meter, ScoreRing } from "./charts";
+import { Meter, ScoreFigure } from "./charts";
 import { PilotTranscript } from "./PilotTurns";
 
 const METRIC_ICON: Record<string, LucideIcon> = {
@@ -144,16 +144,15 @@ export function PilotReportView({
       {/* ---------------------------------------------------------- head */}
       <div className="pr-head">
         <div className="pr-rings">
-          <ScoreRing
+          <ScoreFigure
             value={r.pilot_index_pct}
-            size={audience === "self" ? 148 : 112}
-            glow={audience === "self"}
+            size={audience === "self" ? "lg" : "md"}
             caption={tt.ring}
             label={`${tt.overall} ${r.pilot_index_pct.toFixed(1)} %`}
           />
-          <ScoreRing
+          <ScoreFigure
             value={r.authenticity_pct}
-            size={audience === "self" ? 104 : 84}
+            size="md"
             color="var(--violet)"
             caption={p.authenticity}
             label={`${p.authenticity} ${r.authenticity_pct === null ? p.notTaken : `${r.authenticity_pct.toFixed(1)} %`}`}

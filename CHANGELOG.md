@@ -13,6 +13,12 @@ Real tests, and a professional design.
 - **Runner** (`runner/`): its own container, no network, no secret, no volume, read-only, no capabilities,
   128 processes, 2 GB, 1.5 CPU, per-run temporary directory, rlimits and timeout; escape attempts measured
   (no network, no DNS, read-only file system, no secret in the environment, fork bomb capped).
+- **Professional design**: light theme by default (sober dark theme kept), neutral greys with one ink-blue accent
+  (`#2F5BDA`), Inter for the interface and JetBrains Mono only for code, 6–8 px radii, flat surfaces with 1 px
+  borders; neon accents, glows, gradients, animated decorations and score rings removed (plain figures with a
+  thin bar instead); calm test player; black-on-white print; contrast checked (text 16.5:1, white on accent
+  5.8:1). Fonts self-hosted, within the production CSP.
+- The mission's CI panel shows pytest's verdict per test and its output.
 - Running the tests found a real defect static analysis could not see: the reference export's own tests failed
   because the KMS key is read at import — the reference tests now set a test-only key, as a real pipeline does.
 

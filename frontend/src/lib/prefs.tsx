@@ -21,7 +21,7 @@ interface Prefs {
 const PrefsContext = createContext<Prefs | null>(null);
 
 export function PrefsProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => (getStored("theme") === "light" ? "light" : "dark"));
+  const [theme, setThemeState] = useState<Theme>(() => (getStored("theme") === "dark" ? "dark" : "light"));
   const [lang, setLangState] = useState<Lang>(() => (getStored("lang") === "en" ? "en" : "fr"));
   const [reviewer, setReviewerState] = useState(() => getStored("reviewer"));
   const [apiKey, setApiKeyState] = useState(() => getStored("apiKey"));

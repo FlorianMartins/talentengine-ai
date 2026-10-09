@@ -19,7 +19,7 @@ import { useAccess, useAsync, usePrefs, useSystem, useToast } from "../lib/prefs
 import { dateTime } from "../lib/format";
 import { useCrumbs } from "../components/Shell";
 import { BandChip, DecisionChip, EmptyState, ErrorState, Gate, Modal, PageSkeleton } from "../components/feedback";
-import { ScoreRing } from "../components/charts";
+import { ScoreFigure } from "../components/charts";
 import { Segmented } from "../components/controls";
 import { ReportActions, ReportPrintDoc } from "./ReportExtras";
 import { ExplanationLinksPanel, VerificationPanel } from "./ReportVerification";
@@ -176,11 +176,9 @@ function ReportHero({ report: r }: { report: DashboardReport }) {
   return (
     <section className="hero" aria-labelledby="r-title">
       <div className="report-hero">
-        <ScoreRing
+        <ScoreFigure
           value={r.compatibility_pct}
-          size={168}
-          stroke={12}
-          glow
+          size="lg"
           caption={t.report.compatibility}
           label={`${t.report.compatibility} ${r.compatibility_pct.toFixed(1)} %`}
         />

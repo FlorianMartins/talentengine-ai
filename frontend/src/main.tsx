@@ -1,12 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-// Self-hosted fonts (no third-party requests: this is a privacy-first product).
+// Self-hosted fonts (no third-party requests: this is a privacy-first product, and the production CSP
+// only allows font-src 'self'). Inter for all UI text, JetBrains Mono for code, paths and identifiers.
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
-import "@fontsource/space-grotesk/latin-500.css";
-import "@fontsource/space-grotesk/latin-600.css";
-import "@fontsource/space-grotesk/latin-700.css";
 import "@fontsource/jetbrains-mono/latin-400.css";
 import "@fontsource/jetbrains-mono/latin-500.css";
 import "./styles/tokens.css";

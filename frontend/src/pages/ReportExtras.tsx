@@ -7,7 +7,7 @@ import { usePrefs, useToast } from "../lib/prefs";
 import { dateTime, levelIndex } from "../lib/format";
 import { printDoc } from "../lib/print";
 import { Gate, Modal } from "../components/feedback";
-import { ScoreRing } from "../components/charts";
+import { ScoreFigure } from "../components/charts";
 import { Logo } from "../components/Shell";
 
 export function ReportActions({ report, onLinkCreated }: { report: DashboardReport; onLinkCreated?: () => void }) {
@@ -158,7 +158,7 @@ export function ReportPrintDoc({
           <span className="pd-date">{t.ops.printGenerated(dateTime(new Date().toISOString(), lang))}</span>
         </div>
         <div className="pd-hero">
-          <ScoreRing value={r.compatibility_pct} size={104} stroke={9} caption={t.report.compatibility} />
+          <ScoreFigure value={r.compatibility_pct} size="md" caption={t.report.compatibility} />
           <div>
             <p className="pd-job">
               {r.job_title} · {r.job_id}

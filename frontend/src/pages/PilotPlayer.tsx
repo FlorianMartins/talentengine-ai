@@ -37,7 +37,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { ApiError, pilot } from "../api/client";
-import type { PilotAnswerResult, PilotQuestion, PilotReport, PilotState, PilotTurn } from "../api/types";
+import type { PilotAnswerResult, PilotQuestion, PilotReport, PilotState, PilotTestRun, PilotTurn } from "../api/types";
 import { usePrefs, useToast } from "../lib/prefs";
 import { cx } from "../lib/format";
 import { printPage } from "../lib/print";
@@ -1535,7 +1535,36 @@ function CiRun({ run, n, open }: { run: PilotTurn; n: number; open?: boolean }) 
           </li>
         ))}
       </ul>
+      {run.test_run && !run.test_run.error && <TestRunView tr={run.test_run} />}
     </details>
+  );
+}
+
+/** pytest's verdict per test, and its raw output — what a real pipeline shows */
+function TestRunView({ tr }: { tr: PilotTestRun }) {
+  const { t } = usePrefs();
+  const x = t.runner;
+  return (
+    <div className="pl-testrun stack-sm">
+      <p className="xs muted">{x.summary(tr.passed, tr.failed + tr.errors, tr.duration)}</p>
+      {tr.tests.length > 0 && (
+        <ul className="pl-checks">
+          {tr.tests.map((c) => (
+            <li key={`${c.file}.${c.name}`} className={c.outcome === "passed" ? "is-ok" : c.outcome === "skipped" ? "" : "is-ko"}>
+              {c.outcome === "passed" ? <CheckCircle2 size={14} aria-hidden="true" /> : <XCircle size={14} aria-hidden="true" />}
+              <div style={{ minWidth: 0 }}>
+                <span className="mono xs">{c.name}</span>
+                {c.message && <span className="mono xs faint pl-check-detail">{c.message.split("\n")[0]}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <details>
+        <summary className="xs">{x.output}</summary>
+        <pre className="mono xs pl-testrun-output">{tr.output}</pre>
+      </details>
+    </div>
   );
 }
 

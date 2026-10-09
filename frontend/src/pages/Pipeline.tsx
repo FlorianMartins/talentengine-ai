@@ -35,7 +35,7 @@ import {
   Skeleton,
   StatusChip,
 } from "../components/feedback";
-import { Meter, ScoreRing } from "../components/charts";
+import { Meter, ScoreFigure } from "../components/charts";
 import { RangeField } from "../components/controls";
 import { DpiaButton } from "../components/DpiaButton";
 
@@ -403,7 +403,7 @@ function CandidateRow({
           #{rank}
         </span>
       )}
-      <ScoreRing value={c.compatibility_pct} size={58} />
+      <ScoreFigure value={c.compatibility_pct} size="sm" />
       <div className="cand-main">
         <div className="row wrap" style={{ gap: 10 }}>
           <Link to={`/candidates/${c.candidate_ref}`} className="cand-ref" aria-label={t.pipeline.openReport(c.candidate_ref)}>
@@ -516,7 +516,7 @@ function CompareModal({ refs, onClose }: { refs: string[]; onClose: () => void }
                 {reports.data?.map((r) => (
                   <td key={r.candidate_ref}>
                     <div className="row">
-                      <ScoreRing value={r.compatibility_pct} size={44} />
+                      <ScoreFigure value={r.compatibility_pct} size="sm" />
                       <BandChip band={r.evidence_band} />
                     </div>
                   </td>

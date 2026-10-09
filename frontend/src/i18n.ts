@@ -1318,6 +1318,10 @@ const fr = {
   pilot: frPilot,
   tt: frTT,
   byok: frBYOK,
+  runner: {
+    summary: (ok: number, ko: number, s: number) => `pytest : ${ok} réussi(s), ${ko} en échec — ${s.toFixed(1)} s`,
+    output: "Sortie de pytest",
+  },
   ...frV4,
   pub: frPublic,
   app: {
@@ -1838,6 +1842,10 @@ const en: Dict = {
   pilot: enPilot,
   tt: enTT,
   byok: enBYOK,
+  runner: {
+    summary: (ok: number, ko: number, s: number) => `pytest: ${ok} passed, ${ko} failing — ${s.toFixed(1)} s`,
+    output: "pytest output",
+  },
   ...enV4,
   pub: enPublic,
   app: {

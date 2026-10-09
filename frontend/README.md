@@ -1,6 +1,6 @@
 # TalentEngine‑AI — web front-end
 
-The recruiter-facing UI of TalentEngine‑AI: a calm "mission control" for skills-first hiring.
+The recruiter-facing UI of TalentEngine‑AI: a calm, professional evaluation tool for skills-first hiring.
 It ranks **evidence**, never people. Every screen says so, and every decision is made, justified and signed by a human.
 
 ![Candidate report](../docs/images/report-dark.png)
@@ -12,10 +12,10 @@ It ranks **evidence**, never people. Every screen says so, and every decision is
 | Build | Vite 5, TypeScript (strict, `noUncheckedIndexedAccess`) |
 | UI | React 18, `react-router-dom` 6 (BrowserRouter), `lucide-react` icons |
 | Styling | Hand-written CSS with design tokens (custom properties). No CSS framework |
-| Charts | Inline SVG drawn by hand (score ring, 3-axis radar, level meters, skill graph). No chart library |
-| Fonts | Space Grotesk (headings), Inter (text), JetBrains Mono (data/hashes). **Self-hosted** via `@fontsource`, so the browser makes no third-party requests (this is a privacy-first product). System fallbacks are declared |
+| Charts | Hand-drawn: score figure (large number + thin bar), 3-axis radar, level meters, skill graph (inline SVG). No chart library |
+| Fonts | Inter (all UI text and headings, tabular numerals for figures), JetBrains Mono (code, file paths, identifiers only). **Self-hosted** via `@fontsource`: the browser makes no third-party requests (privacy-first), and the production CSP (`font-src 'self' data:`, `style-src 'self' 'unsafe-inline'`) would block Google Fonts anyway. System fallbacks are declared |
 
-Runtime dependencies: `react`, `react-dom`, `react-router-dom`, `lucide-react`, three `@fontsource/*` packages. That's all.
+Runtime dependencies: `react`, `react-dom`, `react-router-dom`, `lucide-react`, two `@fontsource/*` packages. That's all.
 
 ## Scripts
 
@@ -65,9 +65,9 @@ curl -X POST localhost:8000/api/demo/seed   # or use the "Load demo data" button
 |---|---|
 | `/` | **Overview**: roles as cards (family icon, applications, best score, decisions, config version), totals, and a system status strip (vision detector, LLM or "Local only", ledger integrity). The empty state offers **Load demo data** when the server allows it |
 | `/jobs/new`, `/jobs/:id/edit` | **Configuration studio**: preset gallery or a blank profile; basics; a searchable criteria builder grouped by family (importance segmented control, weight 0–5, expected level 0–4 with level names, optional per-criterion axis override, recruiter note, reorder/remove, max 40, unique skills); axis weights with a live radar; credential policy (weight hard-capped at `runtime.max_credential_weight`); budget funnel (cloud LLM off by default, with a computed escalation hint); privacy switches; live JSON preview with copy, export, import and apply; validation bar. Saving does a POST, or a PUT that bumps `version` |
-| `/jobs/:id` | **Pipeline**: anonymous ranked list (score ring, evidence band, confidence, top skills, evidence and file counts, AI-escalation and warning badges, decision). View-only filters (band, decision, minimum score: *nobody is rejected*), sorting, a **compare mode** (2–3 applications in a side-by-side criteria matrix), the AI budget widget and **Run evaluation** |
+| `/jobs/:id` | **Pipeline**: anonymous ranked list (score figure, evidence band, confidence, top skills, evidence and file counts, AI-escalation and warning badges, decision). View-only filters (band, decision, minimum score: *nobody is rejected*), sorting, a **compare mode** (2–3 applications in a side-by-side criteria matrix), the AI budget widget and **Run evaluation** |
 | `/jobs/:id/apply` | **Submission form**: drag-and-drop CV and documents, GitHub URLs, portfolio items, captioned images, identity (explained as "used only to mask, then encrypted"), retention days, explicit GDPR consent. On success it shows the pseudonymous reference |
-| `/candidates/:ref` | **Report**: hero (score ring, skills vs credentials breakdown with applied weights, confidence, evidence band, AI Act notice, warnings). **Summary** tab: criteria matrix, gaps, human decision with reveal identity, credentials, GDPR erasure. **Evidence** tab: validated skill cards (statement, level, mini radar, source, expandable excerpts, redacted image thumbnails), skill graph, pseudonymised files. **Interview** tab: printable guide with a tickable checklist. **Glass box** tab: "Why this score?", score entry hash, escalation details, ledger timeline and chain status |
+| `/candidates/:ref` | **Report**: header (score figure, skills vs credentials breakdown with applied weights, confidence, evidence band, AI Act notice, warnings). **Summary** tab: criteria matrix, gaps, human decision with reveal identity, credentials, GDPR erasure. **Evidence** tab: validated skill cards (statement, level, mini radar, source, expandable excerpts, redacted image thumbnails), skill graph, pseudonymised files. **Interview** tab: printable guide with a tickable checklist. **Glass box** tab: "Why this score?", score entry hash, escalation details, ledger timeline and chain status |
 | `/audit` | **Audit ledger**: paginated table with filters (application ref, role, kind), prev→entry hash chaining, expandable payloads, and a verify-chain banner |
 | `/settings` | Theme, language, reviewer name (sent as `X-Actor`), API key (sent as `X-API-Key`, kept in `localStorage`), read-only runtime info |
 
@@ -177,7 +177,7 @@ mesuré, c'est la direction que vous donnez").
     5-minute clock.
   - **End**: the sandbox shows the full report (flaws revealed as a learning moment); a candidate link only shows
     a thank-you screen, never the evaluation.
-- **Report** `components/PilotReportView.tsx` (sandbox and recruiter): pilot-index ring and authenticity ring,
+- **Report** `components/PilotReportView.tsx` (sandbox and recruiter): pilot-index and authenticity score figures,
   "signal pour l'entretien, jamais un motif de rejet automatique", one card per metric (final %, factual %, the
   judge's proposal and whether it was applied, "bounded to ±15 pts", breakdown bars, evidence with turn links that
   open and highlight the turn in the transcript), the flaws table (title, category + CWE, turn it appeared,
@@ -226,7 +226,7 @@ internet and AI. The recruitment technical test is now **one** session of the `/
     (question first, a dot announces a new reply).
   - **Transitions**: an interstitial between sections 1 → 2 (shown once per session, before the next question's
     clock starts) and 2 → 3 (mission brief, the mission clock already runs: see limits).
-- **Report** (`components/PilotReportView.tsx`): overall ring, a **Sections** summary (Knowledge %, With the AI %,
+- **Report** (`components/PilotReportView.tsx`): overall score figure, a **Sections** summary (Knowledge %, With the AI %,
   Practice = weighted mean of the steering metrics or "no mission", Own code / authenticity with the own-work
   questions %), the `applied_knowledge` metric card, an **Use of the AI** panel (plain sentences from `ai_usage`,
   "points to discuss, not a score") and a **questions table** (section, skill, result, time used / allowed,
@@ -251,8 +251,8 @@ internet and AI. The recruitment technical test is now **one** session of the `/
 
 | Route | Screen |
 |---|---|
-| `/essai` (FR), `/try` (EN) | **Public sandbox**, the shareable showcase for candidates. A three-step stepper: **1. The role**: paste an offer (text, or a link to LinkedIn, Welcome to the Jungle, Indeed or a careers page) → `POST /api/try/offer`, then edit the detected criteria (importance, expected level, add from the catalogue, remove, "why?" shows the offer lines that triggered each skill); or pick a typical role (`/api/try/config` presets). **2. Your profile**: CV and documents (drag and drop), GitHub links (a profile link expands to its 3 latest repositories), portfolio links, the required name (only used to mask it), and plain-language consent. **3. Result**: `POST /api/try/match`, with staged progress while it runs. Shows the animated score ring, a notice reframed for candidates ("not a verdict on you"), criterion bars, what the files prove (exact excerpts), things to strengthen (tips + gaps), questions a recruiter might ask (self-check list), what was analysed (masked items, repository files, injection flag) and credentials in a secondary panel. Actions: try another offer, edit my profile (inputs kept in memory), copy the tool's link (the canonical `/essai` URL: there is no stored result to share). Handles 422 (with a "paste the text instead" hint), 429 and 503 |
-| `/explication/:token` (FR), `/explanation/:token` (EN) | **Candidate explanation** (AI Act Art. 86), reached through a link a recruiter creates. Shows the job, score ring, skills vs credentials split, criterion bars, what the material proves (statements + exact excerpts), gaps phrased for the candidate, the human decision and rationale, an integrity block (ledger intact, score entry hash, dates, versions) explained in plain words, the expiry date, "How to contest?", a CTA to the sandbox and "Download as PDF". Invalid or expired tokens get a friendly 404 page |
+| `/essai` (FR), `/try` (EN) | **Public sandbox**, the shareable showcase for candidates. A three-step stepper: **1. The role**: paste an offer (text, or a link to LinkedIn, Welcome to the Jungle, Indeed or a careers page) → `POST /api/try/offer`, then edit the detected criteria (importance, expected level, add from the catalogue, remove, "why?" shows the offer lines that triggered each skill); or pick a typical role (`/api/try/config` presets). **2. Your profile**: CV and documents (drag and drop), GitHub links (a profile link expands to its 3 latest repositories), portfolio links, the required name (only used to mask it), and plain-language consent. **3. Result**: `POST /api/try/match`, with staged progress while it runs. Shows the score figure, a notice reframed for candidates ("not a verdict on you"), criterion bars, what the files prove (exact excerpts), things to strengthen (tips + gaps), questions a recruiter might ask (self-check list), what was analysed (masked items, repository files, injection flag) and credentials in a secondary panel. Actions: try another offer, edit my profile (inputs kept in memory), copy the tool's link (the canonical `/essai` URL: there is no stored result to share). Handles 422 (with a "paste the text instead" hint), 429 and 503 |
+| `/explication/:token` (FR), `/explanation/:token` (EN) | **Candidate explanation** (AI Act Art. 86), reached through a link a recruiter creates. Shows the job, score figure, skills vs credentials split, criterion bars, what the material proves (statements + exact excerpts), gaps phrased for the candidate, the human decision and rationale, an integrity block (ledger intact, score entry hash, dates, versions) explained in plain words, the expiry date, "How to contest?", a CTA to the sandbox and "Download as PDF". Invalid or expired tokens get a friendly 404 page |
 | `/recruteurs` (FR), `/recruiters` (EN) | **Recruiter landing**: hero with two CTAs, the problem, how it works in 4 steps, what you get (with theme-aware screenshots), "Measured, not promised" (only figures published in `docs/MEASUREMENTS.md`), compliance, FAQ, final CTA |
 
 **Document categories** (sandbox step 2 and the recruiter Apply page, `components/DocumentZones.tsx`): CV,
@@ -320,16 +320,59 @@ src/
 
 ## Design tokens
 
-Everything in `styles/app.css` reads from custom properties defined in `styles/tokens.css`:
+Art direction (v0.10 redesign): a **professional evaluation / HR tool**, not a "mission control". References:
+Greenhouse, Ashby, Lever, Workday Recruiting, Linear's restraint, Stripe Dashboard's clarity. Calm, trustworthy,
+dense but readable — something a recruiter, a DPO and a candidate all take seriously. Everything in
+`styles/app.css` reads from custom properties defined in `styles/tokens.css`; pages do not hard-code colours.
 
-- **Surfaces**: `--bg`, `--bg-elev`, `--surface`, `--surface-2`, `--surface-3`, `--surface-glass`, plus hairlines `--border` and `--border-strong`.
-- **Text**: `--text`, `--text-2`, `--text-3`. All meet WCAG AA on their surfaces in both themes.
-- **Accent**: `--accent` (electric cyan, used for fills and strokes) and `--accent-text` (a tone tuned for text contrast). `--violet` is the sparing secondary for data such as AI escalation, human decisions and "important".
-- **Status**: `--ok` (demonstrated, strong evidence), `--warn` (partial, warnings) and `--neutral` (slate) for "not evidenced". Red (`--danger`) is reserved for destructive actions. A missing proof is never presented as a failure of the person.
-- **Scale**: 8px spacing grid (`--sp-1`…`--sp-8`), radii 8/12/14px, type scale `--fs-xs`…`--fs-3xl`.
+**Themes.** Light is the default. Dark is an option (Settings or the top-bar toggle), equally sober: neutral greys,
+no navy, no neon. The theme is the `data-theme` attribute on `<html>`, applied before first paint by
+`public/theme-init.js` (external file: the CSP forbids inline scripts). Migration: only an explicit stored choice
+(`te.theme = "dark"`) keeps dark; anyone who never chose gets light. Print always uses black on white.
 
-The theme is the `data-theme` attribute on `<html>`, set before first paint by a tiny inline script in `index.html` to
-avoid a flash. Dark is the default. The faint grid and scanline texture is used on `.hero` blocks only.
+**Palette** (light / dark):
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--bg` | `#F5F6F8` | `#111214` | page |
+| `--surface` | `#FFFFFF` | `#18191C` | cards, panels, bars |
+| `--surface-2` / `-3` | `#F8F9FB` / `#ECEEF2` | `#1E1F23` / `#2A2C31` | table heads, wells / tracks, hover |
+| `--border` / `-strong` | `#E3E6EB` / `#CFD4DC` | `#2C2E33` / `#3D4047` | 1px hairlines |
+| `--text` | `#0F172A` (16.5:1) | `#EDEEF0` (16.1:1) | body |
+| `--text-2` | `#475569` (7.6:1) | `#B4B7BE` (8.8:1) | secondary |
+| `--text-3` | `#5B6576` (5.4:1 on bg) | `#8E929A` (5.6:1) | captions, hints |
+| `--accent` | `#2F5BDA` (white text 5.8:1) | `#3560DD` (white text 5.4:1) | **the only brand colour**: primary buttons, focus, selection, data bars |
+| `--accent-text` | `#2648B8` (7.2:1) | `#8AA6F7` (7.4:1) | links, active navigation |
+| `--ok-text` / `--ok-soft` | `#166534` / `#ECFDF3` (6.8:1) | `#7FCF9F` (9.5:1) | demonstrated, strong evidence |
+| `--warn-text` / `--warn-soft` | `#92400E` / `#FFF7E6` (6.7:1) | `#E8BD6C` (10:1) | partial, signals to review |
+| `--danger-text` / `--danger-soft` | `#B91C1C` / `#FEF2F2` (5.9:1) | `#F0A19B` (8.6:1) | destructive actions only |
+| `--neutral-*` | slate `#475569` / `#F1F5F9` | `#B4B7BE` | "not evidenced" — a missing proof is never shown as a failure |
+
+Contrast ratios are WCAG 2.x, measured on the surface the token is used on; every text pair is AA (≥ 4.5:1).
+Brand ink blue was chosen over teal because it reads as "institutional" and keeps AA with white text without a
+second, darker button shade. The former violet tokens (`--violet*`) are kept as names only and now map to a quiet
+slate: they still separate "AI / own work" items, but without a second hue. Colour only encodes meaning
+(good / warn / bad), always next to a text label.
+
+**Type.** Inter for everything (400/500/600), 14px body, page titles 24px, hero figures up to 48px with
+`tabular-nums`. Headings use weight 600 and slight negative tracking; no uppercase letter-spaced eyebrows (eyebrows
+are 13px, sentence case, `--text-3`). Monospace only for code, paths, hashes and pseudonymous references.
+
+**Shape and space.** Radii `--radius-xs` 4px (badges), `--radius-sm` 6px (controls), `--radius` / `--radius-lg`
+8px (cards, panels); pills only for switches and dots. 1px borders, flat surfaces: `--shadow` is `none`;
+`--shadow-md` / `--shadow-lg` exist only for floating bars, menus, modals and toasts. Spacing scale 4 / 8 / 12 /
+16 / 20 / 28 / 40 / 56px (`--sp-1`…`--sp-8`). Controls are 36px high (28px small, 40px large).
+
+**Data viz.** `ScoreFigure` (`components/charts.tsx`) replaces the former rings: a plain large number, its caption
+and a thin horizontal bar (`lg` report headers, `md` secondary results, `sm` list rows and tables). Meters are 6px
+bars with a "required level" tick. No glows, gradients or animated fills.
+
+**Motion.** Functional only: 100–150 ms fades for pages, toasts and modals, and spinners for loading. No pulsing,
+scanning, glowing or drifting decorations (the exam watermark's drift is an anti-capture measure, not decoration).
+`prefers-reduced-motion` reduces all of it to instant.
+
+**Brand.** Wordmark "TalentEngine" in Inter 600 next to a minimal mark: a "T" monogram on an ink-blue 7px-radius
+square (`Logo` in `components/Shell.tsx`, same drawing in `public/favicon.svg`).
 
 ## i18n
 
@@ -345,11 +388,15 @@ catalogue and preset language (`?locale=`). Reports are written in the role's ow
 - Segmented controls are ARIA radio groups with arrow-key support. Report tabs follow the `tablist` pattern with arrow keys.
 - Modals trap focus, close on Esc and restore focus.
 - Icon-only buttons have `aria-label`s, and charts have `role="img"` with text alternatives. Meters expose `aria-valuenow`.
-- `prefers-reduced-motion` disables the ring and bar fills, skeleton shimmer, toasts and page transitions.
+- `prefers-reduced-motion` reduces the remaining fades (pages, toasts, modals) to instant; nothing else moves.
 - Works down to 380px wide with no horizontal page scroll (wide tables scroll inside their own container).
 - A print stylesheet produces a clean interview guide.
 
 ## Screenshots
+
+Regenerated with the v0.10 design: `report-dark`, `studio-dark`, `pipeline-dark`, `try-result`, `recruiters`,
+`techtest-*`, `compliance`, `integrations`, `accounts`, `test-intro`, and the landing images in
+`src/assets/landing/`. The others below still show the previous visual design.
 
 See `../docs/images/`: `overview-{dark,light}`, `studio-dark`, `studio-full-dark`, `pipeline-{dark,light}`,
 `compare-dark`, `report-{dark,light}`, `report-evidence-dark`, `report-interview-light`, `report-glassbox-dark`,

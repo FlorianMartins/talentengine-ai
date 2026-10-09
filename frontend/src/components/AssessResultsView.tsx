@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock, Fingerprint, ShieldCheck, ShieldAle
 import type { AssessResults, IntegritySummary } from "../api/types";
 import { usePrefs } from "../lib/prefs";
 import { cx } from "../lib/format";
-import { Meter, ScoreRing } from "./charts";
+import { Meter, ScoreFigure } from "./charts";
 
 export function RiskBadge({ risk }: { risk: IntegritySummary["risk"] }) {
   const { t } = usePrefs();
@@ -73,7 +73,7 @@ export function AssessResultsView({ results: r, audience }: { results: AssessRes
   return (
     <div className="stack">
       <div className="assess-head">
-        <ScoreRing value={r.overall_pct} size={audience === "self" ? 132 : 92} glow={audience === "self"} caption={t.test.overall} />
+        <ScoreFigure value={r.overall_pct} size={audience === "self" ? "lg" : "md"} caption={t.test.overall} />
         <div className="stack-sm" style={{ minWidth: 0, flex: 1 }}>
           <div className="row wrap" style={{ gap: 8 }}>
             <span className="chip chip-plain">
