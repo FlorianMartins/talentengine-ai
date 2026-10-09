@@ -305,6 +305,30 @@ pushed down; the recruiter can sort by the verified figure. Erasure and the GDPR
 | `TE_PILOT_STARTS_PER_HOUR` | `6` | sandbox starts per IP |
 | `TE_OWNERSHIP_SOURCE_FILES` | `3` | source files kept per repository of an application (0 disables) |
 
+### Bring your own key (per recruiter)
+
+The deployment needs no paid model. Each recruiter can connect **their own** model in *Settings → My AI
+model* (`GET/PUT/DELETE /api/me/llm`, `POST /api/me/llm/test`, `GET /api/me/llm/free-models`):
+
+| Provider | Address | Notes |
+|---|---|---|
+| OpenRouter | `https://openrouter.ai/api/v1` | the list of **free models** (ids ending in `:free`) is read live and cached one hour — no model name is hard-coded |
+| Anthropic | official SDK | |
+| OpenAI, Mistral | their public APIs | |
+| Custom | any **HTTPS** OpenAI-compatible endpoint on a **public** address (same SSRF guard as the sandbox) | |
+
+* The key is encrypted with the vault key, never returned (only `…abcd`), deleted with the account, and its
+  setting is journalled (`llm_key_set`, `llm_key_removed`) without the key.
+* A test remembers who sent it (`llm_owner`): that recruiter's model judges it (default on) and, if they
+  ticked it, plays the assistant (less comparable between candidates, so off by default).
+* The candidate never waits for the judge: on close the factual report is saved at once (`judge: "pending: …"`),
+  the judge runs in the background, then the report is replaced and `pilot_judged` journalled.
+* Many free models reject structured output: the connector falls back from JSON schema to JSON mode, then to
+  the JSON object found in the text; the result is validated by code as always. A quota error (429) leaves the
+  factual report complete, with the reason in `judge_errors`.
+* What leaves the server: the pseudonymised transcript of a test. Free models may train on prompts; the
+  settings page says so, and choosing the provider is the deployer's decision (GDPR Art. 28).
+
 ## 9. Compliance and ethics
 
 * **AI Act, Annex III 4(a).** This is part of a high-risk system; everything in

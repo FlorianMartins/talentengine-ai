@@ -182,7 +182,8 @@ cd backend && talentengine seed && talentengine serve   # http://127.0.0.1:8000,
 ```
 
 Optional: `docker compose --profile vision up -d` and `ollama pull qwen2.5vl:7b` for image redaction;
-`TE_LLM_PROVIDER=anthropic` + `TE_LLM_API_KEY` for the escalation tier.
+`TE_LLM_PROVIDER=anthropic` + `TE_LLM_API_KEY` for the escalation tier. No model is required: each recruiter can
+also connect their own key (OpenRouter free models included) in *Settings → My AI model*.
 
 ## Documentation
 
@@ -219,7 +220,7 @@ docs/          architecture, user guide, compliance, roadmap
 
 ## Status and limits
 
-This is an MVP (v0.8.0): fully working end to end, tested (150+ tests, `ruff`, `mypy`, measurements in CI),
+This is an MVP (v0.9.0): fully working end to end, tested (150+ tests, `ruff`, `mypy`, measurements in CI),
 but not production-hardened. The masking figures come from synthetic corpora, not yet from real CVs; storage is SQLite,
 authentication uses named API keys (no SSO yet), and signal strengths should be reviewed with practitioners of each
 trade before real use. The technical test's weights and thresholds are expert choices awaiting calibration

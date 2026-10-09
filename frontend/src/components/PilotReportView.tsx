@@ -185,7 +185,8 @@ export function PilotReportView({
             <span className={cx("chip", r.judge === "none" ? "chip-neutral" : "chip-violet")}>
               <Scale size={12} aria-hidden="true" />
               <span>
-                {p.judge} · {r.judge === "none" ? p.judgeNone : r.judge}
+                {p.judge} · {r.judge === "none" ? p.judgeNone : r.judge.startsWith("pending: ")
+                  ? t.byok.judgePending(r.judge.slice(9)) : r.judge}
               </span>
             </span>
           </div>

@@ -222,6 +222,7 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
           )}
           <p className="small muted">{link.ownership ? p.linkOwnership : p.noOwnership}</p>
           {link.note && <p className="hint">{link.note}</p>}
+          <p className="hint">{link.judge ? t.byok.linkJudge(link.judge) : t.byok.linkNoJudge}</p>
         </Modal>
       )}
     </section>

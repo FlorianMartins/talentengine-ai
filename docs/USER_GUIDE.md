@@ -209,6 +209,14 @@ stays on compatibility so that untested candidates are not pushed down. See [TEC
 Links of the former closed-book verification test already sent keep working (Safe Exam Browser included,
 `TE_PUBLIC_BASE_URL` needed behind a proxy), but the interface no longer creates them.
 
+### 7c. Optional: connect your own AI model
+
+Nothing requires a paid model. In **Settings → My AI model**, a recruiter can connect their own key —
+OpenRouter (its free models are listed live), Anthropic, OpenAI, Mistral or any HTTPS OpenAI-compatible
+endpoint — and choose to use it as the **judge** of the tests they send (it refines two metrics by ±15
+points at most, citing the transcript) and/or as the test's **assistant**. "Test the connection" checks the
+key and JSON output. The key is encrypted and never shown again. Without a key, reports are factual.
+
 ### 8. Connect your ATS
 
 **Settings → ATS integrations** (admin): choose Greenhouse, Lever, Ashby or Generic, map ATS jobs to job

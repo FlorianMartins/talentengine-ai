@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field, ValidationError
 from ..assessment.engine import AssessmentEngine, AssessmentSession
 from ..assessment.personal import personal_questions
 from ..auth import Principal, Role, UserStore
+from ..byok import PRESETS, ByokStore, LLMSettingsInput, test_provider
 from ..compliance import dpia_markdown
 from ..config import ENGINE_VERSION, Settings, get_settings
 from ..dashboard.presets import list_presets
@@ -227,15 +228,69 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(build_assess_router(settings, tests, seeds, test_limit, test_finished))
 
     # ------------------------------------------------------------------ AI-pilot test (Module 3)
+    from ..funnel.llm import LLMError
     from ..pilot.api import build_questions_for, scenario_for
     from ..pilot.api import build_router as build_pilot_router
     from ..pilot.engine import PilotEngine, PilotError
     from ..pilot.ownership import choose_task
     from ..pilot.sources import fetch_sources
 
+    byok = ByokStore(engine.store, engine.vault_key)  # each recruiter's own model key (bring your own key)
     pilot = PilotEngine(engine.store, sandbox_key=engine.vault_key, assistant=pilot_assistant(settings),
-                        judge_provider=engine.provider if settings.pilot_judge and engine.provider else None)
+                        judge_provider=engine.provider if settings.pilot_judge and engine.provider else None,
+                        byok=byok)
     app.state.pilot = pilot
+
+    def pilot_judged(session: Any, report: dict[str, Any]) -> None:
+        engine.ledger.append("pilot_judged", {
+            "session": session.id, "judge": report.get("judge"), "errors": report.get("judge_errors", [])[:3],
+            "metrics": {m["id"]: {"factual": m["factual_pct"], "final": m["final_pct"], "judge": m["judge_applied"]}
+                        for m in report.get("metrics", [])},
+        }, actor="judge", job_id=session.job_id, candidate_ref=session.candidate_ref)
+
+    pilot.on_judged = pilot_judged
+
+    # ------------------------------------------------------------------ bring your own model key
+    @app.get("/api/me/llm")
+    def my_llm(who: Principal = CAN_READ) -> dict[str, Any]:
+        return {"settings": byok.public(who.name),
+                "providers": [{"id": k, "label": v["label"], "help": v["help"]} for k, v in PRESETS.items()],
+                "deployment_judge": bool(pilot.judge_provider)}
+
+    @app.put("/api/me/llm")
+    def set_my_llm(body: LLMSettingsInput, who: Principal = CAN_DECIDE) -> dict[str, Any]:
+        try:
+            saved = byok.set(who.name, body)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        engine.ledger.append("llm_key_set", {"provider": saved.provider, "model": saved.model,
+                                             "use_for_judge": saved.use_for_judge,
+                                             "use_for_assistant": saved.use_for_assistant}, actor=who.name)
+        return {"settings": saved.model_dump()}
+
+    @app.delete("/api/me/llm")
+    def delete_my_llm(who: Principal = CAN_DECIDE) -> dict[str, bool]:
+        removed = byok.delete(who.name)
+        if removed:
+            engine.ledger.append("llm_key_removed", {}, actor=who.name)
+        return {"removed": removed}
+
+    @app.post("/api/me/llm/test")
+    def test_my_llm(who: Principal = CAN_DECIDE) -> dict[str, Any]:
+        provider = byok.provider(who.name)
+        if provider is None:
+            raise HTTPException(404, "no model key saved for this account")
+        try:
+            return test_provider(provider)
+        except LLMError as exc:
+            raise HTTPException(502, str(exc)) from exc
+
+    @app.get("/api/me/llm/free-models")
+    def free_models(who: Principal = CAN_READ) -> list[dict[str, Any]]:
+        try:
+            return byok.free_models()
+        except LLMError as exc:
+            raise HTTPException(502, str(exc)) from exc
 
     def pilot_limit(request: Request) -> None:
         limiter.check("pilot", _client_ip(request, settings.trust_proxy), settings.pilot_starts_per_hour)
@@ -505,7 +560,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         token, session = pilot.create(scenario, body.level, locale=job.locale, mode="candidate", job_title=job.title,
                                       job_id=job.id, candidate_ref=ref, fault_ids=body.fault_ids,
                                       build_minutes=body.build_minutes, ownership=task, valid_hours=body.valid_hours,
-                                      questions=questions)
+                                      questions=questions, llm_owner=who.name)
+        judge = byok.provider(who.name, "judge") or pilot.judge_provider
         engine.ledger.append("pilot_created", {
             "session": session.id, "scenario": scenario.id if scenario else None, "level": body.level,
             "questions": {"knowledge": sum(q.section == "knowledge" for q in questions),
@@ -516,7 +572,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         return {"token": token, "path": f"/pilote/{token}", "session_id": session.id,
                 "scenario": scenario.id if scenario else None, "questions": len(questions),
                 "faults": [f.id for f in session.faults], "ownership": task is not None, "note": note,
-                "build_minutes": session.build_minutes, "expires_at": session.expires_at.isoformat()}
+                "build_minutes": session.build_minutes, "expires_at": session.expires_at.isoformat(),
+                "judge": f"{judge.name}/{judge.model}" if judge else None, "assistant": session.assistant_kind}
 
     @app.get("/api/candidates/{ref}/pilot", dependencies=auth)
     def list_pilot(ref: str) -> list[dict[str, Any]]:
@@ -637,6 +694,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     def delete_user(name: str, who: Principal = CAN_ADMIN) -> dict[str, bool]:
         removed = users.remove(name)
         if removed:
+            byok.delete(name)  # a removed account's model key goes with it
             engine.ledger.append("account_removed", {"name": name}, actor=who.name)
         return {"removed": removed}
 

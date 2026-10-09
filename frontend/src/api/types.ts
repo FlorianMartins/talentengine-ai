@@ -1055,6 +1055,9 @@ export interface PilotLink {
   note: string;
   build_minutes: number;
   expires_at: string;
+  /** "<provider>/<model>" of the judge that will refine the report (the recruiter's own key), or null */
+  judge?: string | null;
+  assistant?: string;
 }
 
 export interface PilotSessionFault {
@@ -1141,4 +1144,41 @@ export interface PilotAIUsage {
   trapped_followed: number;
   trapped_caught: number;
   answered_against_ai: number;
+}
+
+// ------------------------------------------------------------------ bring your own model key (v0.9)
+
+export type LlmProviderId = "openrouter" | "anthropic" | "openai" | "mistral" | "custom";
+
+export interface LlmSettings {
+  provider: LlmProviderId;
+  model: string;
+  base_url: string;
+  use_for_judge: boolean;
+  use_for_assistant: boolean;
+  /** last four characters of the key, e.g. "…abcd" — the key itself is never returned */
+  key_hint: string;
+  updated_at: string;
+}
+
+export interface LlmSettingsInput {
+  provider: LlmProviderId;
+  model: string;
+  base_url?: string;
+  /** omit to keep the stored key */
+  api_key?: string;
+  use_for_judge: boolean;
+  use_for_assistant: boolean;
+}
+
+export interface MyLlm {
+  settings: LlmSettings | null;
+  providers: { id: LlmProviderId; label: string; help: string }[];
+  deployment_judge: boolean;
+}
+
+export interface FreeModel {
+  id: string;
+  name: string;
+  context_length: number | null;
 }

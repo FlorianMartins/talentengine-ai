@@ -141,6 +141,7 @@ class AISandboxSession(BaseModel):
     build_deadline: datetime | None = None
     closed_at: datetime | None = None
     assistant_kind: str = "scripted"  # "scripted" (reference assistant) or "llm:<provider>/<model>"
+    llm_owner: str = ""  # account whose own model key (BYOK) serves this test's judge or assistant
     files: dict[str, str] = Field(default_factory=dict)
     flags: list[str] = Field(default_factory=list)  # reference-assistant state (scripted mode)
     rendered_flags: list[str] = Field(default_factory=list)  # state the workspace was last rendered from

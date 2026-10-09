@@ -8,6 +8,7 @@ import { PageHeader, useCrumbs } from "../components/Shell";
 import { ErrorState, Skeleton } from "../components/feedback";
 import { Segmented } from "../components/controls";
 import { cx } from "../lib/format";
+import { ModelKeyPanel } from "../components/ModelKeyPanel";
 
 export function SettingsPage() {
   const { t, theme, setTheme, lang, setLang, reviewer, setReviewer, apiKey, setApiKey } = usePrefs();
@@ -171,6 +172,9 @@ export function SettingsPage() {
               )}
             </div>
           </form>
+
+          {/* ------------------------------------------------ my AI model (bring your own key) */}
+          {access.mode === "named" && access.can("decide") && <ModelKeyPanel />}
 
           {/* ------------------------------------------------ appearance */}
           <section className="panel" aria-labelledby="s-app">

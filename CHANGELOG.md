@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.0 — 2026-10-09
+
+Bring your own model key.
+
+- **Per-recruiter model key** in *Settings → My AI model*: OpenRouter (free models listed live), Anthropic,
+  OpenAI, Mistral or a custom HTTPS OpenAI-compatible endpoint (SSRF-guarded). Encrypted with the vault key,
+  never returned, deleted with the account, journalled without the key; "test the connection" button.
+- The tests a recruiter sends use **their** model as judge (and, if chosen, as assistant); the deployment still
+  needs no paid model, and reports stay complete without one.
+- **The candidate never waits for the judge**: the factual report is saved on close and refined in the
+  background (`pilot_judged` in the ledger).
+- **Free-model compatibility**: JSON schema → JSON mode → JSON found in the text; quota (429) and key errors
+  give clear messages.
+- Clearer access message: the recruiter area needs a personal access key (`te_…`), now labelled "Access key"
+  to avoid confusion with a model key.
+
 ## 0.8.0 — 2026-10-09
 
 One technical test that works like the job (recruitment phase 3).

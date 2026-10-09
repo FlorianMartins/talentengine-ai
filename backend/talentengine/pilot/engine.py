@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import logging
 import random
 import re
 import secrets
@@ -25,7 +26,7 @@ from ..models import utcnow
 from ..sandbox.sessions import SandboxSessions
 from ..shield.injection import screen
 from ..store import Store
-from .assistant import Assistant, HallucinationInjector, ScriptedAssistant
+from .assistant import Assistant, HallucinationInjector, LLMAssistant, ScriptedAssistant
 from .ci import run_static
 from .judge import LLMError, apply_judge, manipulation_suspected, run_judge, valid_callouts
 from .models import (
@@ -53,6 +54,7 @@ from .questions import (
 from .scenarios import SCENARIOS, Files, Scenario, fold
 from .scoring import WEIGHTS, critical_thinking, detect_callouts, intent_precision, orchestration_velocity, pilot_index
 
+log = logging.getLogger(__name__)
 BUILD_MINUTES = {1: 35, 2: 25, 3: 20}
 FAULTS_PER_LEVEL = {1: 1, 2: 2, 3: 3}
 
@@ -127,13 +129,31 @@ class PilotEngine:
         assistant: Assistant | None = None,
         judge_provider: Any = None,
         sandbox_key: str | None = None,
+        byok: Any = None,
     ) -> None:
         self.store = store
         self.assistant: Assistant = assistant or ScriptedAssistant()
-        self.judge_provider = judge_provider
+        self.judge_provider = judge_provider  # the deployment's own model, if any
+        self.byok = byok  # ByokStore: each recruiter's own model key, used for the tests they send
+        self.judge_in_background = True  # a candidate's close never waits for a judge model
+        self.on_judged: Any = None  # callback(session, report) once a background judge has run
         self.injector = HallucinationInjector()
         self._sandbox = SandboxSessions("pilot", store, sandbox_key)  # survives a restart, encrypted, 3 h max
         self._lock = threading.RLock()
+
+    # ------------------------------------------------------------------------------------------ models
+
+    def _judge_for(self, s: AISandboxSession) -> Any:
+        """The recruiter's own model when they connected one for judging, else the deployment's, else none."""
+        own = self.byok.provider(s.llm_owner, "judge") if (self.byok is not None and s.llm_owner) else None
+        return own or self.judge_provider
+
+    def _assistant_for(self, s: AISandboxSession) -> Assistant:
+        if self.byok is not None and s.llm_owner:
+            provider = self.byok.provider(s.llm_owner, "assistant")
+            if provider is not None:
+                return LLMAssistant(provider)
+        return self.assistant
 
     # ------------------------------------------------------------------------------------------ storage
 
@@ -188,6 +208,7 @@ class PilotEngine:
         ownership: tuple[OwnershipTask, Files] | None = None,
         valid_hours: int = 72,
         questions: list[PilotQuestion] | None = None,
+        llm_owner: str = "",
     ) -> tuple[str, AISandboxSession]:
         if scenario is None and not questions:
             raise ValueError("a technical test needs questions, a practical mission, or both")
@@ -209,6 +230,7 @@ class PilotEngine:
             expires_at=utcnow() + timedelta(hours=valid_hours),
             build_minutes=build_minutes or BUILD_MINUTES[level],
             assistant_kind=self.assistant.kind,
+            llm_owner=llm_owner,
             files=scenario.starter() if scenario else {},
             questions=questions or [],
             flags=sorted(f"fix:{f}" for f in pool if f not in chosen),
@@ -225,6 +247,7 @@ class PilotEngine:
             if scenario
             else [],
         )
+        session.assistant_kind = self._assistant_for(session).kind
         if ownership:
             session.ownership, session.ownership_files = ownership
         self._save(_hash(token), session)
@@ -414,7 +437,7 @@ class PilotEngine:
             return {"prompt": prompt.public(), "reply": s.turns[-1].public(), "files": s.ownership_files}
         assert scenario is not None  # the build phase only exists with a mission
         detect_callouts(s, scenario)  # a prompt can prevent a flaw before it is planted, or call one out
-        reply = self.assistant.reply(s, scenario, message, self.injector.directives(s, scenario))
+        reply = self._assistant_for(s).reply(s, scenario, message, self.injector.directives(s, scenario))
         before = dict(s.files)
         files = {**s.files, **reply.files}
         if len(files) > MAX_FILES:
@@ -440,8 +463,9 @@ class PilotEngine:
         prompt = s.add_turn("prompt", text=message, screened=screen(message), question=q.index)
         q.consulted.append(prompt.index)
         text = reference_reply(q, message, s.locale)  # the traps are standardised: same for every candidate
-        if not q.trapped and not q.personal and not isinstance(self.assistant, ScriptedAssistant):
-            text = getattr(self.assistant, "answer_question", lambda *a: "")(s, q, message) or text
+        assistant = self._assistant_for(s)
+        if not q.trapped and not q.personal and not isinstance(assistant, ScriptedAssistant):
+            text = getattr(assistant, "answer_question", lambda *a: "")(s, q, message) or text
         turn = s.add_turn("assistant", text=text, question=q.index)
         self._save(key, s)
         return {"prompt": prompt.public(), "reply": turn.public(), "files": {}}
@@ -519,8 +543,9 @@ class PilotEngine:
         assert task is not None
         if task.started_at is None:
             raise PilotError("start the ownership task first")
-        if not isinstance(self.assistant, ScriptedAssistant) and s.scenario_id:
-            reply = self.assistant.reply(s, SCENARIOS[s.scenario_id], message, [])
+        assistant = self._assistant_for(s)
+        if not isinstance(assistant, ScriptedAssistant) and s.scenario_id:
+            reply = assistant.reply(s, SCENARIOS[s.scenario_id], message, [])
             return reply.message, {p: c for p, c in reply.files.items() if p in s.ownership_files}
         constraint = next(c for c in CONSTRAINTS if c[0] == task.constraint_id)
         folded = fold(message)
@@ -575,12 +600,30 @@ class PilotEngine:
             s.add_turn("phase", text="closed by the candidate")
         s.phase = "closed"
         s.closed_at = utcnow()
-        report = self.evaluate(s)
+        judge = self._judge_for(s)
+        later = judge is not None and s.mode == "candidate" and self.judge_in_background and bool(s.prompts())
+        report = self.evaluate(s, use_judge=not later)
+        if later:
+            report.judge = f"pending: {judge.name}/{judge.model}"
         s.report = report.model_dump(mode="json")
         self._save(key, s)
+        if later:
+            threading.Thread(target=self._judge_later, args=(token,), daemon=True).start()
         return s, s.report, True
 
-    def evaluate(self, s: AISandboxSession) -> PilotEvaluationReport:
+    def _judge_later(self, token: str) -> None:
+        """Re-evaluate with the judge after the candidate has left (models can take a minute, or fail)."""
+        try:
+            key, s = self.get(token)
+            report = self.evaluate(s, use_judge=True)
+            s.report = report.model_dump(mode="json")
+            self._save(key, s)
+            if self.on_judged:
+                self.on_judged(s, s.report)
+        except Exception:  # the factual report is already saved; never crash a worker thread
+            log.exception("background judge failed")
+
+    def evaluate(self, s: AISandboxSession, use_judge: bool = True) -> PilotEvaluationReport:
         scenario = SCENARIOS.get(s.scenario_id)
         for q in s.questions:  # questions never reached count as unanswered
             if q.score is None:
@@ -593,10 +636,11 @@ class PilotEngine:
         judge_data: dict[str, Any] | None = None
         errors: list[str] = []
         judge_name = "none"
-        if self.judge_provider is not None and s.prompts():
-            judge_name = f"{self.judge_provider.name}/{self.judge_provider.model}"
+        judge = self._judge_for(s) if use_judge else None
+        if judge is not None and s.prompts():
+            judge_name = f"{judge.name}/{judge.model}"
             try:
-                judge_data = run_judge(self.judge_provider, s, scenario)
+                judge_data = run_judge(judge, s, scenario)
             except LLMError as exc:
                 errors.append(str(exc)[:200])
         callouts = valid_callouts(s, judge_data)

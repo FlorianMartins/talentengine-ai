@@ -2,6 +2,10 @@
 // in development and the FastAPI backend serves the built app in production.
 import type {
   Artifact,
+  FreeModel,
+  LlmSettings,
+  LlmSettingsInput,
+  MyLlm,
   CandidateSummary,
   CatalogSkill,
   AssessAnswerResult,
@@ -354,6 +358,12 @@ export const api = {
 
   // accounts & privacy administration (v0.4)
   me: () => request<Me>(`${API}/me`),
+  // bring your own model key (judge / assistant of the technical tests this account sends)
+  myLlm: () => request<MyLlm>(`${API}/me/llm`),
+  saveMyLlm: (body: LlmSettingsInput) => request<{ settings: LlmSettings }>(`${API}/me/llm`, { ...json(body), method: "PUT" }),
+  deleteMyLlm: () => request<{ removed: boolean }>(`${API}/me/llm`, { method: "DELETE" }),
+  testMyLlm: () => request<{ ok: boolean; model: string; tokens: number }>(`${API}/me/llm/test`, json({})),
+  freeModels: () => request<FreeModel[]>(`${API}/me/llm/free-models`),
   users: () => request<UserAccount[]>(`${API}/admin/users`),
   createUser: (name: string, role: Role) => request<CreatedUser>(`${API}/admin/users`, json({ name, role })),
   deleteUser: (name: string) => request<unknown>(`${API}/admin/users/${enc(name)}`, { method: "DELETE" }),

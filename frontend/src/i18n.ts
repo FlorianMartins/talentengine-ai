@@ -2,6 +2,7 @@
 // French copy uses inclusive, neutral wording ("la personne candidate", "candidat·e").
 
 import { enPilot, frPilot } from "./i18n.pilot";
+import { enBYOK, frBYOK } from "./i18n.byok";
 import { enTT, frTT } from "./i18n.techtest";
 
 export type Lang = "fr" | "en";
@@ -471,7 +472,8 @@ const frV4 = {
     reservedTo: (roles: string) => `Action réservée : ${roles}.`,
     forbiddenTitle: "Accès refusé",
     forbidden: (perm: string) => `Votre rôle ne permet pas cette action (permission requise : ${perm}).`,
-    loginRequired: "Ce serveur exige une clé : saisissez votre clé personnelle dans les Réglages.",
+    loginRequired:
+      "Cet espace exige votre clé d'accès personnelle (elle commence par « te_ », fournie par l'administrateur) : collez-la dans « Clé d'accès » ci-dessous.",
   },
   accounts: {
     nav: "Comptes",
@@ -652,7 +654,8 @@ const enV4: typeof frV4 = {
     reservedTo: (roles: string) => `Restricted to: ${roles}.`,
     forbiddenTitle: "Access denied",
     forbidden: (perm: string) => `Your role cannot do this (required permission: ${perm}).`,
-    loginRequired: "This server requires a key: enter your personal key in Settings.",
+    loginRequired:
+      "This area needs your personal access key (it starts with \"te_\", given by your administrator): paste it into \"Access key\" below.",
   },
   accounts: {
     nav: "Accounts",
@@ -1314,6 +1317,7 @@ const fr = {
   ...frV5,
   pilot: frPilot,
   tt: frTT,
+  byok: frBYOK,
   ...frV4,
   pub: frPublic,
   app: {
@@ -1799,7 +1803,7 @@ const fr = {
     reviewer: "Nom de la personne qui relit",
     reviewerHint: "Signe vos actions dans le registre et pré-remplit les formulaires de décision.",
     reviewerPh: "ex. Camille Martin",
-    apiKey: "Clé d'API",
+    apiKey: "Clé d'accès (te_…)",
     apiKeyHint: "Exigée par ce serveur. Stockée dans ce navigateur uniquement.",
     personalKey: "Votre clé personnelle",
     personalKeyHint:
@@ -1833,6 +1837,7 @@ const en: Dict = {
   ...enV5,
   pilot: enPilot,
   tt: enTT,
+  byok: enBYOK,
   ...enV4,
   pub: enPublic,
   app: {
@@ -2316,7 +2321,7 @@ const en: Dict = {
     reviewer: "Reviewer name",
     reviewerHint: "Signs your actions in the ledger and pre-fills decision forms.",
     reviewerPh: "e.g. Sam Taylor",
-    apiKey: "API key",
+    apiKey: "Access key (te_…)",
     apiKeyHint: "Required by this server. Stored in this browser only.",
     personalKey: "Your personal key",
     personalKeyHint:
