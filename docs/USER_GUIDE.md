@@ -65,6 +65,12 @@ profiles (DevSecOps, growth marketing, joinery) and eleven fictional candidates.
 
 Check the audit ledger at any time: `talentengine verify` (exit code 1 if it was tampered with).
 
+### Public demo
+
+Visitors without an account can click **Explore the demo** on the sign-in screen: the recruiter area opens on
+fictional jobs and applications, read-only (a separate engine in a temporary directory, never the real data).
+`TE_DEMO_PUBLIC=false` turns it off.
+
 ### Accounts and roles
 
 Create one account per person; each gets a personal key, shown once:

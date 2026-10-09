@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.2 — 2026-10-09
+
+- **Public read-only demo** of the recruiter area: visitors without an account click "Explore the demo" on the
+  sign-in screen and browse jobs, candidates and reports with fictional data. It is a separate engine in a
+  temporary directory (`/demo/api`): it never reads the real applications, and every write is refused (403).
+  A banner and disabled buttons say it is a read-only demo. `TE_DEMO_PUBLIC=false` turns it off.
+
 ## 0.10.1 — 2026-10-09
 
 - **Sign-in screen** for the recruiter area: without an access key, pages show a sign-in form (why a key is

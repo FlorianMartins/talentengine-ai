@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENGINE_VERSION = "0.10.1"
+ENGINE_VERSION = "0.10.2"
 
 
 class Settings(BaseSettings):
@@ -73,6 +73,10 @@ class Settings(BaseSettings):
     github_token: str = ""
 
     enable_demo: bool = True
+    # Public read-only demo at /demo/api with fictional data, for visitors without an account. It is a separate
+    # engine in a temporary directory: it never reads or writes the real applications.
+    demo_public: bool = True
+    demo_instance: bool = False  # internal: set on the demo's own settings
 
     # Hours between automatic erasures of applications whose retention period is over (0 disables).
     retention_sweep_hours: int = 24

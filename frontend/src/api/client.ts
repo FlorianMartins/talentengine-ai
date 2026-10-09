@@ -1,5 +1,6 @@
 // Minimal typed fetch client. Every URL is `${API}/...` (base path + /api): Vite proxies them
 // in development and the FastAPI backend serves the built app in production.
+import { isDemo, storeDemo } from "../lib/demo";
 import type {
   Artifact,
   FreeModel,
@@ -76,7 +77,15 @@ import { getStored } from "../lib/storage";
 /** App base path ("" at the root, "/talentengine" when served under a prefix). */
 export const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, "");
 /** Root of every API call, prefixed with the base path. */
-export const API = `${BASE_PATH}/api`;
+/** public endpoints (sandbox, test links, explanation pages): always the real server */
+export const PUBLIC_API = `${BASE_PATH}/api`;
+/** recruiter area: the real data, or the read-only demo with fictional data */
+export let API = isDemo() ? `${BASE_PATH}/demo/api` : PUBLIC_API;
+
+export function setDemoMode(on: boolean): void {
+  storeDemo(on);
+  API = on ? `${BASE_PATH}/demo/api` : PUBLIC_API;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -191,13 +200,13 @@ async function sebHeaders(): Promise<Record<string, string>> {
 
 async function assessRequest<T>(token: string, path: string, body?: unknown): Promise<T> {
   const h = await sebHeaders();
-  return request<T>(`${API}/assess/${enc(token)}${path}`, body === undefined && path === "" ? { headers: h } : { ...json(body ?? {}), headers: { "Content-Type": "application/json", ...h } });
+  return request<T>(`${PUBLIC_API}/assess/${enc(token)}${path}`, body === undefined && path === "" ? { headers: h } : { ...json(body ?? {}), headers: { "Content-Type": "application/json", ...h } });
 }
 
 export const assess = {
-  catalog: (locale: Locale) => request<AssessCatalog>(`${API}/assess/catalog?locale=${locale}`),
+  catalog: (locale: Locale) => request<AssessCatalog>(`${PUBLIC_API}/assess/catalog?locale=${locale}`),
   start: (body: { preset_id?: string; job?: JobProfile; level: AssessLevel; locale: Locale; questions: number; seed?: string }) =>
-    request<AssessStart>(`${API}/assess/start`, json(body)),
+    request<AssessStart>(`${PUBLIC_API}/assess/start`, json(body)),
   state: (token: string) => assessRequest<AssessState>(token, ""),
   next: (token: string) => assessRequest<AssessQuestion>(token, "/next", {}),
   answer: (token: string, index: number, value: unknown) => assessRequest<AssessAnswerResult>(token, "/answer", { index, value }),
@@ -206,17 +215,17 @@ export const assess = {
   /** best effort on page hide: sendBeacon cannot carry SEB headers, so only used outside SEB */
   beacon: (token: string, events: AssessEvent[]): boolean => {
     if (!navigator.sendBeacon || window.SafeExamBrowser) return false;
-    return navigator.sendBeacon(`${API}/assess/${enc(token)}/events`, new Blob([JSON.stringify({ events })], { type: "application/json" }));
+    return navigator.sendBeacon(`${PUBLIC_API}/assess/${enc(token)}/events`, new Blob([JSON.stringify({ events })], { type: "application/json" }));
   },
   finish: (token: string) => assessRequest<AssessFinish>(token, "/finish", {}),
 };
 
 // ------------------------------------------------------------------ AI-pilot test (public, token-addressed)
 
-const pilotUrl = (token: string, path = "") => `${API}/pilot/${enc(token)}${path}`;
+const pilotUrl = (token: string, path = "") => `${PUBLIC_API}/pilot/${enc(token)}${path}`;
 
 export const pilot = {
-  scenarios: (locale: Locale) => request<PilotCatalog>(`${API}/pilot/scenarios?locale=${locale}`),
+  scenarios: (locale: Locale) => request<PilotCatalog>(`${PUBLIC_API}/pilot/scenarios?locale=${locale}`),
   start: (body: {
     preset_id?: string;
     job?: JobProfile;
@@ -231,7 +240,7 @@ export const pilot = {
     seed?: string;
     /** section 3, the practical mission, when one fits the job */
     mission?: boolean;
-  }) => request<PilotStart>(`${API}/pilot/start`, json(body)),
+  }) => request<PilotStart>(`${PUBLIC_API}/pilot/start`, json(body)),
   state: (token: string) => request<PilotState>(pilotUrl(token)),
   begin: (token: string) => request<PilotState>(pilotUrl(token, "/begin"), json({})),
   question: (token: string) => request<PilotQuestion>(pilotUrl(token, "/question"), json({})),
@@ -320,8 +329,8 @@ export const api = {
   },
   verify: () => request<ChainVerification>(`${API}/audit/verify`),
   // public sandbox — no API key needed, nothing stored server-side
-  tryConfig: (locale: Locale) => request<TryConfig>(`${API}/try/config?locale=${locale}`),
-  tryOffer: (body: { text?: string; url?: string; locale: Locale }) => request<OfferAnalysis>(`${API}/try/offer`, json(body)),
+  tryConfig: (locale: Locale) => request<TryConfig>(`${PUBLIC_API}/try/config?locale=${locale}`),
+  tryOffer: (body: { text?: string; url?: string; locale: Locale }) => request<OfferAnalysis>(`${PUBLIC_API}/try/offer`, json(body)),
   tryMatch: (m: TryMatchInput) => {
     const fd = new FormData();
     fd.set("consent", String(m.consent));
@@ -336,7 +345,7 @@ export const api = {
     for (const d of m.degrees) fd.append("degrees", d);
     for (const d of m.certifications) fd.append("certifications", d);
     for (const d of m.documents) fd.append("documents", d);
-    return request<TryMatchResult>(`${API}/try/match`, { method: "POST", body: fd });
+    return request<TryMatchResult>(`${PUBLIC_API}/try/match`, { method: "POST", body: fd });
   },
   // verification tests, explanation links, compliance, ATS (v0.5)
   candidateAssessments: (ref: string) => request<CandidateAssessment[]>(`${API}/candidates/${enc(ref)}/assessments`),
@@ -369,6 +378,6 @@ export const api = {
   deleteUser: (name: string) => request<unknown>(`${API}/admin/users/${enc(name)}`, { method: "DELETE" }),
   retentionRun: () => request<RetentionRun>(`${API}/admin/retention/run`, { method: "POST" }),
   /** public, no key: what a candidate sees through an explanation link */
-  publicExplanation: (token: string) => request<PublicExplanation>(`${API}/public/explanation/${enc(token)}`),
+  publicExplanation: (token: string) => request<PublicExplanation>(`${PUBLIC_API}/public/explanation/${enc(token)}`),
   seed: () => request<SeedResult>(`${API}/demo/seed`, { method: "POST" }),
 };

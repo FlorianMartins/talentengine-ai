@@ -119,6 +119,32 @@ def pilot_assistant(settings: Settings) -> Any:
     return LLMAssistant(provider) if provider else ScriptedAssistant()
 
 
+def build_public_demo(settings: Settings) -> FastAPI:
+    """Read-only demo with fictional data for visitors without an account; never touches the real data."""
+    import tempfile
+
+    from ..demo import seed_demo
+    from ..shield.vision import NoDetector
+
+    demo_settings = settings.model_copy(update={
+        "data_dir": Path(tempfile.mkdtemp(prefix="te-demo-")), "demo_instance": True, "api_key": "",
+        "vault_key": "", "ledger_seal_key": "", "retention_sweep_hours": 0, "sandbox_enabled": False,
+        "llm_provider": "none", "runner_url": "", "pilot_judge": False, "ner": "none",
+        "frontend_dist": "/nonexistent", "github_token": ""})
+    demo_engine = Engine(demo_settings, detector=NoDetector(), provider=False)
+    seed_demo(demo_engine)
+    demo = create_app(demo_settings, demo_engine)
+
+    @demo.middleware("http")
+    async def read_only(request: Request, call_next: Callable[[Request], Any]) -> Any:
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            return JSONResponse({"detail": "the public demo is read-only: sign in to work with real data"},
+                                status_code=403, headers={"X-Required-Permission": "write"})
+        return await call_next(request)
+
+    return demo
+
+
 def create_app(settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
     settings = settings or get_settings()
     engine = engine or Engine(settings)
@@ -725,6 +751,10 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         from ..demo import seed_demo
 
         return seed_demo(engine)
+
+    # ------------------------------------------------------------------ public read-only demo
+    if settings.demo_public and settings.enable_demo and not settings.demo_instance:
+        app.mount("/demo", build_public_demo(settings))
 
     # ------------------------------------------------------------------ front-end (production build)
 

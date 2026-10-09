@@ -5965,3 +5965,6 @@ button.pl-change:hover {
 /* sign-in screen of the recruiter area */
 .signin { display: flex; justify-content: center; padding: 48px 0; }
 .signin > form { width: 100%; max-width: 460px; }
+
+/* public read-only demo */
+.demo-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }

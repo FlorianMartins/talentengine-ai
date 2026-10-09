@@ -1318,6 +1318,15 @@ const fr = {
   pilot: frPilot,
   tt: frTT,
   byok: frBYOK,
+  demo: {
+    enter: "Explorer la démo",
+    enterHint: "Démo en lecture seule, avec des candidatures fictives : aucune donnée réelle, rien n'est enregistré.",
+    banner: "Démo — données fictives, lecture seule.",
+    bannerHint: "Les boutons qui modifient des données sont désactivés. Pour vos vrais recrutements, connectez-vous avec votre clé.",
+    leave: "Quitter la démo / se connecter",
+    badge: "Démo · lecture seule",
+    readOnly: "Démo en lecture seule : connectez-vous avec votre clé pour agir sur de vraies données.",
+  },
   signIn: {
     title: "Connexion à l'espace recruteur",
     why: "Cet espace contient les candidatures et leurs données personnelles : il est réservé aux comptes nommés. Collez votre clé d'accès personnelle, fournie par l'administrateur. Elle reste dans ce navigateur.",
@@ -1853,6 +1862,15 @@ const en: Dict = {
   pilot: enPilot,
   tt: enTT,
   byok: enBYOK,
+  demo: {
+    enter: "Explore the demo",
+    enterHint: "Read-only demo with fictional applications: no real data, nothing is saved.",
+    banner: "Demo — fictional data, read-only.",
+    bannerHint: "Buttons that change data are disabled. For your real hiring, sign in with your key.",
+    leave: "Leave the demo / sign in",
+    badge: "Demo · read-only",
+    readOnly: "Read-only demo: sign in with your key to act on real data.",
+  },
   signIn: {
     title: "Sign in to the recruiter area",
     why: "This area holds applications and their personal data: it is reserved to named accounts. Paste your personal access key, given by your administrator. It stays in this browser.",

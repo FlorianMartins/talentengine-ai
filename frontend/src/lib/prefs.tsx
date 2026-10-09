@@ -1,3 +1,4 @@
+import { isDemo } from "./demo";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { dictionaries, type Dict, type Lang } from "../i18n";
 import { getStored, setStored } from "./storage";
@@ -261,9 +262,13 @@ export function useAccess(): Access {
         : legacy
           ? "open"
           : "loading";
-    const can = (p: Permission) => (legacy ? true : Boolean(me?.permissions.includes(p)));
+    const demo = isDemo();
+    // the public demo is read-only: every action that changes data is disabled, with its reason
+    const can = (p: Permission) =>
+      demo ? p === "read" : legacy ? true : Boolean(me?.permissions.includes(p));
     const denied = (p: Permission) => {
       if (can(p)) return undefined;
+      if (demo) return t.demo.readOnly;
       if (mode === "anonymous") return t.access.loginRequired;
       const roles = (Object.keys(ROLE_PERMISSIONS) as Role[])
         .filter((r) => ROLE_PERMISSIONS[r].includes(p))

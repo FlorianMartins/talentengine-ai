@@ -144,3 +144,18 @@ def test_monitoring_and_incidents(settings: Settings) -> None:
     inc = client.post("/api/admin/incidents", headers=keys["dpo"], json={
         "severity": "serious", "description": "Scores inconsistent after a configuration change on job X."}).json()
     assert inc["report_to_authority_before"] and engine.ledger.entries(limit=1)[0].kind == "incident"
+
+
+def test_public_demo_is_read_only_fictional_and_isolated(settings: Settings) -> None:
+    settings.demo_public = True
+    client, engine, _ = _setup(settings)
+    _, real_ref = _candidate(engine)  # a real application in the protected area
+    assert client.get("/api/jobs").status_code == 401  # real data: a key is required
+    jobs = client.get("/demo/api/jobs").json()  # the demo: no key, fictional data
+    assert len(jobs) == 3
+    refs = [c["candidate_ref"] for j in jobs for c in client.get(f"/demo/api/jobs/{j['id']}/candidates").json()]
+    assert refs and real_ref not in refs
+    assert client.get(f"/demo/api/candidates/{real_ref}/report").status_code == 404
+    write = client.post("/demo/api/jobs", json={"title": "x"})
+    assert write.status_code == 403 and "read-only" in write.json()["detail"]
+    assert client.get("/demo/api/health").json()["auth_required"] is False

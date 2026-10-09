@@ -26,7 +26,8 @@ import { ApiError } from "../api/client";
 import { getStored, setStored } from "../lib/storage";
 import { cx } from "../lib/format";
 import { ToastRegion } from "./feedback";
-import { SignIn } from "./SignIn";
+import { SignIn, enterDemo } from "./SignIn";
+import { isDemo } from "../lib/demo";
 
 /** Minimal mark: a "T" monogram on the brand ink-blue square. Original drawing. */
 export function Logo({ size = 28 }: { size?: number }) {
@@ -63,6 +64,7 @@ export function Shell() {
   const { runtimeError } = useSystem();
   const access = useAccess();
   const needsKey = runtimeError instanceof ApiError && runtimeError.status === 401;
+  const demo = isDemo();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -220,7 +222,18 @@ export function Shell() {
             </div>
           </header>
           <main id="main" className="content" tabIndex={-1}>
-            {needsKey ? <SignIn rejected={needsKey} /> : <Outlet />}
+            {demo && (
+              <p className="callout small demo-banner" role="status">
+                <span>
+                  <b>{t.demo.banner}</b> {t.demo.bannerHint}
+                </span>
+                <span className="spacer" />
+                <button className="btn btn-sm btn-primary" onClick={() => enterDemo(false)}>
+                  {t.demo.leave}
+                </button>
+              </p>
+            )}
+            {needsKey && !demo ? <SignIn rejected={needsKey} /> : <Outlet />}
           </main>
         </div>
       </div>
@@ -278,6 +291,13 @@ function IdentityChip() {
         <KeyIcon size={14} aria-hidden="true" />
         <span className="who-text">{t.access.signIn}</span>
       </Link>
+    );
+  }
+  if (isDemo()) {
+    return (
+      <span className="who" title={t.demo.readOnly}>
+        <span className="who-text">{t.demo.badge}</span>
+      </span>
     );
   }
   const label =

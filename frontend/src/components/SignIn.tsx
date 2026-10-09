@@ -1,7 +1,8 @@
 // Sign-in screen of the recruiter area: shown instead of a page when the server needs an access key.
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { KeyRound, LogIn } from "lucide-react";
+import { Eye, KeyRound, LogIn } from "lucide-react";
+import { BASE_PATH, setDemoMode } from "../api/client";
 import { usePrefs, useSystem } from "../lib/prefs";
 
 export function SignIn({ rejected }: { rejected: boolean }) {
@@ -50,16 +51,27 @@ export function SignIn({ rejected }: { rejected: boolean }) {
             <span>{s.rejected}</span>
           </p>
         )}
-        <div>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
           <button className="btn btn-primary" type="submit">
             <LogIn size={16} aria-hidden="true" />
             {s.submit}
           </button>
+          <button className="btn" type="button" onClick={() => enterDemo(true)}>
+            <Eye size={16} aria-hidden="true" />
+            {t.demo.enter}
+          </button>
         </div>
+        <p className="xs faint">{t.demo.enterHint}</p>
         <p className="xs muted" style={{ lineHeight: 1.6 }}>
           {s.noAi} <Link to="/essai">{s.trial}</Link> · <Link to="/recruteurs">{s.recruiters}</Link>
         </p>
       </form>
     </div>
   );
+}
+
+/** switch between the read-only demo (fictional data) and the real recruiter area; reloads the app */
+export function enterDemo(on: boolean): void {
+  setDemoMode(on);
+  window.location.assign(`${BASE_PATH}/`);
 }
