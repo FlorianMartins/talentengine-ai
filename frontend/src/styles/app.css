@@ -5961,3 +5961,7 @@ button.pl-change:hover {
   max-height: 260px; overflow: auto; margin: 6px 0 0; padding: 8px 10px; white-space: pre-wrap;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
 }
+
+/* sign-in screen of the recruiter area */
+.signin { display: flex; justify-content: center; padding: 48px 0; }
+.signin > form { width: 100%; max-width: 460px; }

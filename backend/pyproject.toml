@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "talentengine-ai"
-version = "0.10.0"
+version = "0.10.1"
 description = "Skills-first, privacy-first applicant evaluation engine (EU AI Act / GDPR by design)."
 readme = "README.md"
 license = { text = "MIT" }

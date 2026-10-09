@@ -4,7 +4,6 @@ import {
   ChevronRight,
   FlaskConical,
   LayoutGrid,
-  KeyRound,
   Languages,
   Megaphone,
   Moon,
@@ -27,6 +26,7 @@ import { ApiError } from "../api/client";
 import { getStored, setStored } from "../lib/storage";
 import { cx } from "../lib/format";
 import { ToastRegion } from "./feedback";
+import { SignIn } from "./SignIn";
 
 /** Minimal mark: a "T" monogram on the brand ink-blue square. Original drawing. */
 export function Logo({ size = 28 }: { size?: number }) {
@@ -220,15 +220,7 @@ export function Shell() {
             </div>
           </header>
           <main id="main" className="content" tabIndex={-1}>
-            {needsKey && location.pathname !== "/settings" && (
-              <p className="callout callout-warn" role="alert" style={{ marginBottom: 24 }}>
-                <KeyRound size={16} aria-hidden="true" />
-                <span>
-                  {t.common.unauthorized} <Link to="/settings">{t.nav.settings} →</Link>
-                </span>
-              </p>
-            )}
-            <Outlet />
+            {needsKey ? <SignIn rejected={needsKey} /> : <Outlet />}
           </main>
         </div>
       </div>

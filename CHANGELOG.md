@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.1 — 2026-10-09
+
+- **Sign-in screen** for the recruiter area: without an access key, pages show a sign-in form (why a key is
+  needed, that it is not an AI key, links to the public trial) instead of an error card; a refused key says so.
+- Wording: "API key" became "access key (te_…)" everywhere, to avoid any confusion with a model key.
+
 ## 0.10.0 — 2026-10-09
 
 Real tests, and a professional design.
