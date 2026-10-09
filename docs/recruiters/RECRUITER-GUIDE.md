@@ -239,53 +239,35 @@ Tick off the points during the interview. For a file with no attached achievemen
 about the **declared** skills: "You say you are proficient in X: describe a concrete achievement, what
 you did yourself and the result." A thin file is a reason to ask questions, never to reject.
 
-### Before the interview: filter impostors with a verification test
+### Before the interview: a technical test that works like the job
 
-Evidence can be borrowed: a CV can be invented, a repository can belong to someone else. From any report,
-send the candidate a **verification test link** for the level the role needs (junior, confirmed, senior):
+Evidence can be borrowed: a CV can be invented, a repository can belong to someone else. And your future
+hire will use a calculator, the internet and AI every day. So from any report you send **one technical
+test** at the level the role needs (junior, confirmed, senior), with tools allowed and nothing blocked:
 
-- **Questions on the craft**, drawn from 236 practical questions over all 37 skills, spread over your
-  job's criteria by importance — scenarios, calculations, ordering steps, not definitions.
-- **Questions on their own work**, generated from what they submitted: which tools their CI runs, which of
-  their projects builds on which, which library a repository uses, the exact figure in their own report.
-  The author answers in seconds; someone presenting another person's work does not.
-- **Every candidate gets a different test** (questions, numbers, option order), one question at a time,
-  with a timer kept by the server and no going back: an answer key or a screenshot shared online is useless.
-- **Integrity signals** for you to review — window left, copy/paste or print-screen attempts, full screen
-  exited, answers faster than reading time — summarised as a low/medium/high risk with neutral notes.
-  They are never applied automatically.
-- **Safe Exam Browser** mode for high-stakes roles: the free, open exam browser used by universities locks
-  the computer (no screenshots, no other applications); TalentEngine checks on every request that the test
-  really runs in it.
+- **Section 1 — knowledge.** Practical questions over your job's criteria (scenarios, calculations, ordering
+  steps — not definitions), plus **questions on the candidate's own work**: which tools their CI runs,
+  which of their projects builds on which. The author answers in seconds; no search engine or AI can.
+- **Section 2 — with the AI.** Questions answered with a built-in assistant that is **wrong on purpose on
+  half of them**, confidently. You see who follows it, who checks ("are you sure?"), and who answers
+  against it — the habit that prevents incidents.
+- **Section 3 — practice** (software, data, security and infrastructure roles). A realistic mission — secure
+  an LLM gateway, ship a pseudonymised banking export, put an API in production, train a churn model,
+  render user comments in React, write Terraform — delivered by steering the assistant, which hides a
+  subtle flaw in a solution that passes the CI: customer IBANs in the logs, a filter a capital letter
+  defeats, a container running as root, a test score inflated by data leakage — sometimes inside its own
+  fix of the previous flaw. Then **five minutes on a real function of their own GitHub repository**:
+  people who wrote the code mention the module next door; people presenting someone else's work ask the
+  AI to explain "their" function.
 
-What no website can do, and we prefer to say so: stop someone from photographing the screen with a phone.
-That is why timers are tight, questions are personal, every leak is traceable through a moving watermark,
-and why the interview remains the final check. No camera and no microphone are used — emotion recognition
-in recruitment is prohibited in the EU.
-
-### For technical roles: the AI-pilot test
-
-Your future engineer will work with AI every day. Rather than pretending otherwise, the **AI-pilot test**
-watches them do exactly that: they get a realistic mission (secure an LLM gateway, ship a pseudonymised
-banking export, put an API in production, train a churn model, render user comments in React, write
-Terraform — six missions, picked from the job) and an AI assistant that is **deliberately imperfect**. It
-delivers a "secure" solution that passes the CI but hides a subtle flaw — customer IBANs written to the
-logs, a filter that a capital letter defeats, a container running as root, a test score inflated by data
-leakage. Sometimes the flaw hides in the assistant's own fix of the previous one. You receive:
-
-- **Intent precision** — did they frame the work (standards such as OWASP, GDPR, FINMA; acceptance
-  criteria; guarantees), or type "make it secure"?
-- **Critical thinking** — did they catch each planted flaw, how fast, and is it gone at the end? Each
-  flaw is listed with the exact turn where it appeared and where they called it out.
-- **Orchestration velocity** — green CI in how many iterations, compared with an expert's par.
-- **Authenticity of the evidence** — five minutes to change a real function of *their own* GitHub
-  repository under a new constraint. People who wrote the code mention the module next door; people
-  presenting someone else's work ask the AI to explain "their" function.
-
-Every figure comes with the quotes it rests on. An optional AI judge can nudge two of them by 15 points at
-most, and only by citing the transcript. You can even **arm an extra flaw live** during an interview and
-watch how the candidate reacts. It is a signal for the conversation, never an automatic rejection. Details:
-[AI-pilot test](../PILOT_TEST.md).
+You receive applied knowledge, intent precision, critical thinking, orchestration velocity and the
+authenticity of the evidence, each with the quotes it rests on, a plain-language profile of how the AI was
+used, and the full transcript. An optional AI judge can nudge two figures by 15 points at most, only by
+citing the transcript. You can even **arm an extra flaw live** during an interview. Every candidate gets
+different questions and numbers; the server keeps the time. It is a signal for the conversation, never an
+automatic rejection — and since tools are allowed, the interview checks the reasoning. No camera, no
+microphone (emotion recognition in recruitment is prohibited in the EU). Details:
+[technical test](../TECHNICAL_TEST.md).
 
 ## 8. Worked examples with numbers
 

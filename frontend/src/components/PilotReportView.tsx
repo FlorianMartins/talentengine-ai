@@ -1,25 +1,32 @@
-// Evaluation report of an AI-pilot test. Shared by the sandbox end screen (audience "self") and the
-// recruiter report (audience "recruiter"). Factual numbers and the judge's bounded adjustment are always
-// shown side by side, every piece of evidence links to the transcript turn it cites.
+// Report of a technical test (sections 1 knowledge, 2 with the AI, 3 practice = the AI-pilot mission).
+// Shared by the sandbox end screen (audience "self") and the recruiter report (audience "recruiter").
+// Factual numbers and the judge's bounded adjustment are always shown side by side, every piece of
+// evidence links to the transcript turn it cites. The AI-usage facts are descriptive, never a score.
 import { useId, useRef, useState } from "react";
 import {
   AlertTriangle,
+  BookOpen,
+  Bot,
   Bug,
+  Calculator,
   CheckCircle2,
   Compass,
   FileCode2,
   Gauge,
   Info,
+  ListChecks,
+  MessagesSquare,
   Scale,
   ScrollText,
   Search,
+  Target,
   Timer,
   UserCheck,
   XCircle,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import type { PilotMetric, PilotReport, PilotTurn } from "../api/types";
+import type { PilotMetric, PilotQuestionOutcome, PilotReport, PilotTurn } from "../api/types";
 import type { Dict } from "../i18n";
 import { usePrefs } from "../lib/prefs";
 import { cx } from "../lib/format";
@@ -27,6 +34,7 @@ import { Meter, ScoreRing } from "./charts";
 import { PilotTranscript } from "./PilotTurns";
 
 const METRIC_ICON: Record<string, LucideIcon> = {
+  applied_knowledge: BookOpen,
   intent_precision: Compass,
   critical_thinking: Search,
   orchestration_velocity: Zap,
@@ -37,8 +45,16 @@ const METRIC_ICON: Record<string, LucideIcon> = {
 export function localizeNote(note: string, t: Dict, titles: Record<string, string>): string {
   const n = t.pilot.report.notes;
   const f = (id: string | undefined) => (id ? titles[id] ?? id : "");
+  const q = t.tt.notes;
   let m: RegExpExecArray | null;
   if (note === "no instruction was given to the assistant") return n.noInstruction;
+  if (note === "no assistant answer was ever reviewed: nothing to measure") return q.nothing;
+  if ((m = /^(\d+) of (\d+) questions right, (\d+) out of time, with calculator and internet allowed$/.exec(note)))
+    return q.knowledge(m[1] ?? "", m[2] ?? "", m[3] ?? "");
+  if ((m = /^question (\d+): gave the assistant's wrong answer as is$/.exec(note))) return q.followed(m[1] ?? "");
+  if ((m = /^question (\d+): right answer although the assistant was wrong( \(after making it check\))?$/.exec(note)))
+    return q.caught(m[1] ?? "", Boolean(m[2]));
+  if ((m = /^question (\d+): doubted the assistant but answered wrong$/.exec(note))) return q.doubted(m[1] ?? "");
   if (note === "vague instruction: no constraint, criterion or reference to the code") return n.vague;
   if (note === "the work that carries the injected flaws was never requested: nothing to review") return n.neverRequested;
   if (note === "says where the change goes in the function") return n.where;
@@ -64,8 +80,25 @@ const ENGLISH_LIMITS = [
   "Five minutes on one's own code",
 ];
 export function localizeLimit(limit: string, t: Dict): string {
+  if (limit.startsWith("Tools are allowed and not monitored")) return t.tt.limitTools;
   const i = ENGLISH_LIMITS.findIndex((p) => limit.startsWith(p));
   return i >= 0 ? t.pilot.report.limits[i] ?? limit : limit;
+}
+
+/** breakdown keys: fixed ids, flaw ids, skill labels, or "question N" (section 2 traps) */
+function breakdownLabel(k: string, t: Dict, titles: Record<string, string>): string {
+  const m = /^question (\d+)$/.exec(k);
+  if (m) return t.tt.report.questionLabel(m[1] ?? "");
+  return t.pilot.report.breakdownLabels[k] ?? titles[k] ?? k;
+}
+
+const PRACTICE = ["intent_precision", "critical_thinking", "orchestration_velocity"];
+
+/** weighted mean of the given metrics, renormalised over those present (as the backend does) */
+function weightedMean(r: PilotReport, ids: string[]): number | null {
+  const present = r.metrics.filter((m) => ids.includes(m.id) && r.weights[m.id] !== undefined);
+  const total = present.reduce((a, m) => a + (r.weights[m.id] ?? 0), 0);
+  return total > 0 ? present.reduce((a, m) => a + (r.weights[m.id] ?? 0) * m.final_pct, 0) / total : null;
 }
 
 function pctColor(v: number): string {
@@ -87,8 +120,13 @@ export function PilotReportView({
   const transcriptRef = useRef<HTMLDetailsElement>(null);
   const [hl, setHl] = useState<number | null>(null);
   const titles = Object.fromEntries(r.faults.map((f) => [f.id, f.title]));
+  const tt = t.tt.report;
   const steering = r.metrics.filter((m) => m.id !== "ownership");
   const own = r.metrics.find((m) => m.id === "ownership");
+  const hasMission = Boolean(r.scenario_id);
+  // the backend renormalises the weights over the metrics present: show the weight actually applied
+  const weightTotal = steering.reduce((a, m) => a + (r.weights[m.id] ?? 0), 0);
+  const weightOf = (id: string) => (r.weights[id] === undefined || weightTotal <= 0 ? undefined : (r.weights[id] ?? 0) / weightTotal);
 
   const goTurn = (n: number) => {
     if (!transcript) return;
@@ -106,7 +144,13 @@ export function PilotReportView({
       {/* ---------------------------------------------------------- head */}
       <div className="pr-head">
         <div className="pr-rings">
-          <ScoreRing value={r.pilot_index_pct} size={audience === "self" ? 148 : 112} glow={audience === "self"} caption={p.indexShort} label={`${p.index} ${r.pilot_index_pct.toFixed(1)} %`} />
+          <ScoreRing
+            value={r.pilot_index_pct}
+            size={audience === "self" ? 148 : 112}
+            glow={audience === "self"}
+            caption={tt.ring}
+            label={`${tt.overall} ${r.pilot_index_pct.toFixed(1)} %`}
+          />
           <ScoreRing
             value={r.authenticity_pct}
             size={audience === "self" ? 104 : 84}
@@ -116,13 +160,15 @@ export function PilotReportView({
           />
         </div>
         <div className="stack-sm" style={{ minWidth: 0, flex: 1 }}>
-          <span className="eyebrow">
-            {p.scenario} · {r.job_title}
-          </span>
-          <h3 className="pr-title">{r.scenario_title}</h3>
+          <span className="eyebrow">{t.tt.name}</span>
+          <h3 className="pr-title">{r.job_title}</h3>
           <div className="row wrap" style={{ gap: 8 }}>
             <span className="chip chip-accent">
               <span>{t.pilot.levels[r.level]}</span>
+            </span>
+            <span className={cx("chip", hasMission ? "chip-plain" : "chip-neutral")}>
+              <Target size={12} aria-hidden="true" />
+              <span>{hasMission ? `${p.scenario} · ${r.scenario_title}` : tt.questionsOnly}</span>
             </span>
             <span className="chip chip-plain">
               <span>{p.prompts(r.prompts)}</span>
@@ -144,7 +190,7 @@ export function PilotReportView({
             </span>
           </div>
           <p className="xs faint">
-            {p.indexHint} {r.authenticity_pct === null ? `${p.authenticity} — ${p.notTaken}.` : p.authenticityHint}
+            {tt.overallHint} {r.authenticity_pct === null ? `${p.authenticity} — ${p.notTaken}.` : p.authenticityHint}
           </p>
         </div>
       </div>
@@ -159,12 +205,21 @@ export function PilotReportView({
         </div>
       </div>
 
+      <SectionsSummary r={r} />
+
+      {(r.questions?.length ?? 0) > 0 && (
+        <>
+          {r.questions?.some((q) => q.section === "ai") && <AiUsagePanel r={r} />}
+          <QuestionsTable r={r} audience={audience} />
+        </>
+      )}
+
       {/* ---------------------------------------------------------- metrics */}
       <section className="stack" aria-label={p.metricsTitle}>
         <h4 className="label">{p.metricsTitle}</h4>
         <div className="pr-metrics">
           {[...steering, ...(own ? [own] : [])].map((m) => (
-            <MetricCard key={m.id} m={m} weight={r.weights[m.id]} titles={titles} onTurn={transcript ? goTurn : undefined} />
+            <MetricCard key={m.id} m={m} weight={m.id === "ownership" ? undefined : weightOf(m.id)} titles={titles} onTurn={transcript ? goTurn : undefined} />
           ))}
         </div>
         <p className="xs faint row" style={{ gap: 6 }}>
@@ -174,6 +229,7 @@ export function PilotReportView({
       </section>
 
       {/* ---------------------------------------------------------- faults */}
+      {(hasMission || r.faults.length > 0) && (
       <section className="stack-sm" aria-label={p.faultsTitle}>
         <h4 className="label row" style={{ gap: 6 }}>
           <Bug size={14} aria-hidden="true" />
@@ -252,9 +308,12 @@ export function PilotReportView({
           </div>
         )}
       </section>
+      )}
 
       {/* ---------------------------------------------------------- facts */}
+      {(r.velocity || r.ownership || hasMission) && (
       <div className="grid-2 pr-facts" style={{ alignItems: "start" }}>
+        {r.velocity && (
         <section className="pr-box" aria-label={p.velocityTitle}>
           <h4 className="label row" style={{ gap: 6 }}>
             <Gauge size={14} aria-hidden="true" />
@@ -281,6 +340,7 @@ export function PilotReportView({
             <dd className="num">{p.duration(r.velocity.minutes_used)}</dd>
           </dl>
         </section>
+        )}
         <section className="pr-box" aria-label={p.ownershipTitle}>
           <h4 className="label row" style={{ gap: 6 }}>
             <FileCode2 size={14} aria-hidden="true" />
@@ -327,6 +387,7 @@ export function PilotReportView({
           )}
         </section>
       </div>
+      )}
 
       {/* ---------------------------------------------------------- limits */}
       <section className="pr-box pr-limits" aria-label={p.limitsTitle}>
@@ -451,7 +512,7 @@ function MetricCard({
           <ul className="pr-breakdown">
             {entries.map(([k, v]) => {
               const neg = v < 0;
-              const name = p.breakdownLabels[k] ?? titles[k] ?? k;
+              const name = breakdownLabel(k, t, titles);
               return (
                 <li key={k}>
                   <span className="xs">{name}</span>
@@ -487,5 +548,233 @@ function MetricCard({
         </p>
       )}
     </article>
+  );
+}
+
+// ------------------------------------------------------------------ technical test: sections, AI usage, questions
+
+function SectionsSummary({ r }: { r: PilotReport }) {
+  const { t } = usePrefs();
+  const tt = t.tt.report;
+  const qs = r.questions ?? [];
+  const nK = qs.filter((q) => q.section === "knowledge").length;
+  const nA = qs.filter((q) => q.section === "ai").length;
+  const practice = r.scenario_id ? weightedMean(r, PRACTICE) : null;
+  const tiles: { id: string; n: string; icon: LucideIcon; v: number | null; hint: string; empty: string; tone?: string; extra?: string }[] = [
+    { id: "knowledge", n: "1", icon: Calculator, v: r.applied_knowledge_pct ?? null, hint: tt.tiles.knowledge, empty: nK ? "—" : tt.noQuestions },
+    { id: "ai", n: "2", icon: Bot, v: r.ai_section_pct ?? null, hint: tt.tiles.ai, empty: nA ? "—" : tt.noQuestions },
+    { id: "practice", n: "3", icon: Target, v: practice, hint: tt.tiles.practice, empty: tt.noMission },
+    {
+      id: "own",
+      n: "",
+      icon: UserCheck,
+      v: r.authenticity_pct,
+      hint: tt.tiles.own,
+      empty: tt.notTaken,
+      tone: "is-own",
+      extra: r.own_work_pct !== null && r.own_work_pct !== undefined ? tt.ownWork(r.own_work_pct) : undefined,
+    },
+  ];
+  return (
+    <section className="stack-sm" aria-labelledby="tq-sections">
+      <h4 id="tq-sections" className="label">
+        {tt.sectionsTitle}
+      </h4>
+      <ul className="tq-tiles">
+        {tiles.map(({ id, n, icon: Icon, v, hint, empty, tone, extra }) => {
+          const name = id === "own" ? tt.ownTile : `${t.tt.sectionN(Number(n))} · ${t.tt.section[id]}`;
+          return (
+            <li key={id} className={cx("tq-tile", tone, v === null && "is-empty")}>
+              <div className="row" style={{ gap: 8 }}>
+                <span className="tq-tile-icon" aria-hidden="true">
+                  <Icon size={15} />
+                </span>
+                <span className="tq-tile-name">{name}</span>
+              </div>
+              {v === null ? (
+                <span className="tq-tile-empty">{empty}</span>
+              ) : (
+                <>
+                  <span className="tq-tile-v num">
+                    {Math.round(v)}
+                    <small>%</small>
+                  </span>
+                  <Meter value={v} max={100} label={`${name}: ${v.toFixed(1)} %`} color={id === "own" ? "var(--violet)" : pctColor(v)} />
+                </>
+              )}
+              <span className="xs faint">{hint}</span>
+              {extra && <span className="xs muted">{extra}</span>}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function AiUsagePanel({ r }: { r: PilotReport }) {
+  const { t } = usePrefs();
+  const tt = t.tt.report;
+  const u = r.ai_usage;
+  const nAi = (r.questions ?? []).filter((q) => q.section === "ai").length || u?.questions || 0;
+  const lines: string[] = [];
+  if (u) {
+    if (u.consulted === 0) lines.push(tt.usage.none(nAi));
+    else {
+      lines.push(tt.usage.consulted(u.consulted, nAi));
+      lines.push(tt.usage.perQuestion(u.prompts_per_consulted));
+      if (u.pasted_verbatim > 0) lines.push(tt.usage.pasted(u.pasted_verbatim));
+      lines.push(tt.usage.challenges(u.challenges));
+      if (u.trapped_consulted > 0) {
+        lines.push(tt.usage.followed(u.trapped_followed, u.trapped_consulted));
+        lines.push(tt.usage.caught(u.trapped_caught, u.trapped_consulted));
+      } else lines.push(tt.usage.noTrap);
+      if (u.answered_against_ai > 0) lines.push(tt.usage.against(u.answered_against_ai));
+    }
+  }
+  return (
+    <section className="pr-box tq-usage" aria-labelledby="tq-usage-h">
+      <h4 id="tq-usage-h" className="label row" style={{ gap: 6 }}>
+        <MessagesSquare size={14} aria-hidden="true" />
+        {tt.aiUsageTitle}
+      </h4>
+      {lines.length === 0 ? (
+        <p className="small muted">{tt.usage.none(nAi)}</p>
+      ) : (
+        <ul className="tq-usage-list">
+          {lines.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+      )}
+      <p className="xs faint row" style={{ gap: 6 }}>
+        <Info size={12} aria-hidden="true" />
+        {tt.aiUsageNote}
+      </p>
+    </section>
+  );
+}
+
+function ResultChip({ q }: { q: PilotQuestionOutcome }) {
+  const { t } = usePrefs();
+  const tt = t.tt.report;
+  if (q.late)
+    return (
+      <span className="chip chip-neutral">
+        <Timer size={12} aria-hidden="true" />
+        <span>{tt.late}</span>
+      </span>
+    );
+  if (q.score >= 1)
+    return (
+      <span className="chip chip-ok">
+        <CheckCircle2 size={12} aria-hidden="true" />
+        <span>{tt.right}</span>
+      </span>
+    );
+  if (q.score > 0)
+    return (
+      <span className="chip chip-accent">
+        <span>{tt.partial(q.score * 100)}</span>
+      </span>
+    );
+  return (
+    <span className="chip chip-neutral">
+      <XCircle size={12} aria-hidden="true" />
+      <span>{tt.wrong}</span>
+    </span>
+  );
+}
+
+function QuestionsTable({ r, audience }: { r: PilotReport; audience: "self" | "recruiter" }) {
+  const { t } = usePrefs();
+  const tt = t.tt.report;
+  const qs = r.questions ?? [];
+  return (
+    <section className="stack-sm tq-questions" aria-labelledby="tq-q-h">
+      <h4 id="tq-q-h" className="label row" style={{ gap: 6 }}>
+        <ListChecks size={14} aria-hidden="true" />
+        {tt.questionsTitle}
+      </h4>
+      <div className="table-wrap">
+        <table className="table tq-table">
+          <thead>
+            <tr>
+              <th scope="col">{tt.col.n}</th>
+              <th scope="col">{tt.col.section}</th>
+              <th scope="col">{tt.col.skill}</th>
+              <th scope="col">{tt.col.result}</th>
+              <th scope="col">{tt.col.time}</th>
+              <th scope="col">{tt.col.consulted}</th>
+              <th scope="col">{tt.col.trapped}</th>
+              <th scope="col">{tt.col.followed}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {qs.map((q) => {
+              const ai = q.section === "ai";
+              return (
+                <tr key={q.index}>
+                  <td className="num">{q.index + 1}</td>
+                  <td className="xs">
+                    <span className={cx("chip", ai ? "chip-violet" : "chip-plain")}>
+                      <span>
+                        {ai ? "2" : "1"} · {t.tt.section[q.section]}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="small" style={{ minWidth: 140 }}>
+                    {q.skill}
+                    {q.personal && (
+                      <>
+                        {" "}
+                        <span className="chip chip-violet">
+                          <UserCheck size={11} aria-hidden="true" />
+                          <span>{tt.personal}</span>
+                        </span>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <ResultChip q={q} />
+                  </td>
+                  <td className="xs num" style={{ whiteSpace: "nowrap" }}>
+                    {tt.seconds(q.seconds_used, q.seconds)}
+                  </td>
+                  <td className="xs">{ai ? tt.consultedN(q.consulted_ai) : "—"}</td>
+                  <td className="xs">
+                    {ai ? (
+                      q.trapped ? (
+                        <span className="chip chip-warn">
+                          <AlertTriangle size={11} aria-hidden="true" />
+                          <span>{tt.yes}</span>
+                        </span>
+                      ) : (
+                        tt.no
+                      )
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="xs" style={{ minWidth: 120 }}>
+                    {ai && q.consulted_ai > 0 ? (
+                      <div className="tq-follow">
+                        {q.trapped && <span className={q.followed_ai ? "tq-followed" : "tq-not-followed"}>{q.followed_ai ? tt.followedYes : tt.followedNo}</span>}
+                        {q.challenged && <span className="muted">{tt.challenged}</span>}
+                        {q.conceded && <span className="muted">{tt.conceded}</span>}
+                        {!q.trapped && !q.challenged && <span className="faint">—</span>}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="xs faint">{audience === "self" ? tt.trapRevealSelf : tt.trapRevealRecruiter}</p>
+    </section>
   );
 }

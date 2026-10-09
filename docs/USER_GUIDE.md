@@ -55,9 +55,9 @@ profiles (DevSecOps, growth marketing, joinery) and eleven fictional candidates.
 | `TE_LLM_MODEL` | `claude-opus-5-5` | Model for the escalation tier (set a local model name with `ollama`). |
 | `TE_LLM_API_KEY` / `TE_LLM_BASE_URL` | empty | Credentials / endpoint of the escalation provider. |
 | `TE_LLM_PRICE_INPUT_PER_MTOK` / `..._OUTPUT_...` | `4.0` / `20.0` | Prices used by the budget guard (USD per million tokens). |
-| `TE_PILOT_ASSISTANT` | `scripted` | AI-pilot test assistant: `scripted` (reference, identical for everyone) or `llm`. |
+| `TE_PILOT_ASSISTANT` | `scripted` | Technical-test assistant (sections 2 and 3): `scripted` (reference, identical for everyone) or `llm`. |
 | `TE_PILOT_LLM_PROVIDER` / `_MODEL` / `_BASE_URL` / `_API_KEY` | `ollama` / `qwen2.5-coder:7b` | The model candidates pilot when `TE_PILOT_ASSISTANT=llm` (Ollama, vLLM, OpenRouter…). |
-| `TE_PILOT_JUDGE` | `true` | Use the escalation provider as LLM judge for AI-pilot tests (bounded to ±15 points). |
+| `TE_PILOT_JUDGE` | `true` | Use the escalation provider as LLM judge for technical tests (bounded to ±15 points). |
 | `TE_OWNERSHIP_SOURCE_FILES` | `3` | Source files kept per repository of an application, for the own-code task. |
 | `TE_PUBLIC_BASE_URL` | empty | Public URL of the app behind a proxy (e.g. `https://hivey.be/talentengine`); needed for Safe Exam Browser checks and links in ATS notes. |
 | `TE_GITHUB_TOKEN` | empty | Raises the GitHub API limit from 60 to 5,000 requests per hour. |
@@ -106,11 +106,12 @@ Applications whose consented retention period is over are erased automatically e
 3. **The result** — score, what your material proves, what to strengthen, the questions a recruiter
    could ask you.
 
-After the result, two optional tests are offered: the **verification test** (questions, including some on
-your own work) and the **AI-pilot test** — you pilot an AI assistant that makes deliberate mistakes through
-a short mission, then, if you gave GitHub links, get five minutes to change one of your own functions. At
-the end you see your scores and which flaws the assistant planted. Your CV analysis is never stored; a
-test in progress is kept encrypted for at most 3 hours so that a server update does not interrupt it.
+After the result you can take the **technical test** as a candidate would: knowledge questions (tools
+allowed), questions with an assistant that is sometimes wrong, then — for technical roles — a practical
+mission and, if you gave GitHub links, five minutes on one of your own functions. At the end you see your
+scores, which answers of the assistant were wrong and which flaws it planted. Your CV analysis is never
+stored; a test in progress is kept encrypted for at most 3 hours so that a server update does not
+interrupt it.
 
 Limits per visitor and per hour are set by `TE_SANDBOX_MATCHES_PER_HOUR` and `TE_SANDBOX_OFFERS_PER_HOUR`;
 `TE_SANDBOX_ENABLED=false` turns the sandbox off.
@@ -192,30 +193,21 @@ The **Audit** tab of a report shows every step recorded for that candidate. Requ
 are handled by the DPO role: **Export (GDPR)** downloads everything held about them (Art. 15/20),
 **Erase (GDPR)** deletes it and leaves an audit trail that can no longer be linked to them (Art. 17).
 
-### 7. Verify the candidate with a test
+### 7. Send the technical test
 
-From a report, **Verification test** creates a link (level junior / confirmed / senior, 4–25 questions,
-questions on the candidate's own work on by default, validity). Send it to the candidate. They see an
-information notice (what is monitored, no camera or microphone), then one question at a time with a
-server-side timer. You see the score per skill, the verified level, the score on their own work and the
-integrity signals; the candidate only sees that the test is complete.
+From a report, **Technical test** creates a link: level (junior / confirmed / senior), number of questions
+in section 1 (knowledge, tools allowed) and section 2 (with the built-in assistant, wrong on purpose on half
+of them), questions on the candidate's own work (on by default), the practical mission (automatic from the
+job, chosen, or none), optionally which flaws, minutes, the own-code task, and validity. The candidate sees
+an information notice and the rules (tools allowed, nothing blocked, the assistant is deliberately
+imperfect), then the three sections with server-side timers. You get every metric with its evidence, the
+questions table, the AI-usage profile and the transcript; the candidate only sees that the test is complete.
+During a live interview you can **arm an extra flaw** from the session's panel. The job's candidate list
+shows the test index and a *verified* figure (0.6 × compatibility + 0.4 × test index); the ranking itself
+stays on compatibility so that untested candidates are not pushed down. See [TECHNICAL_TEST.md](TECHNICAL_TEST.md).
 
-For high-stakes roles, require **Safe Exam Browser** (https://safeexambrowser.org): create an exam
-configuration in the SEB configuration tool, copy its *Config Key*, paste it in the test form, and send the
-candidate the `.seb` file together with the link. Set `TE_PUBLIC_BASE_URL` (e.g.
-`https://hivey.be/talentengine`) when the app runs behind a reverse proxy so the hashes can be verified.
-
-### 7b. Watch the candidate pilot an AI: the AI-pilot test
-
-For software, data, security and infrastructure roles, **AI-pilot test** on the report creates a link
-(level, scenario — automatic from the job or chosen —, optionally which flaws, minutes, the own-code task,
-validity). The candidate gets a mission and an assistant that is deliberately imperfect; you get intent
-precision, critical thinking, orchestration velocity and, if their repositories were provided, the
-authenticity of the evidence, each with the quotes it rests on, plus the transcript. During a live
-interview you can **arm an extra flaw** from the session's panel and see how they react. The job's
-candidate list shows the pilot index and a *verified* figure (0.6 × compatibility + 0.4 × pilot index);
-the ranking itself stays on compatibility so that untested candidates are not pushed down.
-See [PILOT_TEST.md](PILOT_TEST.md).
+Links of the former closed-book verification test already sent keep working (Safe Exam Browser included,
+`TE_PUBLIC_BASE_URL` needed behind a proxy), but the interface no longer creates them.
 
 ### 8. Connect your ATS
 

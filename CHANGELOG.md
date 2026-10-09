@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.0 — 2026-10-09
+
+One technical test that works like the job (recruitment phase 3).
+
+- **Three sections in one session**: (1) **knowledge** — situational questions and calculations, calculator
+  and internet allowed, nothing blocked, plus questions on the candidate's own work; (2) **with the AI** —
+  questions answered with the built-in assistant, which is **wrong on purpose on half of them** (a wrong
+  option, a calculation slip) and, when challenged, admits it one time in two; (3) **practice** — the
+  practical mission with planted flaws, then five minutes on the candidate's own code.
+- Jobs with no practical mission (a chef, a salesperson) get the two question sections.
+- Report: applied knowledge (section 1), section 2 score, trap outcomes inside critical thinking, a
+  descriptive AI-usage profile (consulted, pasted as is, challenges, wrong answers followed or caught),
+  own-work score inside the authenticity of the evidence; index weights 0.25 / 0.20 / 0.35 / 0.20,
+  renormalised over the metrics a session has.
+- The closed-book verification test (anti-copy layer, Safe Exam Browser) is no longer offered in the
+  interface; links already sent keep working.
+- Fairness: the mission clock starts when the candidate opens the mission (`/build/start`), not when the
+  questions end; "are you sure? recompute" is never counted as a vague instruction.
+- API: `/api/pilot/{token}/question`, `/answer`, `/question/timeout`, `/build/start`; start and recruiter creation take
+  `knowledge_questions`, `ai_questions`, own-work questions (`seed` / `personal`) and `mission`.
+- Docs: `docs/PILOT_TEST.md` became `docs/TECHNICAL_TEST.md`; README, architecture, guides and
+  instructions for use updated. The judge's prompt now covers the questions with the assistant.
+
 ## 0.7.1 — 2026-10-09
 
 - **Fix**: a server update in the middle of a sandbox test made the link "unknown or expired" (the AI-pilot

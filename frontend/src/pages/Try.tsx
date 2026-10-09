@@ -53,8 +53,7 @@ import { PublicLayout, publicPaths, REPO_URL } from "../components/PublicLayout"
 import { BandChip, ErrorState, ImportanceChip, Skeleton, StatusChip } from "../components/feedback";
 import { RangeField, Segmented } from "../components/controls";
 import { PresetPicker } from "../components/PresetPicker";
-import { StartTestCard } from "../components/StartTestCard";
-import { StartPilotCard } from "../components/StartPilotCard";
+import { StartTechTestCard } from "../components/StartTechTestCard";
 import { CandidateNotice } from "../components/CandidateNotice";
 import { DocumentZones, EMPTY_DOCS, hasAnyDoc, type DocSet } from "../components/DocumentZones";
 import { Meter, ScoreRing } from "../components/charts";
@@ -341,15 +340,12 @@ function Sandbox() {
             </button>
           </div>
           {(mode === "preset" || (mode === "offer" && job)) && (
-            <>
-              <StartTestCard variant="compact" presetId={mode === "preset" ? presetId : undefined} job={mode === "offer" ? job : null} />
-              <StartPilotCard
-                variant="compact"
-                presetId={mode === "preset" ? presetId : undefined}
-                job={mode === "offer" ? job : null}
-                githubUrls={githubUrls}
-              />
-            </>
+            <StartTechTestCard
+              variant="compact"
+              presetId={mode === "preset" ? presetId : undefined}
+              job={mode === "offer" ? job : null}
+              githubUrls={githubUrls}
+            />
           )}
         </section>
       )}
@@ -832,8 +828,13 @@ function Result({
         <div style={{ marginTop: 20 }}>{actions}</div>
       </section>
 
-      <StartTestCard variant="hero" presetId={presetId || undefined} job={result.job ?? null} seed={result.assessment_seed} />
-      <StartPilotCard variant="hero" presetId={presetId || undefined} job={result.job ?? null} githubUrls={githubUrls} />
+      <StartTechTestCard
+        variant="hero"
+        presetId={presetId || undefined}
+        job={result.job ?? null}
+        seed={result.assessment_seed}
+        githubUrls={githubUrls}
+      />
 
       {r.warnings.length > 0 && (
         <div className="callout callout-warn" role="note">

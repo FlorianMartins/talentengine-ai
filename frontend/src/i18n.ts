@@ -2,6 +2,7 @@
 // French copy uses inclusive, neutral wording ("la personne candidate", "candidat·e").
 
 import { enPilot, frPilot } from "./i18n.pilot";
+import { enTT, frTT } from "./i18n.techtest";
 
 export type Lang = "fr" | "en";
 
@@ -811,7 +812,7 @@ const frV5 = {
     more: "En savoir plus",
     less: "Réduire",
     full:
-      "Votre candidature est évaluée avec TalentEngine‑AI, un outil d'aide à la décision. Il analyse les éléments que vous fournissez (CV, profil LinkedIn, documents, dépôts publics, portfolio) pour y repérer des preuves des compétences requises pour ce poste. Votre identité, votre âge, votre nationalité, votre situation familiale et le nom de vos écoles sont masqués avant l'analyse. L'outil classe des preuves ; il ne rejette jamais personne : chaque décision est prise et motivée par une personne nommément identifiée. Pendant un test de vérification, la page du test enregistre si elle perd le focus, les tentatives de copier, coller ou capturer l'écran, et les temps de réponse ; elle n'utilise ni votre caméra ni votre micro. Vous pouvez obtenir une explication de votre résultat, accéder à vos données ou les faire effacer en contactant le recruteur. Durée de conservation : celle indiquée dans le formulaire.",
+      "Votre candidature est évaluée avec TalentEngine‑AI, un outil d'aide à la décision. Il analyse les éléments que vous fournissez (CV, profil LinkedIn, documents, dépôts publics, portfolio) pour y repérer des preuves des compétences requises pour ce poste. Votre identité, votre âge, votre nationalité, votre situation familiale et le nom de vos écoles sont masqués avant l'analyse. L'outil classe des preuves ; il ne rejette jamais personne : chaque décision est prise et motivée par une personne nommément identifiée. Pendant le test technique, les outils sont permis et rien n'est bloqué : la page enregistre vos réponses, leurs temps, vos instructions à l'assistant intégré, vos modifications et vos lancements de CI ; elle n'utilise ni votre caméra ni votre micro. Vous pouvez obtenir une explication de votre résultat, accéder à vos données ou les faire effacer en contactant le recruteur. Durée de conservation : celle indiquée dans le formulaire.",
   },
   test: {
     eyebrow: "Test de vérification",
@@ -1050,17 +1051,6 @@ const frV5 = {
     docLink: "Guide d'intégration (ATS_BRIDGE.md)",
   },
   landing2: {
-    impostorsTitle: "Filtrer les imposteurs",
-    impostorsLead: "Un dossier impressionnant ne suffit pas : le test de vérification confirme que la personne maîtrise ce que ses pièces montrent.",
-    impostors: [
-      { t: "Des questions sur son propre travail", d: "Générées à partir de ses dépôts et documents : impossible de les préparer à sa place." },
-      { t: "Un test différent pour chacun·e", d: "Questions tirées au sort, valeurs recalculées, options mélangées : une fuite de réponses ne sert à personne." },
-      { t: "Le temps tenu par le serveur", d: "Une question à la fois, sans retour ; recharger la page ne remet pas le chrono à zéro." },
-      { t: "Des signaux d'intégrité", d: "Sorties de la fenêtre, copier-coller, captures, réponses trop rapides : signalés à une personne, jamais un rejet automatique." },
-      { t: "Safe Exam Browser en option", d: "Pour les postes sensibles, le test ne s'ouvre que dans un navigateur d'examen verrouillé." },
-    ],
-    honest:
-      "Soyons honnêtes : aucune page web ne peut empêcher un téléphone de photographier l'écran. C'est pour cela que chaque rapport inclut un guide d'entretien ancré dans le travail réel de la personne.",
     atsTitle: "S'ajoute à votre ATS",
     atsLead: "Pas de migration : les candidatures arrivent de votre ATS, une note avec le score et le lien d'explication y repart.",
     atsItems: ["Greenhouse", "Lever", "Ashby", "Webhook générique"],
@@ -1076,7 +1066,7 @@ const enV5: typeof frV5 = {
     more: "Learn more",
     less: "Show less",
     full:
-      "Your application is assessed with TalentEngine‑AI, a decision-support tool. It analyses the material you provide (CV, LinkedIn profile, documents, public repositories, portfolio) to identify evidence of the skills required for this job. Your identity, age, nationality, family status and the names of your schools are hidden before analysis. The tool ranks evidence; it never rejects anyone: every decision is taken and justified by a named person. During a verification test, the test page records whether it loses focus, copy/paste/print-screen attempts and answer timings; it does not use your camera or microphone. You can obtain an explanation of your result, access or erase your data by contacting the recruiter. Retention: as stated in the form.",
+      "Your application is assessed with TalentEngine‑AI, a decision-support tool. It analyses the material you provide (CV, LinkedIn profile, documents, public repositories, portfolio) to identify evidence of the skills required for this job. Your identity, age, nationality, family status and the names of your schools are hidden before analysis. The tool ranks evidence; it never rejects anyone: every decision is taken and justified by a named person. During the technical test, tools are allowed and nothing is blocked: the page records your answers and their timings, your instructions to the built-in assistant, your edits and your CI runs; it does not use your camera or microphone. You can obtain an explanation of your result, access or erase your data by contacting the recruiter. Retention: as stated in the form.",
   },
   test: {
     eyebrow: "Verification test",
@@ -1315,17 +1305,6 @@ const enV5: typeof frV5 = {
     docLink: "Integration guide (ATS_BRIDGE.md)",
   },
   landing2: {
-    impostorsTitle: "Filter out impostors",
-    impostorsLead: "An impressive file is not enough: the verification test confirms the person masters what their material shows.",
-    impostors: [
-      { t: "Questions about their own work", d: "Generated from their repositories and documents: nobody can prepare them on their behalf." },
-      { t: "A different test for everyone", d: "Questions drawn at random, values recomputed, options shuffled: a leaked answer key helps no one." },
-      { t: "Time kept by the server", d: "One question at a time, no going back; reloading the page does not reset the clock." },
-      { t: "Integrity signals", d: "Leaving the window, copy-paste, screenshots, answers too fast: flagged to a person, never an automatic rejection." },
-      { t: "Safe Exam Browser option", d: "For sensitive roles, the test only opens in a locked exam browser." },
-    ],
-    honest:
-      "To be honest: no web page can stop a phone from photographing the screen. That is why every report includes an interview guide anchored in the person's actual work.",
     atsTitle: "Plugs into your ATS",
     atsLead: "No migration: applications arrive from your ATS, and a note with the score and the explanation link goes back to it.",
     atsItems: ["Greenhouse", "Lever", "Ashby", "Generic webhook"],
@@ -1334,6 +1313,7 @@ const enV5: typeof frV5 = {
 const fr = {
   ...frV5,
   pilot: frPilot,
+  tt: frTT,
   ...frV4,
   pub: frPublic,
   app: {
@@ -1852,6 +1832,7 @@ export type Dict = typeof fr;
 const en: Dict = {
   ...enV5,
   pilot: enPilot,
+  tt: enTT,
   ...enV4,
   pub: enPublic,
   app: {

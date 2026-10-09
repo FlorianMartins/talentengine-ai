@@ -1,7 +1,9 @@
-"""AI-pilot sessions: lifecycle, server-side timing, telemetry, injection and the final report.
+"""Technical-test sessions: lifecycle, server-side timing, telemetry, injection and the final report.
 
-Phases: ``brief`` (read the mission and the rules) → ``build`` (pilot the assistant, timed) →
-``ownership`` (optional, five minutes on one's own code) → ``closed``. Every action is a turn of the
+Phases: ``brief`` (read the rules) → ``questions`` (section 1, knowledge with tools allowed; section 2, with
+the built-in assistant) → ``build`` (section 3, the practical mission with planted flaws, timed) →
+``ownership`` (five minutes on one's own code) → ``closed``. Each phase is optional except the brief: a job
+with no practical mission yet gets the questions only. Every action is a turn of the
 telemetry. Deadlines are enforced by the server; a reload never resets a clock.
 
 Sandbox sessions live in memory; candidate sessions are stored under the candidate (erased with them).
@@ -18,6 +20,7 @@ import threading
 from datetime import timedelta
 from typing import Any
 
+from ..assessment.engine import GRACE_SECONDS
 from ..models import utcnow
 from ..sandbox.sessions import SandboxSessions
 from ..shield.injection import screen
@@ -36,8 +39,17 @@ from .models import (
     MetricScore,
     OwnershipTask,
     PilotEvaluationReport,
+    PilotQuestion,
 )
 from .ownership import CONSTRAINTS, analyse
+from .questions import (
+    ai_usage,
+    applied_knowledge,
+    outcomes,
+    reference_reply,
+    score_answer,
+    trap_scores,
+)
 from .scenarios import SCENARIOS, Files, Scenario, fold
 from .scoring import WEIGHTS, critical_thinking, detect_callouts, intent_precision, orchestration_velocity, pilot_index
 
@@ -46,17 +58,22 @@ FAULTS_PER_LEVEL = {1: 1, 2: 2, 3: 3}
 
 NOTICE = {
     "fr": (
-        "Ce test mesure la façon de piloter un assistant d'IA : cadrage, relecture critique, redirection et "
-        "connaissance de son propre code. Il ne mesure ni la personnalité ni les émotions ; aucune caméra, aucun "
-        "micro. C'est une aide à la décision : le recruteur décide, et le résultat se discute en entretien."
+        "Ce test technique se passe comme au travail : calculatrice, internet et IA sont permis. Il mesure ce que "
+        "vous savez appliquer, la façon dont vous utilisez l'assistant d'IA (cadrage, relecture critique, "
+        "redirection) et la connaissance de votre propre code. Il ne mesure ni la personnalité ni les émotions ; "
+        "aucune caméra, aucun micro. C'est une aide à la décision : le recruteur décide, et le résultat se "
+        "discute en entretien."
     ),
     "en": (
-        "This test measures how a person pilots an AI assistant: framing, critical review, redirection and "
-        "knowledge of their own code. It measures neither personality nor emotions; no camera, no microphone. "
-        "It supports a decision: the recruiter decides, and the result is discussed at the interview."
+        "This technical test works like the job: calculator, internet and AI are allowed. It measures what you "
+        "can apply, how you use the AI assistant (framing, critical review, redirection) and how well you know "
+        "your own code. It measures neither personality nor emotions; no camera, no microphone. It supports a "
+        "decision: the recruiter decides, and the result is discussed at the interview."
     ),
 }
 LIMITS = [
+    "Tools are allowed and not monitored: a right answer in section 1 may come from a search or another AI, as "
+    "it would at work. The signal is the right answer in the time given, and the interview checks the reasoning.",
     "The assistant's flaws are drawn from a fixed pool per scenario: a candidate who knows the pool can anticipate "
     "them. Anticipation is still a professional behaviour, and the interview should probe it.",
     "Call-outs are detected by keyword rules (French and English) and, when configured, by a judge model whose "
@@ -96,7 +113,11 @@ def _diff(before: Files, after: Files) -> list[FileChange]:
 
 
 class PilotError(Exception):
-    """An action that the session's phase or clock does not allow (HTTP 409)."""
+    """An action that the session's phase or clock does not allow (HTTP 409), with a stable machine code."""
+
+    def __init__(self, message: str, code: str = "not_allowed") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class PilotEngine:
@@ -154,7 +175,7 @@ class PilotEngine:
 
     def create(
         self,
-        scenario: Scenario,
+        scenario: Scenario | None,
         level: int,
         *,
         locale: str,
@@ -166,18 +187,21 @@ class PilotEngine:
         build_minutes: int | None = None,
         ownership: tuple[OwnershipTask, Files] | None = None,
         valid_hours: int = 72,
+        questions: list[PilotQuestion] | None = None,
     ) -> tuple[str, AISandboxSession]:
+        if scenario is None and not questions:
+            raise ValueError("a technical test needs questions, a practical mission, or both")
         token = secrets.token_urlsafe(24)
         rng = random.SystemRandom()  # per-candidate variant: which flaws, in which order of appearance
-        pool = [f.id for f in scenario.faults]
-        chosen = [f for f in (fault_ids or []) if f in pool] or rng.sample(
-            pool, min(len(pool), FAULTS_PER_LEVEL[level])
+        pool = [f.id for f in scenario.faults] if scenario else []
+        chosen = [f for f in (fault_ids or []) if f in pool] or (
+            rng.sample(pool, min(len(pool), FAULTS_PER_LEVEL[level])) if pool else []
         )
         session = AISandboxSession(
             id=_hash(token)[:16],
             mode=mode,
             locale="en" if locale == "en" else "fr",
-            scenario_id=scenario.id,
+            scenario_id=scenario.id if scenario else "",
             level=level,
             job_title=job_title,
             job_id=job_id,
@@ -185,7 +209,8 @@ class PilotEngine:
             expires_at=utcnow() + timedelta(hours=valid_hours),
             build_minutes=build_minutes or BUILD_MINUTES[level],
             assistant_kind=self.assistant.kind,
-            files=scenario.starter(),
+            files=scenario.starter() if scenario else {},
+            questions=questions or [],
             flags=sorted(f"fix:{f}" for f in pool if f not in chosen),
             rendered_flags=sorted(f"fix:{f}" for f in pool if f not in chosen),
             faults=[
@@ -196,7 +221,9 @@ class PilotEngine:
                     title=scenario.fault(f).title[locale if locale in ("fr", "en") else "fr"],
                 )
                 for f in chosen
-            ],
+            ]
+            if scenario
+            else [],
         )
         if ownership:
             session.ownership, session.ownership_files = ownership
@@ -206,9 +233,10 @@ class PilotEngine:
     def state(self, token: str) -> dict[str, Any]:
         _, s = self.get(token)
         self._tick(s)
-        scenario = SCENARIOS[s.scenario_id]
+        scenario = SCENARIOS.get(s.scenario_id)
         now = utcnow()
         own = s.ownership
+        sections = {sec: sum(q.section == sec for q in s.questions) for sec in ("knowledge", "ai")}
         return {
             "id": s.id,
             "mode": s.mode,
@@ -216,7 +244,16 @@ class PilotEngine:
             "locale": s.locale,
             "level": s.level,
             "job_title": s.job_title,
-            "scenario": {"id": scenario.id, "title": scenario.title[s.locale], "brief": scenario.brief[s.locale]},
+            "scenario": {"id": scenario.id, "title": scenario.title[s.locale], "brief": scenario.brief[s.locale]}
+            if scenario
+            else None,
+            "questions": {
+                "total": len(s.questions), "current": s.current_question, "knowledge": sections["knowledge"],
+                "with_ai": sections["ai"], "personal": sum(q.personal for q in s.questions),
+                "minutes": round(sum(q.seconds for q in s.questions) / 60),
+                "minutes_knowledge": round(sum(q.seconds for q in s.questions if q.section == "knowledge") / 60),
+                "minutes_ai": round(sum(q.seconds for q in s.questions if q.section == "ai") / 60),
+            },
             "build_minutes": s.build_minutes,
             "build_remaining": max(0, int((s.build_deadline - now).total_seconds())) if s.build_deadline else None,
             "files": s.ownership_files if s.phase == "ownership" else s.files,
@@ -234,6 +271,13 @@ class PilotEngine:
     def _tick(self, s: AISandboxSession) -> None:
         """Advance phases whose clock ran out (the server, not the browser, keeps time)."""
         now = utcnow()
+        if s.phase == "questions" and s.current_question < len(s.questions):
+            q = s.questions[s.current_question]
+            if q.deadline and now >= q.deadline + timedelta(seconds=GRACE_SECONDS) and q.answered_at is None:
+                q.score, q.late, q.answered_at = 0.0, True, now
+                s.current_question += 1
+        if s.phase == "questions" and s.current_question >= len(s.questions):
+            self._after_questions(s, now)
         if s.phase == "build" and s.build_deadline and now >= s.build_deadline:
             s.add_turn("phase", text="build time over")
             s.phase = "ownership" if s.ownership else "closed"
@@ -249,23 +293,95 @@ class PilotEngine:
             raise PilotError(f"not allowed in phase '{s.phase}'")
         if len(s.turns) >= MAX_TURNS:
             raise PilotError("turn limit reached: close the test")
+        if s.phase == "build" and s.build_deadline is None:
+            self._start_build(s, utcnow())  # an older client acting on the mission starts its clock
         return key, s
 
     def begin(self, token: str) -> dict[str, Any]:
         key, s = self.get(token)
         if s.phase == "brief":
             now = utcnow()
-            s.phase = "build"
+            if s.questions:
+                s.phase = "questions"
+                s.add_turn("phase", text="questions started")
+            else:
+                self._after_questions(s, now)
+                if s.phase == "build":
+                    self._start_build(s, now)  # no questions: "begin" is the explicit start of the mission
+            self._save(key, s)
+        return self.state(token)
+
+    def _start_build(self, s: AISandboxSession, now: Any) -> None:
+        if s.build_deadline is None:
             s.build_started_at = now
             s.build_deadline = now + timedelta(minutes=s.build_minutes)
             s.add_turn("phase", text="build started")
-            self._save(key, s)
+
+    def start_build(self, token: str) -> dict[str, Any]:
+        """The candidate leaves the section 3 introduction: the mission clock starts now, not before."""
+        key, s = self.get(token)
+        self._tick(s)
+        if s.phase != "build":
+            raise PilotError(f"not allowed in phase '{s.phase}'")
+        self._start_build(s, utcnow())
+        self._save(key, s)
         return self.state(token)
+
+    def _after_questions(self, s: AISandboxSession, now: Any) -> None:
+        """Questions done (or none): the practical mission if the job has one, else the own-code task, else close."""
+        if s.scenario_id:
+            s.phase = "build"  # the clock starts when the candidate opens the mission (start_build)
+            s.add_turn("phase", text="questions done")
+        elif s.ownership:
+            s.phase = "ownership"
+            s.add_turn("phase", text="questions done")
+        else:
+            s.phase = "closed"
+            s.add_turn("phase", text="questions done")
+
+    # ------------------------------------------------------------------------------------------ questions
+
+    def next_question(self, token: str) -> dict[str, Any]:
+        """The question on screen; the first view starts its clock, a reload never resets it."""
+        key, s = self._open(token, ("questions",))
+        q = s.questions[s.current_question]
+        now = utcnow()
+        if q.served_at is None:
+            q.served_at, q.deadline = now, now + timedelta(seconds=q.seconds)
+            self._save(key, s)
+        return {**q.public(now), "section": q.section, "total": len(s.questions),
+                "assistant": q.section == "ai", "phase": s.phase}
+
+    def answer(self, token: str, index: int, value: Any) -> dict[str, Any]:
+        key, s = self._open(token, ("questions",))
+        if index != s.current_question:
+            raise PilotError("this question is closed")
+        q = s.questions[index]
+        now = utcnow()
+        if q.served_at is None or q.deadline is None:
+            raise PilotError("question not served yet")
+        q.answered_at, q.answer = now, value
+        q.late = now > q.deadline + timedelta(seconds=GRACE_SECONDS)
+        q.score = 0.0 if q.late else score_answer(q, value)
+        s.current_question += 1
+        if s.current_question >= len(s.questions):
+            self._after_questions(s, now)
+        self._save(key, s)
+        return {"accepted": not q.late, "late": q.late, "next": s.current_question, "total": len(s.questions),
+                "phase": s.phase}
+
+    def timeout(self, token: str, index: int) -> dict[str, Any]:
+        key, s = self.get(token)
+        self._tick(s)
+        self._save(key, s)
+        return {"next": s.current_question, "total": len(s.questions), "phase": s.phase}
 
     def arm_fault(self, session_id: str, fault_id: str) -> AISandboxSession:
         """A recruiter arms one more flaw from the scenario's pool; it appears at the next reply it fits."""
         key, s = self.by_id(session_id)
-        scenario = SCENARIOS[s.scenario_id]
+        scenario = SCENARIOS.get(s.scenario_id)
+        if scenario is None:
+            raise ValueError("this test has no practical mission")
         if fault_id not in {f.id for f in scenario.faults}:
             raise ValueError(f"unknown flaw for scenario {scenario.id}: {fault_id}")
         if s.phase in ("closed", "expired"):
@@ -281,11 +397,13 @@ class PilotEngine:
     # ------------------------------------------------------------------------------------------ build actions
 
     def chat(self, token: str, message: str) -> dict[str, Any]:
-        key, s = self._open(token, ("build", "ownership"))
+        key, s = self._open(token, ("questions", "build", "ownership"))
         message = message.strip()[:MAX_PROMPT_CHARS]
         if not message:
             raise ValueError("empty instruction")
-        scenario = SCENARIOS[s.scenario_id]
+        if s.phase == "questions":
+            return self._question_chat(key, s, message)
+        scenario = SCENARIOS.get(s.scenario_id)
         prompt = s.add_turn("prompt", text=message, screened=screen(message))
         if s.phase == "ownership":
             reply_text, changed = self._ownership_reply(s, message)
@@ -294,6 +412,7 @@ class PilotEngine:
             s.add_turn("assistant", text=reply_text, changes=_diff(before, s.ownership_files))
             self._save(key, s)
             return {"prompt": prompt.public(), "reply": s.turns[-1].public(), "files": s.ownership_files}
+        assert scenario is not None  # the build phase only exists with a mission
         detect_callouts(s, scenario)  # a prompt can prevent a flaw before it is planted, or call one out
         reply = self.assistant.reply(s, scenario, message, self.injector.directives(s, scenario))
         before = dict(s.files)
@@ -310,6 +429,22 @@ class PilotEngine:
         ]
         self._save(key, s)
         return {"prompt": prompt.public(), "reply": turn.public(), "files": s.files}
+
+    def _question_chat(self, key: str, s: AISandboxSession, message: str) -> dict[str, Any]:
+        q = s.questions[s.current_question]
+        if q.section != "ai":
+            raise PilotError("the built-in assistant is available in section 2 (calculator and internet are allowed)",
+                             code="assistant_unavailable")
+        if q.served_at is None:
+            raise PilotError("open the question first")
+        prompt = s.add_turn("prompt", text=message, screened=screen(message), question=q.index)
+        q.consulted.append(prompt.index)
+        text = reference_reply(q, message, s.locale)  # the traps are standardised: same for every candidate
+        if not q.trapped and not q.personal and not isinstance(self.assistant, ScriptedAssistant):
+            text = getattr(self.assistant, "answer_question", lambda *a: "")(s, q, message) or text
+        turn = s.add_turn("assistant", text=text, question=q.index)
+        self._save(key, s)
+        return {"prompt": prompt.public(), "reply": turn.public(), "files": {}}
 
     def edit(self, token: str, path: str, content: str | None, create_only: bool = False) -> dict[str, Any]:
         key, s = self._open(token, ("build", "ownership"))
@@ -331,8 +466,8 @@ class PilotEngine:
         turn = s.add_turn(
             "edit", text=f"edited {path}" if content is not None else f"deleted {path}", changes=_diff(before, target)
         )
-        if s.phase == "build":
-            scenario = SCENARIOS[s.scenario_id]
+        scenario = SCENARIOS.get(s.scenario_id)
+        if s.phase == "build" and scenario is not None:
             for f in s.faults:  # removing a planted flaw by hand is a call-out too
                 fault = scenario.fault(f.id)
                 if (
@@ -350,7 +485,10 @@ class PilotEngine:
 
     def run_ci(self, token: str) -> dict[str, Any]:
         key, s = self._open(token, ("build",))
-        checks, passed = run_static(SCENARIOS[s.scenario_id], s.files, s.locale)
+        scenario = SCENARIOS.get(s.scenario_id)
+        if scenario is None:
+            raise PilotError("this test has no practical mission")
+        checks, passed = run_static(scenario, s.files, s.locale)
         turn = s.add_turn("ci", text="CI " + ("passed" if passed else "failed"), checks=checks, passed=passed)
         self._save(key, s)
         return turn.public()
@@ -381,7 +519,7 @@ class PilotEngine:
         assert task is not None
         if task.started_at is None:
             raise PilotError("start the ownership task first")
-        if not isinstance(self.assistant, ScriptedAssistant):
+        if not isinstance(self.assistant, ScriptedAssistant) and s.scenario_id:
             reply = self.assistant.reply(s, SCENARIOS[s.scenario_id], message, [])
             return reply.message, {p: c for p, c in reply.files.items() if p in s.ownership_files}
         constraint = next(c for c in CONSTRAINTS if c[0] == task.constraint_id)
@@ -429,7 +567,9 @@ class PilotEngine:
         key, s = self.get(token)
         if s.report is not None:
             return s, s.report, False
-        if s.phase == "expired" and s.build_started_at is None:
+        started = s.build_started_at is not None or any(q.served_at for q in s.questions) or (
+            s.ownership is not None and s.ownership.started_at is not None)
+        if s.phase == "expired" and not started:
             raise PilotError("this link expired before the test was started")
         if s.phase not in ("closed", "expired"):
             s.add_turn("phase", text="closed by the candidate")
@@ -441,10 +581,15 @@ class PilotEngine:
         return s, s.report, True
 
     def evaluate(self, s: AISandboxSession) -> PilotEvaluationReport:
-        scenario = SCENARIOS[s.scenario_id]
-        detect_callouts(s, scenario)
-        checks, green = run_static(scenario, s.files, s.locale)
-        passing = sum(c.passed for c in checks) / max(1, len(checks))
+        scenario = SCENARIOS.get(s.scenario_id)
+        for q in s.questions:  # questions never reached count as unanswered
+            if q.score is None:
+                q.score = 0.0
+        velocity = None
+        faults: list[Any] = []
+        m3: MetricScore | None = None
+        if scenario is not None:
+            detect_callouts(s, scenario)
         judge_data: dict[str, Any] | None = None
         errors: list[str] = []
         judge_name = "none"
@@ -455,9 +600,14 @@ class PilotEngine:
             except LLMError as exc:
                 errors.append(str(exc)[:200])
         callouts = valid_callouts(s, judge_data)
+        knowledge, ai_pct, own_work_pct = applied_knowledge(s)
+        q_scores, q_evidence = trap_scores(s)
         m1 = intent_precision(s)
-        m2, faults = critical_thinking(s, scenario, s.files, callouts)
-        m3, velocity = orchestration_velocity(s, scenario, green, passing)
+        m2, faults = critical_thinking(s, scenario, s.files, callouts, q_scores, q_evidence)
+        if scenario is not None:
+            checks, green = run_static(scenario, s.files, s.locale)
+            passing = sum(c.passed for c in checks) / max(1, len(checks))
+            m3, velocity = orchestration_velocity(s, scenario, green, passing)
         own_prompts = (
             [(t.index, (t.at - s.ownership.started_at).total_seconds(), t.text) for t in s.prompts("ownership")]
             if s.ownership and s.ownership.started_at
@@ -465,7 +615,6 @@ class PilotEngine:
         )
         original = {s.ownership.path: s.ownership.original_source} if s.ownership else {}
         facts, own_score, own_evidence, own_breakdown = analyse(s.ownership, own_prompts, s.ownership_files, original)
-        metrics: list[MetricScore] = [m1, m2, m3]
         own_metric: MetricScore | None = None
         if own_score is not None:
             own_metric = MetricScore(
@@ -484,20 +633,33 @@ class PilotEngine:
             )
             if manip:
                 errors.append(f"evaluator addressed in turn(s) {manip}: the judge may only lower scores")
-            build_turns = {t.index for t in s.turns if t.kind in ("prompt", "edit") and t.phase == "build"}
+            steer = {t.index for t in s.turns if t.kind in ("prompt", "edit") and t.phase in ("questions", "build")}
             own_turns = {t.index for t in s.turns if t.kind in ("prompt", "edit") and t.phase == "ownership"}
-            apply_judge(m1, judge_data.get("intent_precision"), build_turns, may_raise=not manip)
-            if faults:
-                apply_judge(m2, judge_data.get("critical_thinking"), build_turns, may_raise=not manip)
+            apply_judge(m1, judge_data.get("intent_precision"), steer, may_raise=not manip)
+            if m2.breakdown:
+                apply_judge(m2, judge_data.get("critical_thinking"), steer, may_raise=not manip)
             if own_metric:
                 apply_judge(own_metric, judge_data.get("ownership"), own_turns, may_raise=not manip)
+        metrics: list[MetricScore] = []
+        if knowledge:
+            metrics.append(knowledge)
+        # Steering metrics count when the assistant was part of the test (section 2 or a mission).
+        if scenario is not None or any(q.section == "ai" for q in s.questions):
+            metrics.append(m1)
+            if scenario is not None or m2.breakdown:
+                metrics.append(m2)
+        if m3:
+            metrics.append(m3)
         if own_metric:
             metrics.append(own_metric)
-        started = s.build_started_at or s.created_at
+        # Authenticity: the own-code task and the questions on one's own work, when either exists.
+        parts = [p for p in (own_metric.final_pct if own_metric else None, own_work_pct) if p is not None]
+        authenticity = round(sum(parts) / len(parts), 1) if parts else None
+        started = s.build_started_at or next((q.served_at for q in s.questions if q.served_at), None) or s.created_at
         return PilotEvaluationReport(
             session_id=s.id,
-            scenario_id=scenario.id,
-            scenario_title=scenario.title[s.locale],
+            scenario_id=scenario.id if scenario else "",
+            scenario_title=scenario.title[s.locale] if scenario else "",
             locale=s.locale,
             level=s.level,
             job_title=s.job_title,
@@ -506,10 +668,15 @@ class PilotEngine:
             judge_errors=errors,
             metrics=metrics,
             pilot_index_pct=pilot_index(metrics),
-            authenticity_pct=own_metric.final_pct if own_metric else None,
+            authenticity_pct=authenticity,
             faults=faults,
             velocity=velocity,
             ownership=facts,
+            questions=outcomes(s),
+            ai_usage=ai_usage(s, s.turns),
+            applied_knowledge_pct=knowledge.final_pct if knowledge else None,
+            ai_section_pct=ai_pct,
+            own_work_pct=own_work_pct,
             prompts=len(s.prompts()),
             duration_minutes=round(((s.closed_at or utcnow()) - started).total_seconds() / 60, 1),
             weights=WEIGHTS,

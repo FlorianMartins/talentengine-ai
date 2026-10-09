@@ -4,6 +4,9 @@ import {
   ArrowRight,
   BadgeCheck,
   BookOpenCheck,
+  Bot,
+  Calculator,
+  ClipboardCheck,
   Check,
   EyeOff,
   Filter,
@@ -17,13 +20,7 @@ import {
   ScrollText,
   SearchX,
   ShieldCheck,
-  Fingerprint,
-  Lock,
   Plug,
-  Shuffle,
-  Smartphone,
-  Timer,
-  UserCheck,
   Webhook,
   Workflow,
   type LucideIcon,
@@ -50,6 +47,7 @@ export function RecruitersPage({ lang }: { lang?: Lang }) {
 function Landing() {
   const { t, lang, theme } = usePrefs();
   const l = t.pub.landing;
+  const tl = t.tt.landing;
   const paths = publicPaths(lang);
   const problemIcons: LucideIcon[] = [SearchX, GraduationCap, HelpCircle];
   const howIcons: LucideIcon[] = [EyeOff, Filter, Languages, LayoutDashboard];
@@ -158,17 +156,17 @@ function Landing() {
         </div>
       </section>
 
-      {/* ---------------------------------------------------------- impostors (v0.5) */}
-      <section className="land-section" aria-labelledby="land-impostors">
+      {/* ---------------------------------------------------------- technical test (v0.6.1) */}
+      <section className="land-section" aria-labelledby="land-techtest">
         <header className="land-head">
-          <h2 id="land-impostors">{t.landing2.impostorsTitle}</h2>
-          <p>{t.landing2.impostorsLead}</p>
+          <h2 id="land-techtest">{tl.title}</h2>
+          <p>{tl.lead}</p>
         </header>
-        <ul className="land-cards cols-3">
-          {t.landing2.impostors.map((it, i) => {
-            const Icon = [UserCheck, Shuffle, Timer, Fingerprint, Lock][i] ?? Check;
+        <ol className="land-cards cols-3 land-tt">
+          {tl.sections.map((it, i) => {
+            const Icon = [Calculator, Bot, Workflow][i] ?? Check;
             return (
-              <li key={it.t} className="card land-card">
+              <li key={it.t} className={`card land-card land-tt-${i + 1}`}>
                 <span className="land-icon">
                   <Icon size={20} aria-hidden="true" />
                 </span>
@@ -177,45 +175,29 @@ function Landing() {
               </li>
             );
           })}
-          <li className="card land-card land-honest">
-            <span className="land-icon tone-neutral">
-              <Smartphone size={20} aria-hidden="true" />
+        </ol>
+        <div className="land-tt-foot">
+          <div className="card land-card land-pilot-col">
+            <span className="land-icon tone-ok">
+              <ShieldCheck size={20} aria-hidden="true" />
             </span>
-            <p>{t.landing2.honest}</p>
-          </li>
-        </ul>
-      </section>
-
-      {/* ---------------------------------------------------------- AI-pilot test (v0.6) */}
-      <section className="land-section" aria-labelledby="land-pilot">
-        <header className="land-head">
-          <h2 id="land-pilot">{t.pilot.landing.title}</h2>
-          <p>{t.pilot.landing.lead}</p>
-        </header>
-        <ul className="land-cards cols-3">
-          {(
-            [
-              [Smartphone, t.pilot.landing.whyTitle, t.pilot.landing.why, "tone-neutral"],
-              [Workflow, t.pilot.landing.whatTitle, t.pilot.landing.what, ""],
-              [ShieldCheck, t.pilot.landing.guaranteesTitle, t.pilot.landing.guarantees, "tone-ok"],
-            ] as [LucideIcon, string, string[], string][]
-          ).map(([Icon, title, items, tone]) => (
-            <li key={title} className="card land-card land-pilot-col">
-              <span className={`land-icon ${tone}`}>
-                <Icon size={20} aria-hidden="true" />
-              </span>
-              <h3>{title}</h3>
-              <ul>
-                {items.map((it) => (
-                  <li key={it}>{it}</li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
+            <h3>{tl.getTitle}</h3>
+            <ul>
+              {tl.get.map((it) => (
+                <li key={it}>{it}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="card land-card land-honest">
+            <span className="land-icon tone-neutral">
+              <MessageSquareQuote size={20} aria-hidden="true" />
+            </span>
+            <p>{tl.honest}</p>
+          </div>
+        </div>
         <Link to={paths.try} className="btn" style={{ width: "max-content", maxWidth: "100%" }}>
-          <Workflow size={16} aria-hidden="true" />
-          {t.pilot.landing.cta}
+          <ClipboardCheck size={16} aria-hidden="true" />
+          {tl.cta}
           <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </section>

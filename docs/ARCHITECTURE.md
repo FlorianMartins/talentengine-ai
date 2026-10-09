@@ -399,7 +399,7 @@ flowchart LR
 * **Bounded**: per-IP hourly limits, a concurrency cap, file and link limits, SSRF guard on every fetched
   URL and redirect. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
-## 9. Verification tests — filtering impostors (`assessment/`)
+## 9. Question bank and the closed-book verification test (`assessment/`, legacy)
 
 Evidence can be copied: a CV can be invented, a repository can belong to someone else, empty `tests/`
 folders can be created. The verification test checks that the person **knows the craft and knows their own
@@ -435,17 +435,19 @@ flowchart LR
   `assessment_completed`); the candidate sees only that the test is complete. Sandbox tests live in memory
   for two hours and show the results to the visitor.
 
-### 9b. The AI-pilot test (`pilot/`)
+### 9b. The technical test (`pilot/`) — knowledge, AI, practice
 
-The verification test checks knowledge; the **AI-pilot test** checks the skill that matters now that AI
-help cannot be banned: getting a reliable system delivered by an AI that is sometimes wrong. The candidate
-pilots an internal assistant (reference assistant, or Llama-3 / Qwen-Coder) through a timed mission; a
-**hallucination injector** makes the assistant plant subtle, realistic flaws (OWASP LLM01/LLM02, PII in
-logs, unkeyed hashing, root containers, the Docker socket) while a static **virtual CI** stays green. Three
-metrics are computed by code from the telemetry — intent precision, critical thinking, orchestration
-velocity — and an optional **LLM judge** may adjust two of them by ±15 points, only with verified citations.
-A five-minute task on **a real function of the candidate's own repository** gives an *authenticity of the
-evidence* signal. Full design, formulas, API and the judge's system prompt: [PILOT_TEST.md](PILOT_TEST.md).
+Since v0.8.0 the closed-book test above is no longer offered in the interface (its API stays for links already
+sent): at work people use a calculator, the internet and an AI, so phase 3 is **one technical test in three
+sections**, tools allowed and nothing watched. Section 1 asks the bank's questions (and the own-work ones)
+with more time; section 2 asks questions with a built-in assistant that is **wrong on purpose on half of
+them** and admits it, when challenged, one time in two; section 3 is a **practical mission** where the
+assistant slips realistic flaws (OWASP LLM01/LLM02, PII in logs, unkeyed hashing, root containers, data
+leakage, stored XSS, wildcard IAM…) into work the static virtual CI passes, then five minutes on **a real
+function of the candidate's own repository**. Metrics — applied knowledge, intent precision, critical
+thinking, orchestration velocity, authenticity — are computed by code from the telemetry; an optional LLM
+judge may adjust two of them by ±15 points, only with verified citations. Design, formulas, API and the
+judge's system prompt: [TECHNICAL_TEST.md](TECHNICAL_TEST.md).
 
 ## 10. ATS bridge (`integrations/`)
 

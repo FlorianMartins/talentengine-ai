@@ -24,7 +24,12 @@ from .scenarios import Scenario, fold, matches
 # Share of the pilot index in the "verified compatibility" shown on the HR dashboard next to the
 # portfolio-based compatibility (which stays the ranking key, so untested candidates are not penalised).
 PILOT_BLEND = 0.4
-WEIGHTS = {"intent_precision": 0.30, "critical_thinking": 0.45, "orchestration_velocity": 0.25}
+# Weights of the technical-test index; renormalised over the metrics a session actually has (a job with no
+# practical mission has no velocity, a test without section 1 has no applied knowledge).
+_CHALLENGE = re.compile(r"\bsur\s*\?|es.tu sur|certain|verifi|recalcul|recompute|justifi|pourquoi|why|detail|etape"
+                        r"|step|raisonn|reason|double.?check|check again|are you sure|refais|redo")
+WEIGHTS = {"applied_knowledge": 0.25, "intent_precision": 0.20, "critical_thinking": 0.35,
+           "orchestration_velocity": 0.20}
 
 _STANDARDS = re.compile(
     r"owasp|llm0\d|llm10|soc ?2|finma|rgpd|gdpr|nlpd|\bfadp|\blpd\b|pci|iso ?27001|nist|\bcis\b"
@@ -55,7 +60,8 @@ def _workspace_names(session: AISandboxSession) -> set[str]:
 
 
 def intent_precision(session: AISandboxSession) -> MetricScore:
-    prompts = session.prompts("build")
+    """Every instruction given to the assistant: section 2 questions and the practical mission."""
+    prompts = [t for t in session.prompts() if t.phase in ("questions", "build")]
     label = "Précision d'intention et cadrage" if session.locale == "fr" else "Intent precision and framing"
     if not prompts:
         return MetricScore(
@@ -81,7 +87,8 @@ def intent_precision(session: AISandboxSession) -> MetricScore:
         grounded |= gr
         with_criteria += cr
         words = len(t.text.split())
-        if words < 8 and not (st or ar or cr or gr):
+        challenge = t.phase == "questions" and bool(_CHALLENGE.search(fold(t.text)))
+        if words < 8 and not (st or ar or cr or gr or challenge):  # "are you sure?" is the right reflex
             vague += 1
             evidence.append(
                 Evidence(
@@ -133,17 +140,21 @@ def detect_callouts(session: AISandboxSession, scenario: Scenario) -> None:
 
 def critical_thinking(
     session: AISandboxSession,
-    scenario: Scenario,
+    scenario: Scenario | None,
     final_files: dict[str, str],
     judge_callouts: dict[str, int] | None = None,
+    question_scores: dict[str, float] | None = None,
+    question_evidence: list[Evidence] | None = None,
 ) -> tuple[MetricScore, list[FaultOutcome]]:
+    """Mission flaws (anticipated, called out, fixed) and section 2 traps (followed or caught), averaged."""
     label = "Esprit critique et redirection" if session.locale == "fr" else "Critical thinking and redirection"
     judge_callouts = judge_callouts or {}
     outcomes: list[FaultOutcome] = []
     per_fault: dict[str, float] = {}
     evidence: list[Evidence] = []
     prompts = session.prompts("build")
-    for state in session.faults:
+    for state in session.faults if scenario is not None else []:
+        assert scenario is not None
         fault = scenario.fault(state.id)
         fixed = not fault.present(final_files)
         anticipated = state.prevented_turn is not None
@@ -212,13 +223,15 @@ def critical_thinking(
                 judge_detection=judge_turn is not None,
             )
         )
+    per_fault.update(question_scores or {})
+    evidence += question_evidence or []
     if not per_fault:
         return MetricScore(
             id="critical_thinking",
             label=label,
             factual_pct=0,
             final_pct=0,
-            evidence=[Evidence(note="the work that carries the injected flaws was never requested: nothing to review")],
+            evidence=[Evidence(note="no assistant answer was ever reviewed: nothing to measure")],
         ), []
     score = round(sum(per_fault.values()) / len(per_fault), 1)
     return MetricScore(
@@ -281,5 +294,6 @@ def orchestration_velocity(
 
 
 def pilot_index(metrics: list[MetricScore]) -> float:
-    by_id: dict[str, float] = {m.id: m.final_pct for m in metrics}
-    return round(sum(WEIGHTS[k] * by_id.get(k, 0.0) for k in WEIGHTS), 1)
+    by_id: dict[str, float] = {m.id: m.final_pct for m in metrics if m.id in WEIGHTS}
+    total = sum(WEIGHTS[k] for k in by_id)
+    return round(sum(WEIGHTS[k] * v for k, v in by_id.items()) / total, 1) if total else 0.0

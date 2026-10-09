@@ -1,4 +1,5 @@
-// Report section (v0.6): AI-pilot test links for this candidate, live flaw arming, reports and transcripts.
+// Report section: the technical test (sections 1 knowledge, 2 with the AI, 3 the practical mission) — links
+// for this candidate, live flaw arming during a mission, reports and transcripts.
 import { useState } from "react";
 import { Bug, ClipboardCopy, Link2, Loader2, ScrollText, Workflow } from "lucide-react";
 import { api, BASE_PATH, pilot } from "../api/client";
@@ -10,11 +11,12 @@ import { RangeField, Segmented, SwitchRow } from "../components/controls";
 import { PilotReportView } from "../components/PilotReportView";
 import { PilotTranscript } from "../components/PilotTurns";
 
-const RUNNING = new Set(["brief", "build", "ownership"]);
+const RUNNING = new Set(["brief", "questions", "build", "ownership"]);
 
 export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; sessions: Async<CandidatePilot[]> }) {
   const { t, lang } = usePrefs();
   const p = t.pilot.panel;
+  const tp = t.tt.panel;
   const toast = useToast();
   const catalog = useAsync(() => pilot.scenarios(lang).catch(() => null), [lang]);
   const cat = catalog.data;
@@ -23,10 +25,14 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
   const [faults, setFaults] = useState<string[]>([]);
   const [minutes, setMinutes] = useState<number | null>(null);
   const [ownership, setOwnership] = useState(true);
+  const [knowledge, setKnowledge] = useState(6);
+  const [withAi, setWithAi] = useState(4);
+  const [personal, setPersonal] = useState(true);
   const [hours, setHours] = useState(72);
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState<PilotLink | null>(null);
   const chosen = cat?.scenarios.find((s) => s.id === scenario);
+  const noMission = scenario === "none";
   const defaultMinutes = cat?.build_minutes[String(level)] ?? 25;
   const perLevel = cat?.faults_per_level[String(level)] ?? 2;
 
@@ -37,8 +43,11 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
         await api.createPilot(candidateRef, {
           level,
           scenario_id: scenario || undefined,
-          fault_ids: scenario ? faults : [],
-          build_minutes: minutes,
+          knowledge_questions: knowledge,
+          ai_questions: withAi,
+          personal,
+          fault_ids: chosen ? faults : [],
+          build_minutes: noMission ? null : minutes,
           ownership,
           valid_hours: hours,
         }),
@@ -58,15 +67,15 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
       <div>
         <h2 id="r-pilot" className="panel-title">
           <Workflow size={18} aria-hidden="true" />
-          {p.title}
+          {tp.title}
         </h2>
-        <p className="panel-hint">{p.hint}</p>
+        <p className="panel-hint">{tp.hint}</p>
       </div>
 
       <details className="verif-create no-print">
         <summary className="btn btn-sm">
           <Link2 size={14} aria-hidden="true" />
-          {p.create}
+          {tp.create}
         </summary>
         <div className="verif-form">
           <div className="field">
@@ -78,8 +87,13 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
               options={[1, 2, 3].map((v) => ({ value: String(v) as "1" | "2" | "3", label: t.pilot.levels[v] ?? "" }))}
             />
           </div>
+          <RangeField label={tp.knowledge} value={knowledge} min={0} max={20} step={1} onChange={setKnowledge} format={(v) => t.tt.start.count(v)} />
+          <RangeField label={tp.ai} value={withAi} min={0} max={20} step={1} onChange={setWithAi} format={(v) => t.tt.start.count(v)} />
+          <div style={{ gridColumn: "1 / -1" }}>
+            <SwitchRow checked={personal} onChange={setPersonal} label={tp.personal} hint={tp.personalHint} />
+          </div>
           <div className="field">
-            <label htmlFor="pp-sc">{p.scenario}</label>
+            <label htmlFor="pp-sc">{tp.mission}</label>
             <select
               id="pp-sc"
               className="select"
@@ -90,6 +104,7 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
               }}
             >
               <option value="">{p.scenarioAuto}</option>
+              <option value="none">{tp.missionNone}</option>
               {(cat?.scenarios ?? []).map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.title}
@@ -97,6 +112,7 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
               ))}
             </select>
           </div>
+          {!noMission && (
           <fieldset className="field pilot-faults-pick" style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}>
             <legend className="label">
               <Bug size={14} aria-hidden="true" style={{ verticalAlign: -2 }} /> {p.faults}
@@ -120,15 +136,18 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
             )}
             <p className="hint">{p.faultsHint(perLevel)}</p>
           </fieldset>
-          <RangeField
-            label={p.minutes}
-            value={minutes ?? defaultMinutes}
-            min={10}
-            max={90}
-            step={5}
-            onChange={setMinutes}
-            format={(v) => p.minutesVal(v)}
-          />
+          )}
+          {!noMission && (
+            <RangeField
+              label={p.minutes}
+              value={minutes ?? defaultMinutes}
+              min={10}
+              max={90}
+              step={5}
+              onChange={setMinutes}
+              format={(v) => p.minutesVal(v)}
+            />
+          )}
           <div className="field">
             <label htmlFor="pp-hours">{p.validity}</label>
             <select id="pp-hours" className="select" value={hours} onChange={(e) => setHours(Number(e.target.value))} style={{ maxWidth: 160 }}>
@@ -145,7 +164,7 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
           <div style={{ gridColumn: "1 / -1" }}>
             <Gate perm="decide">
               {(ok) => (
-                <button className="btn btn-primary" onClick={create} disabled={!ok || busy}>
+                <button className="btn btn-primary" onClick={create} disabled={!ok || busy || (noMission && knowledge + withAi === 0)}>
                   {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
                   {p.createDo}
                 </button>
@@ -178,7 +197,7 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
             </button>
           }
         >
-          <p className="small">{p.linkIntro(link.build_minutes, dateTime(link.expires_at, lang))}</p>
+          <p className="small">{tp.linkIntro(link.questions ?? 0, link.scenario ? link.build_minutes : null, dateTime(link.expires_at, lang))}</p>
           <div className="field">
             <label htmlFor="pp-url">{t.ops.url}</label>
             <div className="row" style={{ gap: 6 }}>
@@ -193,10 +212,14 @@ export function PilotPanel({ candidateRef, sessions }: { candidateRef: string; s
               </button>
             </div>
           </div>
-          <p className="small">
-            <b>{p.linkFaults} —</b>{" "}
-            {link.faults.map((id) => cat?.scenarios.find((s) => s.id === link.scenario)?.faults.find((f) => f.id === id)?.title ?? id).join(" · ")}
-          </p>
+          {link.scenario && (
+            <p className="small">
+              <b>{p.scenario} —</b> {cat?.scenarios.find((s) => s.id === link.scenario)?.title ?? link.scenario}
+              <br />
+              <b>{p.linkFaults} —</b>{" "}
+              {link.faults.map((id) => cat?.scenarios.find((s) => s.id === link.scenario)?.faults.find((f) => f.id === id)?.title ?? id).join(" · ")}
+            </p>
+          )}
           <p className="small muted">{link.ownership ? p.linkOwnership : p.noOwnership}</p>
           {link.note && <p className="hint">{link.note}</p>}
         </Modal>
@@ -238,14 +261,14 @@ function PilotSession({ s, catalog, onChanged }: { s: CandidatePilot; catalog: P
         </span>
         <span className="chip chip-plain">
           <span>
-            {sc?.title ?? s.scenario_id} · {t.pilot.levels[s.level]}
+            {s.scenario_id ? sc?.title ?? s.scenario_id : t.tt.panel.questionsOnly} · {t.pilot.levels[s.level]}
           </span>
         </span>
         <span className="xs faint">{p.created(dateTime(s.created_at, lang))}</span>
         <span className="hash">{s.id}</span>
       </div>
 
-      {!s.report && (
+      {!s.report && s.faults.length > 0 && (
         <div className="stack-sm">
           <span className="label">{p.sessionFaults}</span>
           <ul className="pilot-sfaults">
@@ -262,7 +285,7 @@ function PilotSession({ s, catalog, onChanged }: { s: CandidatePilot; catalog: P
         </div>
       )}
 
-      {running && (
+      {running && Boolean(s.scenario_id) && (
         <div className="pilot-arm no-print">
           <div className="field" style={{ flex: "1 1 240px", minWidth: 0 }}>
             <label htmlFor={`arm-${s.id}`}>{p.arm}</label>

@@ -6,7 +6,8 @@ import { assess } from "../api/client";
 import type { AssessEvent, AssessEventType } from "../api/types";
 
 /** Drag type used by the "order" question: internal drags are allowed, anything else is an external drop. */
-export const ORDER_DRAG_TYPE = "application/x-te-order";
+import { ORDER_DRAG_TYPE } from "../components/QuestionInputs";
+export { ORDER_DRAG_TYPE };
 
 export interface IntegrityState {
   /** window lost focus or tab hidden: the question is veiled */

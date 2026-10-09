@@ -17,9 +17,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from ..assessment.engine import ServedQuestion
 from ..models import utcnow
 
-Phase = Literal["brief", "build", "ownership", "closed", "expired"]
+Phase = Literal["brief", "questions", "build", "ownership", "closed", "expired"]
 Mode = Literal["sandbox", "candidate"]
 TurnKind = Literal["prompt", "assistant", "edit", "ci", "phase"]
 
@@ -56,6 +57,7 @@ class Turn(BaseModel):
     changes: list[FileChange] = Field(default_factory=list)
     checks: list[CheckResult] = Field(default_factory=list)  # visible CI result (kind == "ci")
     passed: bool | None = None  # CI verdict (kind == "ci")
+    question: int | None = None  # index of the question on screen (questions phase)
     # hidden telemetry
     faults_active: list[str] = Field(default_factory=list)  # hidden audits failing after this event
     injected: list[str] = Field(default_factory=list)  # faults the injector planted in this reply
@@ -64,7 +66,7 @@ class Turn(BaseModel):
 
     def public(self) -> dict[str, Any]:
         out = self.model_dump(
-            mode="json", include={"index", "kind", "phase", "at", "text", "changes", "checks", "passed"}
+            mode="json", include={"index", "kind", "phase", "at", "text", "changes", "checks", "passed", "question"}
         )
         return out
 
@@ -107,13 +109,26 @@ class OwnershipTask(BaseModel):
         return self.model_dump(mode="json", exclude={"hidden_identifiers", "visible_identifiers", "original_source"})
 
 
+class PilotQuestion(ServedQuestion):
+    """A test question answered with the AI assistant at hand. The assistant is wrong on purpose on some."""
+
+    section: Literal["knowledge", "ai"] = "knowledge"  # 1: tools allowed, no built-in assistant; 2: with it
+    seconds_ai: int = 0  # time allowed with tools (calculator, internet, AI): longer than closed-book
+    trapped: bool = False  # the assistant gives a plausible wrong answer on this question
+    ai_answer: Any = None  # what the assistant claims (option indexes or a number)
+    concedes: bool = False  # whether it admits the mistake when challenged (one time in two, like real models)
+    consulted: list[int] = Field(default_factory=list)  # prompt turns asked while this question was on screen
+    challenged: bool = False  # the candidate asked it to check, justify or recompute
+    conceded: bool = False  # the assistant then gave the right answer
+
+
 class AISandboxSession(BaseModel):
     """A live AI-pilot test: a mission, an internal assistant that is deliberately imperfect, a virtual CI."""
 
     id: str
     mode: Mode
     locale: Literal["fr", "en"] = "fr"
-    scenario_id: str
+    scenario_id: str = ""  # empty: a questions-only test (jobs with no practical mission yet)
     level: int = Field(2, ge=1, le=3)
     job_title: str = ""
     job_id: str = ""
@@ -133,6 +148,8 @@ class AISandboxSession(BaseModel):
     turns: list[Turn] = Field(default_factory=list)
     ownership: OwnershipTask | None = None
     ownership_files: dict[str, str] = Field(default_factory=dict)
+    questions: list[PilotQuestion] = Field(default_factory=list)
+    current_question: int = 0
     report: dict[str, Any] | None = None
 
     def add_turn(self, kind: TurnKind, **fields: Any) -> Turn:
@@ -156,7 +173,7 @@ class Evidence(BaseModel):
 class MetricScore(BaseModel):
     """One metric: the factual estimate, the judge's bounded adjustment, and the evidence for both."""
 
-    id: Literal["intent_precision", "critical_thinking", "orchestration_velocity", "ownership"]
+    id: Literal["applied_knowledge", "intent_precision", "critical_thinking", "orchestration_velocity", "ownership"]
     label: str
     factual_pct: float = Field(..., ge=0, le=100)
     judge_pct: float | None = Field(None, ge=0, le=100)  # what the judge proposed, before bounding
@@ -208,10 +225,41 @@ class OwnershipFacts(BaseModel):
     band: Literal["knows_the_code", "partial", "navigates_blind", "not_taken"]
 
 
+class QuestionOutcome(BaseModel):
+    index: int
+    section: str
+    skill: str
+    personal: bool
+    score: float
+    late: bool
+    seconds: int
+    seconds_used: int | None
+    consulted_ai: int  # instructions sent to the assistant on this question
+    trapped: bool  # the assistant was wrong on purpose (revealed after the test)
+    followed_ai: bool  # the candidate gave the assistant's answer
+    challenged: bool
+    conceded: bool
+
+
+class AIUsageFacts(BaseModel):
+    """How the tools were used during the questions — descriptive, to discuss at the interview."""
+
+    questions: int
+    with_ai: int = 0  # section 2 questions (where the assistant was available)
+    consulted: int  # questions on which the assistant was asked
+    prompts_per_consulted: float
+    pasted_verbatim: int  # prompts that copy the question as it is
+    challenges: int  # "are you sure?", "show your working", "recompute"
+    trapped_consulted: int
+    trapped_followed: int  # wrong answers of the assistant given as is
+    trapped_caught: int  # right answer although the assistant was wrong
+    answered_against_ai: int  # any question answered differently from the assistant
+
+
 class PilotEvaluationReport(BaseModel):
     session_id: str
-    scenario_id: str
-    scenario_title: str
+    scenario_id: str = ""
+    scenario_title: str = ""
     locale: str
     level: int
     job_title: str
@@ -223,8 +271,13 @@ class PilotEvaluationReport(BaseModel):
     pilot_index_pct: float = Field(..., ge=0, le=100)  # weighted mean of the three steering metrics
     authenticity_pct: float | None = Field(None, ge=0, le=100)  # ownership metric, reported separately
     faults: list[FaultOutcome]
-    velocity: VelocityFacts
+    velocity: VelocityFacts | None = None
     ownership: OwnershipFacts | None = None
+    questions: list[QuestionOutcome] = Field(default_factory=list)
+    ai_usage: AIUsageFacts | None = None
+    applied_knowledge_pct: float | None = Field(None, ge=0, le=100)  # section 1
+    ai_section_pct: float | None = Field(None, ge=0, le=100)  # section 2: right answers with the assistant
+    own_work_pct: float | None = Field(None, ge=0, le=100)  # questions about the candidate's own work
     prompts: int
     duration_minutes: float
     weights: dict[str, float]

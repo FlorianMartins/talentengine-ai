@@ -102,31 +102,32 @@ Four sealed modules, connected only through typed data (see the
    gaps to explore, and three interview questions that verify authorship, with the answers a genuine
    author would give.
 
-### Filtering impostors
+### A technical test that works like the job
 
-Evidence can be borrowed, so every candidate can be sent a **verification test** at the level the role
-needs (junior, confirmed, senior): 236 practical questions over all 37 skills, plus **questions generated
-from the candidate's own work** (which tools *their* CI runs, which of *their* projects builds on which,
-the figure in *their* report). Each candidate gets a different test; the server keeps the timer, one
-question at a time, no going back; copy/paste, print-screen, leaving the window and full-screen exits are
-reported to the recruiter as signals, never acted on automatically. An optional Safe Exam Browser mode locks
-the desktop. No web page can stop a phone camera — tight timers, personal questions and a traceable
-watermark make it of little use, and the interview stays the final check. No camera, no microphone.
+Evidence can be borrowed, and AI help cannot be banned — nor should it be: at work, everyone uses a
+calculator, the internet and an AI. So phase 3 of recruitment is **one technical test in three sections**,
+tools allowed and nothing blocked or watched:
 
-### The AI-pilot test: measure how people work *with* AI
+1. **Knowledge** — situational questions and calculations over the job's skills (236 in the bank, numbers
+   re-drawn per candidate), plus questions on the candidate's **own work** (which tools *their* CI runs,
+   which of *their* projects builds on which) that no tool can answer for them.
+2. **With the AI** — questions answered with a built-in assistant that is **wrong on purpose on half of
+   them**, with confidence (a calculation slip, a wrong option). Challenged, it admits the mistake one time
+   in two, like real models. Who follows it, who checks, who answers against it?
+3. **Practice** — a concrete project delivered by steering the assistant: secure an LLM gateway, ship a
+   pseudonymised banking export, containerise an API, train a churn model whose score must hold, render
+   user comments safely in React, write the Terraform for a partner bucket. The assistant slips realistic
+   flaws into its "secure" solution (IBANs in the logs, a case-sensitive injection filter, an unkeyed hash,
+   a root container, data leakage that inflates the AUC, a stored XSS, `s3:*` on `*`… sometimes inside its
+   own fix) while the CI stays green. Then five minutes to change **a real function of the candidate's own
+   repository** under a new constraint.
 
-AI help cannot be banned, and memorisation tests reject the people who know what to look up. So the
-**AI-pilot test** hands the candidate an internal coding assistant and a realistic mission — secure an LLM
-gateway, ship a pseudonymised banking export, containerise an API, train a churn model whose score must hold
-in production, render user comments safely in React, write the Terraform for a partner bucket. The assistant is
-**deliberately imperfect**: it slips subtle, realistic flaws into its "secure" solution (raw prompts with
-IBANs in the logs, a case-sensitive injection filter, an unkeyed hash, a root container, data leakage that
-inflates the AUC, a stored XSS, `s3:*` on `*`… sometimes hidden inside its own fix), while the CI stays green. The test measures **intent precision** (does the candidate frame the
-work with standards, criteria and guarantees?), **critical thinking** (do they catch and redirect the
-flaws?) and **orchestration velocity** (green CI in few iterations), then gives five minutes to change
-**a real function of the candidate's own repository** under a new constraint — people who wrote the code
-reach for the names around it. Metrics are computed by code from the telemetry; an optional LLM judge can
-adjust them by ±15 points at most, only by citing the transcript ([AI-pilot test](docs/PILOT_TEST.md)).
+The report gives applied knowledge, intent precision, critical thinking (planted flaws and wrong answers
+followed or caught), orchestration velocity and authenticity of the evidence, each with the quotes it rests
+on, plus a descriptive profile of how the AI was used. Metrics are computed by code; an optional LLM judge
+may adjust two of them by ±15 points, only by citing the transcript. Jobs with no practical mission yet get
+sections 1 and 2. No camera, no microphone; the interview stays the final check
+([technical test](docs/TECHNICAL_TEST.md)).
 
 ### An add-on to your ATS
 
@@ -193,7 +194,7 @@ Optional: `docker compose --profile vision up -d` and `ollama pull qwen2.5vl:7b`
 * [AI Act readiness](docs/AI_ACT_READINESS.md) — provider vs deployer obligations, verified timeline, French labour law, go-to-market checklist
 * [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) (Art. 13) · [Technical documentation](docs/TECHNICAL_DOCUMENTATION.md) (Annex IV)
 * [Compliance mapping](docs/COMPLIANCE.md) — GDPR and EU AI Act, feature by feature
-* [AI-pilot test](docs/PILOT_TEST.md) — piloting an imperfect AI assistant: fault injection, metrics, judge prompt, own-code task
+* [Technical test](docs/TECHNICAL_TEST.md) — knowledge, AI and practice in one test: questions with tools, an assistant wrong on purpose, planted flaws, judge prompt, own-code task
 * [ATS bridge](docs/ATS_BRIDGE.md) — Greenhouse, Lever, Ashby and a generic signed webhook
 * [Roadmap](docs/ROADMAP.md) — step-by-step plan to a production MVP by the end of December 2026
 * [Front-end](frontend/README.md) — stack, structure, design tokens
@@ -206,8 +207,8 @@ backend/talentengine/
   funnel/      ② repo.py · documents.py · budget.py · llm.py
   translator/  ③ catalog.py · heuristic.py · prompts.py · llm_eval.py
   dashboard/   ④ scoring.py · interview.py · presets.py
-  assessment/  verification tests: bank/*.json · engine.py · personal.py · api.py
-  pilot/       AI-pilot test: scenarios.py · assistant.py · scoring.py · judge.py · ownership.py · engine.py
+  assessment/  question bank (bank/*.json) and own-work questions; legacy closed-book test api
+  pilot/       technical test: questions.py · scenarios/ · assistant.py · scoring.py · judge.py · ownership.py · engine.py
   integrations/ ATS bridge: adapters.py · bridge.py
   sandbox/     public trial: fetch.py · offer.py · api.py
   pipeline.py  the only place where the modules meet
@@ -218,10 +219,10 @@ docs/          architecture, user guide, compliance, roadmap
 
 ## Status and limits
 
-This is an MVP (v0.7.0): fully working end to end, tested (150+ tests, `ruff`, `mypy`, measurements in CI),
+This is an MVP (v0.8.0): fully working end to end, tested (150+ tests, `ruff`, `mypy`, measurements in CI),
 but not production-hardened. The masking figures come from synthetic corpora, not yet from real CVs; storage is SQLite,
 authentication uses named API keys (no SSO yet), and signal strengths should be reviewed with practitioners of each
-trade before real use. The AI-pilot test's weights and thresholds are expert choices awaiting calibration
+trade before real use. The technical test's weights and thresholds are expert choices awaiting calibration
 on real sessions. Using it for real recruitment requires a DPIA and, for a provider selling it, the
 AI Act conformity steps — see [AI_ACT_READINESS.md](docs/AI_ACT_READINESS.md).
 

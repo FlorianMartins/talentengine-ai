@@ -97,9 +97,9 @@ Status (v0.4.0): items 1–3 ✅ (public sandbox, explanation links, print-to-PD
 2. Hosted demo with the fictional data set only.
 3. Write-up for the portfolio: architecture, measurements, what did not work.
 
-## Next — the AI-pilot test (delivered as v0.6.0, to be calibrated)
+## Next — the technical test (AI-pilot test from v0.6.0, three sections from v0.8.0; to be calibrated)
 
-1. ✅ Three scenarios with planted flaws, factual metrics, bounded judge, own-code task ([PILOT_TEST.md](PILOT_TEST.md)).
+1. ✅ Three scenarios with planted flaws, factual metrics, bounded judge, own-code task ([TECHNICAL_TEST.md](TECHNICAL_TEST.md)).
 2. 🔜 Double-blind review of 30 recorded sessions by two engineers; publish agreement between factual
    metrics, judge and humans; recalibrate weights, thresholds and par values.
 3. ✅ v0.7.0: six scenarios (data-science leakage, React XSS and Terraform added), a third flaw for the

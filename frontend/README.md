@@ -98,6 +98,9 @@ curl -X POST localhost:8000/api/demo/seed   # or use the "Load demo data" button
 
 ### Verification tests, compliance and ATS (v0.5)
 
+> Superseded in v0.6.1 by the technical test below: the sandbox cards and the recruiter creation form of the
+> verification test were removed; `/test/:token` and the read-only results of existing sessions remain.
+
 - **Test player** `/test/:token` (also `/en/test/:token`; the UI language follows the session's `locale`). It is
   distraction-free, with no app shell.
   - **Intro**: job, level, number of questions, approximate time, the rules ("one question at a time, no going back,
@@ -195,6 +198,55 @@ mesuré, c'est la direction que vous donnez").
   = 0.6 × compatibility + 0.4 × pilot index, display only; the ranking stays on compatibility.
 - **Landing** `/recruteurs`: a "Le Test du Pilote d'IA" section (why, what the person does, guarantees).
 
+### Technical test (v0.6.1): one test, like real work
+
+The closed-book verification test with anti-cheat contradicted real work, where people use a calculator, the
+internet and AI. The recruitment technical test is now **one** session of the `/api/pilot/*` API, in three sections:
+
+1. **Knowledge**: situational questions and calculations, one at a time, each with a server clock. Calculator and
+   internet allowed, **nothing blocked or monitored** (no integrity layer, no paste blocking, no watermark, no full
+   screen). The built-in assistant is not available (the API answers 409). Questions on the candidate's own work
+   (from the sandbox match's `assessment_seed`, or the recruiter's "own work" toggle) are in this section.
+2. **With the AI**: the built-in assistant sits next to each question and answers when asked. It is deliberately
+   wrong on about half of them and, when challenged, admits it only one time in two.
+3. **Practice**: the AI-pilot mission (below), then the optional 5-minute own-code task. A role with no mission
+   (chef, sales…) gets sections 1–2 only (`scenario: null`).
+
+- **Player** `/pilote/:token` (`pages/PilotPlayer.tsx`).
+  - **Brief**: the sections with their counts and time (section 3 and the mission only when there is one), the
+    rules (tools allowed, nothing blocked, the assistant is available in sections 2 and 3 and is deliberately
+    imperfect, you are responsible for your answers), what is recorded, no camera or microphone.
+  - **Questions**: a question card (inputs shared with the legacy player in `components/QuestionInputs.tsx`:
+    single, multi, numeric with comma decimals, order with drag and drop or buttons), progress
+    "Section 1 · question 2/6", a circular countdown driven by the server's `remaining` (`role="timer"`,
+    announcements at 30 s and 10 s). At 0 the client posts `/question/timeout`; a reload resumes the same question
+    with the server's time.
+  - **Section 2**: the assistant panel next to the question (transcript filtered to that question, composer,
+    `role="log"` with `aria-live`), with "L'assistant peut se tromper". Below 900 px, *Question* / *Assistant* tabs
+    (question first, a dot announces a new reply).
+  - **Transitions**: an interstitial between sections 1 → 2 (shown once per session, before the next question's
+    clock starts) and 2 → 3 (mission brief, the mission clock already runs: see limits).
+- **Report** (`components/PilotReportView.tsx`): overall ring, a **Sections** summary (Knowledge %, With the AI %,
+  Practice = weighted mean of the steering metrics or "no mission", Own code / authenticity with the own-work
+  questions %), the `applied_knowledge` metric card, an **Use of the AI** panel (plain sentences from `ai_usage`,
+  "points to discuss, not a score") and a **questions table** (section, skill, result, time used / allowed,
+  assistant consulted, assistant wrong on purpose — revealed after the test —, followed or not, challenged).
+  Metric weights are shown renormalised over the metrics present; `velocity` and the mission may be null (the
+  flaws, velocity and own-code boxes are then hidden). The new English evidence notes and limit are localised.
+- **Sandbox**: one card, "Passer le test technique" (`components/StartTechTestCard.tsx`), on step 1 and on the
+  result step: level, questions per section (section 1: 0/4/6/10, section 2: 0/2/4/6), mission automatic / none /
+  chosen, GitHub links for the own-code task, and the match's `assessment_seed` as `seed` from the result step.
+- **Recruiter report**: one **Test technique** panel (`pages/ReportPilot.tsx`): level, section 1 and 2 question
+  counts (0–20), own-work questions toggle, mission (automatic, "Aucune mission (questions seules)" = `"none"`, or
+  a scenario, with flaws and length), own-code task, validity. The verification-test creation form is gone;
+  existing verification sessions are still listed read-only as "Ancien format (sans outils)". The PDF document
+  and the pipeline chip ("Test technique 53 % · Vérifié 25 %") follow.
+- **Landing**: the "Filtrer les imposteurs" and "Test du Pilote d'IA" sections became one, "Un test technique
+  comme au travail" (three sections, tools allowed, the assistant is wrong on purpose, what you get, and the honest
+  note that the interview checks the reasoning).
+- The legacy `/test/:token` player stays for links already sent.
+- Strings: `src/i18n.techtest.ts` (`t.tt`).
+
 ### Public pages (no app shell, no API key)
 
 | Route | Screen |
@@ -228,6 +280,7 @@ src/
   App.tsx               providers + routes
   i18n.ts               typed FR/EN dictionary (`en` must match `fr` key-for-key)
   i18n.pilot.ts         FR/EN strings of the AI-pilot test (t.pilot)
+  i18n.techtest.ts      FR/EN strings of the technical test sections, report, sandbox, panel, landing (t.tt)
   api/
     types.ts            types mirroring the FastAPI contract
     client.ts           typed fetch client: X-API-Key / X-Actor headers, FastAPI {detail} → ApiError
@@ -248,11 +301,11 @@ src/
   lib/print.ts          printDoc() / printPage() for PDF export
   lib/integrity.ts      anti-cheat layer of the test player (signals → /events)
   components/AssessResultsView.tsx  test results + integrity panel (sandbox and recruiter)
-  components/StartTestCard.tsx      starts a sandbox test (POST /api/assess/start)
   components/CandidateNotice.tsx    candidate information notice
   components/PilotReportView.tsx    AI-pilot report (sandbox and recruiter)
   components/PilotTurns.tsx         one transcript turn (chat + transcripts), localised server markers
-  components/StartPilotCard.tsx     starts a sandbox AI-pilot test (POST /api/pilot/start)
+  components/StartTechTestCard.tsx  starts the sandbox technical test (POST /api/pilot/start)
+  components/QuestionInputs.tsx     timed-question inputs + timer, shared by both players
   lib/presetSearch.ts   client-side preset search (same rule as the backend)
   pages/                Overview, Studio, Pipeline, Apply, Report (+ ReportSections), Audit, Settings, NotFound,
                         Try (public sandbox), Recruiters (public landing), Explanation (candidate view),
@@ -307,5 +360,6 @@ See `../docs/images/`: `overview-{dark,light}`, `studio-dark`, `studio-full-dark
 `audit-retention`, `try-presets-search`, `try-documents`, `try-result-github-profile`, `evidence-orchestration`,
 `apply-categories`; v0.5: `test-intro`, `test-question`, `test-question-mobile`, `test-blurred`, `test-results`,
 `test-print-blocked`, `report-verification`, `report-print-verification`, `compliance`, `integrations`; v0.6:
-`pilot-brief`, `pilot-build`, `pilot-build-mobile`, `pilot-ci`, `pilot-ownership`, `pilot-report`, `report-pilot`
-(and `recruiters`, `recruiters-mobile` refreshed).
+`pilot-brief`, `pilot-build`, `pilot-build-mobile`, `pilot-ci`, `pilot-ownership`, `pilot-report`, `report-pilot`;
+v0.6.1: `techtest-brief`, `techtest-question`, `techtest-question-ai`, `techtest-question-ai-mobile`,
+`techtest-report`, `report-techtest` (and `recruiters`, `recruiters-mobile` refreshed).

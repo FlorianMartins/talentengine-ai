@@ -40,7 +40,7 @@ hivey.be {
 
 ## Security notes for the public sandbox
 
-* **Tests in progress survive a restart**: sandbox test sessions (verification and AI-pilot tests) are
+* **Tests in progress survive a restart**: sandbox test sessions (technical tests and legacy verification tests) are
   kept encrypted with the vault key in the database and deleted when they expire (3 hours at most), so a
   deployment no longer breaks someone's test. The CV analysis below is still never stored.
 * **Nothing is stored**: each analysis runs in a throw-away engine (in-memory database, temporary

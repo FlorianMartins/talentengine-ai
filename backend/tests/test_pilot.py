@@ -20,6 +20,7 @@ from talentengine.pilot.engine import PilotEngine, PilotError
 from talentengine.pilot.judge import JUDGE_SCHEMA, JUDGE_SYSTEM_PROMPT, build_transcript
 from talentengine.pilot.ownership import analyse, candidate_source_paths, choose_task, extract_functions
 from talentengine.pilot.scenarios import SCENARIOS
+from talentengine.pilot.scoring import intent_precision
 from talentengine.pipeline import Engine, RepositoryInput, Submission, TextDocument
 from talentengine.shield.vision import NoDetector
 
@@ -350,11 +351,15 @@ def test_ownership_task_targets_a_real_function_and_reads_the_signals() -> None:
 
 
 def test_sandbox_api_flow_and_job_fit(settings: Settings) -> None:
+    settings.pilot_starts_per_hour = 20
     engine = Engine(settings, detector=NoDetector(), provider=False)
     client = TestClient(create_app(settings, engine))
     assert len(client.get("/api/pilot/scenarios").json()["scenarios"]) == 6
-    assert client.post("/api/pilot/start", json={"preset_id": "head_chef"}).status_code == 422
-    start = client.post("/api/pilot/start", json={"preset_id": "ai_engineer", "level": 2}).json()
+    chef = client.post("/api/pilot/start", json={"preset_id": "head_chef", "mission": True}).json()
+    assert chef["scenario"] is None and chef["questions"]["total"] == 10  # questions only: no kitchen mission yet
+    no_questions = {"knowledge_questions": 0, "ai_questions": 0}
+    assert client.post("/api/pilot/start", json={"preset_id": "head_chef", **no_questions}).status_code == 422
+    start = client.post("/api/pilot/start", json={"preset_id": "ai_engineer", "level": 2, **no_questions}).json()
     assert start["scenario"]["id"] == "llm_gateway" and start["phase"] == "brief"
     token = start["token"]
     assert client.post(f"/api/pilot/{token}/chat", json={"message": "x"}).status_code == 409  # not begun
@@ -373,7 +378,8 @@ def test_sandbox_api_flow_and_job_fit(settings: Settings) -> None:
     routes = {"devops": "container_hardening", "data_scientist": "ml_leakage", "frontend": "frontend_xss",
               "cloud_architect": "iac_storage", "data_engineer": "payments_export"}
     for preset, scenario in routes.items():
-        assert client.post("/api/pilot/start", json={"preset_id": preset}).json()["scenario"]["id"] == scenario
+        started = client.post("/api/pilot/start", json={"preset_id": preset, **no_questions})
+        assert started.json()["scenario"]["id"] == scenario, started.text
 
 
 def test_candidate_session_is_journalled_ranked_exported_and_erased(settings: Settings) -> None:
@@ -388,11 +394,15 @@ def test_candidate_session_is_journalled_ranked_exported_and_erased(settings: Se
         documents=[TextDocument(name="cv.txt", content="Ingénieure LLM : passerelle RAG, évaluations.", kind="cv")],
         repositories=[RepositoryInput(paths=OWN_PATHS, files=OWN_CODE)]))
     engine.evaluate(job.id)
-    created = client.post(f"/api/candidates/{cand.ref}/pilot", json={"level": 2}, headers=rec).json()
+    created = client.post(f"/api/candidates/{cand.ref}/pilot", headers=rec, json={
+        "level": 2, "knowledge_questions": 2, "ai_questions": 2, "personal": False}).json()
     token, sid = created["token"], created["session_id"]
     assert created["scenario"] == "llm_gateway" and created["path"] == f"/pilote/{token}"
     assert client.post(f"/api/pilot-sessions/{sid}/inject", json={"fault_id": "nope"}, headers=rec).status_code == 422
     client.post(f"/api/pilot/{token}/begin")
+    while client.get(f"/api/pilot/{token}").json()["phase"] == "questions":  # sections 1 and 2
+        q = client.post(f"/api/pilot/{token}/question").json()
+        client.post(f"/api/pilot/{token}/answer", json={"index": q["index"], "value": 0})
     client.post(f"/api/pilot/{token}/chat", json={"message": GOOD_FIRST})
     client.post(f"/api/pilot/{token}/chat", json={"message": GOOD_RAW_LOG})
     if created["ownership"]:
@@ -417,7 +427,7 @@ def test_candidate_session_is_journalled_ranked_exported_and_erased(settings: Se
 def test_documented_judge_prompt_matches_the_code_and_invented_quotes_are_rejected() -> None:
     from pathlib import Path
 
-    doc = Path(__file__).resolve().parents[2] / "docs" / "PILOT_TEST.md"
+    doc = Path(__file__).resolve().parents[2] / "docs" / "TECHNICAL_TEST.md"
     assert JUDGE_SYSTEM_PROMPT in doc.read_text(encoding="utf-8")
     pilot, token = _session(faults=["raw_log"])
     pilot.chat(token, "Sécurise la passerelle et ajoute des tests")
@@ -504,3 +514,109 @@ def test_a_sandbox_test_survives_a_server_restart_encrypted_and_expires(settings
     tok, _ = tests.create(preset_job("devops", "fr"), 2, locale="fr", mode="sandbox", n=4)
     tests.next_question(tok)
     assert AssessmentEngine(engine.store, sandbox_key=engine.vault_key).state(tok)["status"] == "running"
+
+
+# ---------------------------------------------------------------------------------------- the three sections
+
+
+def _questions(n_knowledge: int, n_ai: int, seed: int = 3) -> list[Any]:
+    from talentengine.pilot.questions import build_questions
+
+    return build_questions(preset_job("ai_engineer", "fr"), 2, n_knowledge, n_ai, "fr", random.Random(seed))
+
+
+def _right(q: Any) -> Any:
+    return q.expected_value if q.type == "numeric" else list(q.expected)
+
+
+def test_one_test_three_sections_with_an_assistant_that_is_sometimes_wrong() -> None:
+    questions = _questions(2, 4)
+    assert [q.section for q in questions] == ["knowledge"] * 2 + ["ai"] * 4
+    assert sum(q.trapped for q in questions) == 2 and not any(q.trapped for q in questions[:2])
+    pilot = PilotEngine()
+    token, _ = pilot.create(GATEWAY, 2, locale="fr", mode="sandbox", fault_ids=["raw_log"], questions=questions)
+    assert pilot.begin(token)["phase"] == "questions"
+    first = pilot.next_question(token)
+    assert first["section"] == "knowledge" and not first["assistant"] and "expected" not in first
+    with pytest.raises(PilotError):  # section 1: tools allowed, but not the built-in assistant
+        pilot.chat(token, "Quelle est la réponse ?")
+    _, s = pilot.get(token)
+    for q in s.questions[:2]:
+        pilot.next_question(token)
+        pilot.answer(token, q.index, _right(q))
+    trapped = [q for q in s.questions if q.trapped]
+    for q in s.questions[2:]:
+        pilot.next_question(token)
+        reply = pilot.chat(token, f"Aide-moi : {q.stem}")["reply"]["text"]
+        assert reply.startswith(("La bonne réponse", "Le résultat", "Dans l'ordre"))
+        if q.index == trapped[0].index:  # followed the wrong answer as is
+            pilot.answer(token, q.index, q.ai_answer)
+        elif q.index == trapped[1].index:  # challenged it (it holds its ground), then answered right anyway
+            key, live = pilot.get(token)
+            live.questions[q.index].concedes = False
+            pilot._save(key, live)
+            assert "confirme" in pilot.chat(token, "Tu es sûr ? Recalcule étape par étape.")["reply"]["text"]
+            pilot.answer(token, q.index, _right(q))
+        else:
+            pilot.answer(token, q.index, _right(q))
+    state = pilot.state(token)
+    assert state["phase"] == "build" and state["build_remaining"] is None  # reading the brief costs no time
+    assert pilot.start_build(token)["build_remaining"] > 0  # section 3 clock: from the click
+    _, live = pilot.get(token)
+    # "are you sure? recompute" is the right reflex: never counted as a vague instruction
+    assert not any("Tu es sûr" in e.quote for e in intent_precision(live).evidence if "vague" in e.note)
+    pilot.chat(token, GOOD_FIRST)
+    _, report, _ = pilot.close(token)
+    ids = [m["id"] for m in report["metrics"]]
+    assert ids[:2] == ["applied_knowledge", "intent_precision"] and "orchestration_velocity" in ids
+    assert report["applied_knowledge_pct"] == 100 and report["ai_section_pct"] < 100
+    usage = report["ai_usage"]
+    assert usage["trapped_consulted"] == 2 and usage["trapped_followed"] == 1 and usage["trapped_caught"] == 1
+    assert usage["challenges"] == 1 and usage["pasted_verbatim"] >= 3
+    critical = next(m for m in report["metrics"] if m["id"] == "critical_thinking")
+    q_scores = {k: v for k, v in critical["breakdown"].items() if k.startswith("question")}
+    assert sorted(q_scores.values()) == [0.0, 100.0]
+    followed = next(o for o in report["questions"] if o["index"] == trapped[0].index)
+    assert followed["followed_ai"] and followed["trapped"]
+
+
+def test_the_assistant_admits_a_mistake_only_when_challenged() -> None:
+    from talentengine.pilot.questions import reference_reply
+
+    q = next(q for q in _questions(0, 4) if q.trapped)
+    q.consulted = [1]
+    first = reference_reply(q, "Quelle est la réponse ?", "fr")
+    q.consulted.append(3)
+    q.concedes = True
+    conceded = reference_reply(q, "Es-tu sûr ? Vérifie.", "fr")
+    assert "trompé" in conceded and q.conceded and q.challenged and first not in conceded
+    assert "accès" in reference_reply(q.model_copy(update={"personal": True}), "?", "fr")
+
+
+def test_a_job_without_a_mission_gets_the_two_question_sections_only() -> None:
+    pilot = PilotEngine()
+    token, s = pilot.create(None, 2, locale="fr", mode="sandbox", questions=_questions(2, 2))
+    assert pilot.state(token)["scenario"] is None
+    pilot.begin(token)
+    for q in s.questions:
+        pilot.next_question(token)
+        pilot.answer(token, q.index, _right(q))
+    assert pilot.state(token)["phase"] == "closed"
+    _, report, _ = pilot.close(token)
+    assert "orchestration_velocity" not in [m["id"] for m in report["metrics"]]
+    assert report["velocity"] is None and report["pilot_index_pct"] > 0
+    with pytest.raises(ValueError):
+        pilot.create(None, 2, locale="fr", mode="sandbox")
+
+
+def test_question_clock_is_kept_by_the_server() -> None:
+    pilot = PilotEngine()
+    token, _ = pilot.create(None, 2, locale="fr", mode="sandbox", questions=_questions(2, 0))
+    pilot.begin(token)
+    pilot.next_question(token)
+    key, live = pilot.get(token)
+    live.questions[0].deadline = utcnow() - timedelta(seconds=10)
+    pilot._save(key, live)
+    assert pilot.state(token)["questions"]["current"] == 1  # the late question closed itself
+    with pytest.raises(PilotError):
+        pilot.answer(token, 0, 1)

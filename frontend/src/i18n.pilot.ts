@@ -2,8 +2,8 @@
 // `en` is typed as `typeof frPilot`, so a missing key is a compile error.
 
 export const frPilot = {
-  name: "Test du Pilote d'IA",
-  eyebrow: "Test du Pilote d'IA",
+  name: "Test technique",
+  eyebrow: "Test technique",
   levels: ["—", "Junior", "Confirmé", "Senior"],
   // ---------------------------------------------------------------- player: brief
   brief: {
@@ -116,9 +116,9 @@ export const frPilot = {
     thanksTitle: "Merci, votre session a été transmise au recruteur.",
     thanksBody:
       "Vous pouvez fermer cette page. Le résultat est une aide à la décision lue par une personne ; vous pouvez lui en demander l'explication.",
-    reportTitle: "Votre rapport de pilotage",
+    reportTitle: "Votre rapport de test technique",
     reportLead:
-      "Voici ce qu'un recruteur verrait. Les failles glissées par l'assistant sont révélées ci-dessous : c'est le moment d'apprendre.",
+      "Voici ce qu'un recruteur verrait. Les erreurs volontaires de l'assistant et les failles qu'il a glissées sont révélées ci-dessous : c'est le moment d'apprendre.",
     backToTry: "Retour à l'essai",
     print: "Imprimer / PDF",
     invalid: "Lien invalide ou expiré",
@@ -127,6 +127,8 @@ export const frPilot = {
   },
   // ---------------------------------------------------------------- turns
   phaseText: {
+    "questions started": "Questions démarrées",
+    "questions done": "Questions terminées",
     "build started": "Mission démarrée",
     "build time over": "Temps de la mission écoulé",
     "build closed by the candidate": "Mission terminée",
@@ -141,7 +143,7 @@ export const frPilot = {
     index: "Indice de pilotage",
     indexShort: "Pilotage",
     assistantRef: "assistant de référence (scripté)",
-    indexHint: "Moyenne pondérée des trois métriques de pilotage.",
+    indexHint: "Moyenne pondérée des métriques présentes.",
     authenticity: "Authenticité",
     authenticityHint: "Tâche sur le propre code de la personne, rapportée à part.",
     notTaken: "non passée",
@@ -254,6 +256,7 @@ export const frPilot = {
       explain_requests: "Demandes d'explication",
     } as Record<string, string>,
     metricLabels: {
+      applied_knowledge: "Connaissances appliquées (outils permis)",
       intent_precision: "Précision d'intention et cadrage",
       critical_thinking: "Esprit critique et redirection",
       orchestration_velocity: "Vélocité d'orchestration",
@@ -323,7 +326,7 @@ export const frPilot = {
     ownershipHint: "Une vraie fonction tirée de ses dépôts, à modifier sous une nouvelle contrainte : l'authenticité de la preuve.",
     validity: "Validité (heures)",
     createDo: "Créer le lien",
-    linkTitle: "Lien du Test du Pilote",
+    linkTitle: "Lien du test technique",
     linkIntro: (min: number, d: string) => `Mission de ${min} min · lien personnel, valable jusqu'au ${d}. Transmettez-le à la personne candidate.`,
     linkFaults: "Failles prévues",
     linkOwnership: "Tâche sur son propre code incluse.",
@@ -332,6 +335,7 @@ export const frPilot = {
     none: "Aucune session pour l'instant.",
     phase: {
       brief: "Pas commencé",
+      questions: "Questions en cours",
       build: "Mission en cours",
       ownership: "Tâche sur son code",
       closed: "Terminé",
@@ -351,43 +355,16 @@ export const frPilot = {
   },
   // ---------------------------------------------------------------- pipeline
   pipeline: {
-    index: "Pilote",
+    index: "Test technique",
     verified: "Vérifié",
     tooltip:
-      "Pilote = indice du Test du Pilote d'IA. Vérifié = 0,6 × compatibilité + 0,4 × indice de pilotage. Affiché seulement : le classement reste sur la compatibilité, pour ne pas pénaliser qui n'a pas passé le test.",
-  },
-  // ---------------------------------------------------------------- landing
-  landing: {
-    title: "Le Test du Pilote d'IA",
-    lead:
-      "Un candidat peut toujours demander à une IA sur son téléphone. Plutôt que d'interdire l'IA, on mesure ce qui compte aujourd'hui : savoir la diriger.",
-    whyTitle: "Pourquoi",
-    why: [
-      "L'IA ne s'interdit pas : un téléphone posé à côté de l'écran suffit à contourner n'importe quel anti-triche.",
-      "Les tests de mémorisation filtrent les meilleurs : personne ne travaille sans documentation ni assistant.",
-      "Ce qui distingue un bon profil, c'est la direction qu'il donne et ce qu'il refuse de laisser passer.",
-    ],
-    whatTitle: "Ce que la personne fait",
-    what: [
-      "Elle pilote un assistant interne volontairement imparfait pour livrer une mission réaliste (passerelle LLM, export bancaire pseudonymisé, conteneur de production, modèle de ML, composant React, Terraform).",
-      "L'assistant glisse discrètement des failles : données personnelles dans les journaux, hachage sans clé, conteneur root, docker.sock…",
-      "Trois métriques : précision d'intention, esprit critique et redirection, vélocité jusqu'à une CI verte.",
-      "En option, 5 minutes sur une vraie fonction de son propre dépôt : l'authenticité de la preuve.",
-    ],
-    guaranteesTitle: "Les garanties",
-    guarantees: [
-      "Pièges standardisés : chaque personne affronte le même catalogue de failles, au même niveau.",
-      "Juge borné et cité : un modèle peut ajuster un score de ±15 pts au plus, en citant les tours.",
-      "Aucune caméra, aucun micro, aucune surveillance de l'écran.",
-      "Une personne décide : le résultat est un signal pour l'entretien, jamais un rejet automatique.",
-    ],
-    cta: "Essayer le Test du Pilote",
+      "Test technique = score global du test (connaissances, IA, pratique). Vérifié = 0,6 × compatibilité + 0,4 × score du test. Affiché seulement : le classement reste sur la compatibilité, pour ne pas pénaliser qui n'a pas passé le test.",
   },
 };
 
 export const enPilot: typeof frPilot = {
-  name: "AI-pilot test",
-  eyebrow: "AI-pilot test",
+  name: "Technical test",
+  eyebrow: "Technical test",
   levels: ["—", "Junior", "Mid-level", "Senior"],
   brief: {
     mission: "Your mission",
@@ -496,9 +473,9 @@ export const enPilot: typeof frPilot = {
     thanksTitle: "Thank you, your session has been sent to the recruiter.",
     thanksBody:
       "You can close this page. The result is a decision aid read by a person; you can ask them to explain it.",
-    reportTitle: "Your piloting report",
+    reportTitle: "Your technical test report",
     reportLead:
-      "This is what a recruiter would see. The flaws the assistant slipped in are revealed below: this is the moment to learn.",
+      "This is what a recruiter would see. The assistant's deliberate mistakes and the flaws it slipped in are revealed below: this is the moment to learn.",
     backToTry: "Back to the sandbox",
     print: "Print / PDF",
     invalid: "Invalid or expired link",
@@ -506,6 +483,8 @@ export const enPilot: typeof frPilot = {
     expired: "This link expired before the test was started.",
   },
   phaseText: {
+    "questions started": "Questions started",
+    "questions done": "Questions finished",
     "build started": "Mission started",
     "build time over": "Mission time over",
     "build closed by the candidate": "Mission finished",
@@ -519,7 +498,7 @@ export const enPilot: typeof frPilot = {
     index: "Pilot index",
     indexShort: "Pilot index",
     assistantRef: "reference assistant (scripted)",
-    indexHint: "Weighted mean of the three piloting metrics.",
+    indexHint: "Weighted mean of the metrics present.",
     authenticity: "Authenticity",
     authenticityHint: "Task on the person's own code, reported separately.",
     notTaken: "not taken",
@@ -632,6 +611,7 @@ export const enPilot: typeof frPilot = {
       explain_requests: "Requests for explanation",
     } as Record<string, string>,
     metricLabels: {
+      applied_knowledge: "Applied knowledge (tools allowed)",
       intent_precision: "Intent precision and framing",
       critical_thinking: "Critical thinking and redirection",
       orchestration_velocity: "Orchestration velocity",
@@ -698,7 +678,7 @@ export const enPilot: typeof frPilot = {
     ownershipHint: "A real function from their repositories, to change under a new constraint: the authenticity of the evidence.",
     validity: "Validity (hours)",
     createDo: "Create the link",
-    linkTitle: "AI-pilot test link",
+    linkTitle: "Technical test link",
     linkIntro: (min: number, d: string) => `${min}-min mission · personal link, valid until ${d}. Send it to the candidate.`,
     linkFaults: "Planned flaws",
     linkOwnership: "Task on their own code included.",
@@ -707,6 +687,7 @@ export const enPilot: typeof frPilot = {
     none: "No session yet.",
     phase: {
       brief: "Not started",
+      questions: "Questions running",
       build: "Mission running",
       ownership: "Own-code task",
       closed: "Finished",
@@ -725,35 +706,9 @@ export const enPilot: typeof frPilot = {
     faultAt: (n: number) => `appeared at turn ${n}`,
   },
   pipeline: {
-    index: "Pilot",
+    index: "Technical test",
     verified: "Verified",
     tooltip:
-      "Pilot = AI-pilot test index. Verified = 0.6 × compatibility + 0.4 × pilot index. Display only: the ranking stays on compatibility, so people who have not taken the test are not penalised.",
-  },
-  landing: {
-    title: "The AI-pilot test",
-    lead:
-      "A candidate can always ask an AI on their phone. Instead of banning AI, we measure what matters today: knowing how to steer it.",
-    whyTitle: "Why",
-    why: [
-      "AI cannot be banned: a phone next to the screen defeats any anti-cheat.",
-      "Memorisation tests filter out the best: nobody works without documentation or an assistant.",
-      "What sets a strong profile apart is the direction they give and what they refuse to let through.",
-    ],
-    whatTitle: "What the person does",
-    what: [
-      "They pilot a deliberately imperfect internal assistant to deliver a realistic mission (LLM gateway, pseudonymised banking export, production container, ML model, React component, Terraform).",
-      "The assistant quietly slips in flaws: personal data in logs, unkeyed hashing, a root container, docker.sock…",
-      "Three metrics: intent precision, critical thinking and redirection, velocity to a green CI.",
-      "Optionally, 5 minutes on a real function of their own repository: the authenticity of the evidence.",
-    ],
-    guaranteesTitle: "The guarantees",
-    guarantees: [
-      "Standardised traps: everyone faces the same catalogue of flaws at the same level.",
-      "A bounded, cited judge: a model may move a score by ±15 pts at most, citing the turns.",
-      "No camera, no microphone, no screen monitoring.",
-      "A person decides: the result is a signal for the interview, never an automatic rejection.",
-    ],
-    cta: "Try the AI-pilot test",
+      "Technical test = overall test score (knowledge, AI, practice). Verified = 0.6 × compatibility + 0.4 × test score. Display only: the ranking stays on compatibility, so people who have not taken the test are not penalised.",
   },
 };

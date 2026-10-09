@@ -1,13 +1,13 @@
 # Instructions for use (AI Act Art. 13)
 
-Version: TalentEngine-AI 0.7.0 · Provider: the organisation placing this software on the market under its
+Version: TalentEngine-AI 0.8.0 · Provider: the organisation placing this software on the market under its
 name (fill in name, address and contact before any deployment) · Source: https://github.com/FlorianMartins/talentengine-ai
 
 ## 1. Intended purpose
 
 Decision support for recruiters: it ranks applications to a defined job by the **evidence of skills** found
 in the material the candidate submits (CV, LinkedIn profile export, documents, public repositories,
-portfolio, photos of work) and by optional **verification tests** and **AI-pilot tests**, explains every
+portfolio, photos of work) and by an optional **technical test** (knowledge, AI, practice), explains every
 score, and prepares
 interview questions. **It never takes a decision**: shortlisting, interviewing or not retaining a candidate
 is always done and justified by an identified person.
@@ -32,8 +32,8 @@ Measured figures and methods are in [MEASUREMENTS.md](MEASUREMENTS.md). In summa
 | Credential weight | ≤ 25% by construction, property-tested | — |
 | Gaming resistance | Keyword-stuffed CV 34% (was 64%), showcase repository 12% | A determined impostor can still assemble plausible material: use the verification test and the interview |
 | Prompt injection | 30/30 known attacks flagged, 1/10 unseen | The real safeguard is the bounded influence of the escalation model (±1 level) |
-| AI-pilot test | 6 scenarios, 16 planted flaws (one second-order); factual metrics with evidence; judge bounded to ±15 points and citations | Weights and thresholds not yet calibrated on real sessions; call-outs phrased outside the markers rely on the judge or on reading the transcript |
-| Verification tests | 236 questions, 37 skills × 3 levels; per-candidate variants; server-side timing | No web page can stop a phone photographing the screen; use Safe Exam Browser for high-stakes tests and the live interview as final check |
+| Technical test | Three sections, tools allowed; section 2 assistant wrong on purpose on half of the questions; 6 scenarios, 16 planted flaws (one second-order); factual metrics with evidence; judge bounded to ±15 points and citations | Weights and thresholds not yet calibrated on real sessions; call-outs phrased outside the markers rely on the judge or on reading the transcript |
+| Question bank | 236 questions, 37 skills × 3 levels; per-candidate variants; server-side timing | Tools are allowed and not watched: a right answer may come from a search or another AI, as at work; the interview checks the reasoning |
 
 ## 3. Human oversight (Art. 14) — how to use the output
 
@@ -41,7 +41,7 @@ Measured figures and methods are in [MEASUREMENTS.md](MEASUREMENTS.md). In summa
    the material provided, not the person.
 2. Treat **"not evidenced"** as a question for the interview, never as absence of skill.
 3. Treat **test integrity flags** as signals to discuss with the candidate, never as proof of cheating.
-   Treat a low **authenticity of the evidence** (AI-pilot own-code task) the same way: five minutes is short.
+   Treat a low **authenticity of the evidence** (technical test, own code) the same way: five minutes is short.
 4. Record every decision with a rationale; the system signs it with your account and logs it.
 5. Use the **interview guide** to verify authorship of the work in person.
 

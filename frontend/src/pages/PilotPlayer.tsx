@@ -1,12 +1,15 @@
-// /pilote/:token — AI-pilot test player. The candidate pilots a deliberately imperfect assistant to deliver
-// a mission (chat + editor + virtual CI), then optionally changes a function of their own repository in
-// five minutes. Tools are allowed: there is no anti-cheat layer here. The server keeps every clock.
+// /pilote/:token — technical test player, three sections in order:
+//   1. knowledge questions (calculator and internet allowed, nothing blocked, no built-in assistant),
+//   2. questions with the built-in assistant next to them (deliberately wrong on some),
+//   3. the practical mission (chat + editor + virtual CI), then optionally five minutes on one's own code.
+// Tools are allowed: there is no anti-cheat layer here. The server keeps every clock.
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
   Bot,
+  Calculator,
   CameraOff,
   CheckCircle2,
   ChevronDown,
@@ -15,7 +18,9 @@ import {
   FilePlus2,
   FileText,
   Flag,
+  Info,
   Link2Off,
+  ListOrdered,
   Loader2,
   Moon,
   Play,
@@ -32,7 +37,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { ApiError, pilot } from "../api/client";
-import type { PilotReport, PilotState, PilotTurn } from "../api/types";
+import type { PilotAnswerResult, PilotQuestion, PilotReport, PilotState, PilotTurn } from "../api/types";
 import { usePrefs, useToast } from "../lib/prefs";
 import { cx } from "../lib/format";
 import { printPage } from "../lib/print";
@@ -41,9 +46,40 @@ import { Modal, ToastRegion } from "../components/feedback";
 import { publicPaths } from "../components/PublicLayout";
 import { PilotReportView } from "../components/PilotReportView";
 import { InlineCode, TurnItem, timeOf } from "../components/PilotTurns";
+import { QuestionTimer, useAnswer } from "../components/QuestionInputs";
 
 const MAX_PROMPT = 4000;
-type View = "loading" | "invalid" | "expired" | "brief" | "build" | "ownIntro" | "own" | "closing" | "done";
+type View =
+  | "loading"
+  | "invalid"
+  | "expired"
+  | "brief"
+  | "questions"
+  | "toAi"
+  | "toPractice"
+  | "build"
+  | "ownIntro"
+  | "own"
+  | "closing"
+  | "done";
+
+/** the section 2 introduction is shown once per session (a reload must not hide a running question) */
+const aiIntroKey = (token: string) => `te.tt.ai-intro.${token}`;
+function aiIntroSeen(token: string): boolean {
+  try {
+    return sessionStorage.getItem(aiIntroKey(token)) === "1";
+  } catch {
+    return false;
+  }
+}
+function markAiIntroSeen(token: string): void {
+  try {
+    sessionStorage.setItem(aiIntroKey(token), "1");
+  } catch {
+    /* storage unavailable: the introduction may show again after a reload */
+  }
+}
+type StepResult = Pick<PilotAnswerResult, "next" | "total" | "phase">;
 
 export function PilotPlayerPage() {
   const { token = "" } = useParams();
@@ -56,8 +92,11 @@ export function PilotPlayerPage() {
   const [report, setReport] = useState<PilotReport | null>(null);
   const [candidateDone, setCandidateDone] = useState(false);
   const [end, setEnd] = useState<number | null>(null); // client-side deadline derived from the server's remaining
+  const [q, setQ] = useState<PilotQuestion | null>(null);
   const wantIntro = useRef(false);
+  const wantPractice = useRef(false); // the questions just ended: show the section 3 introduction
   const closing = useRef(false);
+  const refreshRef = useRef<() => Promise<void>>(async () => undefined);
 
   const close = useCallback(async () => {
     if (closing.current) return;
@@ -75,18 +114,33 @@ export function PilotPlayerPage() {
     }
   }, [token]);
 
+  const loadQuestion = useCallback(async () => {
+    try {
+      setQ(await pilot.question(token));
+      setView("questions");
+    } catch (e) {
+      if (!(e instanceof ApiError && e.status === 409)) toast.error(e);
+      void refreshRef.current(); // no question left or another phase: follow the server
+    }
+  }, [token, toast]);
+
   const apply = useCallback(
     (st: PilotState) => {
       setS(st);
       if (st.locale !== lang) setLang(st.locale);
       const remaining = st.phase === "ownership" ? st.ownership_remaining : st.phase === "build" ? st.build_remaining : null;
       setEnd(remaining === null ? null : Date.now() + remaining * 1000);
+      const qs = st.questions;
       if (st.phase === "brief") setView("brief");
+      else if (st.phase === "questions") {
+        if (qs && qs.knowledge > 0 && qs.with_ai > 0 && qs.current === qs.knowledge && !aiIntroSeen(token)) setView("toAi");
+        else void loadQuestion();
+      } else if (st.phase === "build" && (wantPractice.current || st.build_remaining == null)) setView("toPractice");
       else if (st.phase === "build") setView(wantIntro.current && st.ownership_available ? "ownIntro" : "build");
       else if (st.phase === "ownership") setView(st.ownership?.started_at ? "own" : "ownIntro");
       else void close();
     },
-    [lang, setLang, close],
+    [lang, setLang, close, loadQuestion, token],
   );
 
   const refresh = useCallback(
@@ -101,10 +155,40 @@ export function PilotPlayerPage() {
     [token, apply, toast],
   );
 
+  refreshRef.current = refresh;
+
   useEffect(() => {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  /** after an answer or a timeout: the next question, the section 2 introduction, or the next phase */
+  const afterQuestion = (r: StepResult) => {
+    const qs = s?.questions;
+    if (r.phase === "questions") {
+      if (qs && qs.knowledge > 0 && qs.with_ai > 0 && r.next === qs.knowledge && !aiIntroSeen(token)) {
+        setS((cur) => (cur && cur.questions ? { ...cur, questions: { ...cur.questions, current: r.next } } : cur));
+        setQ(null);
+        setView("toAi");
+      } else void loadQuestion();
+      return;
+    }
+    setQ(null);
+    if (r.phase === "build") wantPractice.current = true;
+    void refresh();
+  };
+  const startAi = () => {
+    markAiIntroSeen(token);
+    void loadQuestion();
+  };
+  const openWorkspace = async () => {
+    wantPractice.current = false;
+    try {
+      apply(await pilot.startBuild(token)); // the mission clock starts now, not when the questions ended
+    } catch {
+      setView("build");
+    }
+  };
 
   const begin = async () => {
     try {
@@ -132,8 +216,9 @@ export function PilotPlayerPage() {
   };
 
   const wide = view === "build" || view === "own";
+  const clock = (wide || view === "toPractice") && end !== null && s;
   return (
-    <div className={cx("exam pilot", wide && "is-ide")}>
+    <div className={cx("exam pilot", wide && "is-ide", view === "questions" && q?.assistant && "is-wide")}>
       <a className="skip-link" href="#main">
         {t.app.skip}
       </a>
@@ -141,10 +226,10 @@ export function PilotPlayerPage() {
         <Logo size={26} />
         <span className="exam-title truncate pilot-bar-title">
           {t.pilot.eyebrow}
-          {s ? ` · ${s.scenario.title}` : ""}
+          {s ? ` · ${wide && s.scenario ? s.scenario.title : s.job_title}` : ""}
         </span>
         <span className="spacer" />
-        {wide && end !== null && s && (
+        {clock && (
           <Countdown
             end={end}
             total={view === "own" ? s.ownership?.seconds ?? 300 : s.build_minutes * 60}
@@ -162,7 +247,7 @@ export function PilotPlayerPage() {
           {theme === "dark" ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
         </button>
       </header>
-      <main id="main" className={cx("exam-main", wide && "pilot-main")} tabIndex={-1}>
+      <main id="main" className={cx("exam-main", wide && "pilot-main", view === "questions" && q?.assistant && "tq-main-wide")} tabIndex={-1}>
         {(view === "loading" || view === "closing") && (
           <div className="exam-center" role="status">
             <Loader2 size={28} className="spin" aria-hidden="true" />
@@ -177,6 +262,17 @@ export function PilotPlayerPage() {
           </div>
         )}
         {view === "brief" && s && <Brief s={s} warning={warning} onStart={begin} />}
+        {view === "questions" && s && !q && (
+          <div className="exam-center" role="status">
+            <Loader2 size={28} className="spin" aria-hidden="true" />
+            <span className="sr-only">{t.tt.q.loading}</span>
+          </div>
+        )}
+        {view === "questions" && s && q && (
+          <QuestionStage key={q.index} token={token} q={q} s={s} onStep={afterQuestion} onResync={refresh} />
+        )}
+        {view === "toAi" && s && <AiIntro s={s} onStart={startAi} />}
+        {view === "toPractice" && s && <PracticeIntro s={s} onStart={openWorkspace} />}
         {view === "build" && s && end !== null && (
           <Workspace key="build" mode="build" token={token} s={s} end={end} onRefresh={refresh} onFinish={toOwnership} onClose={close} />
         )}
@@ -252,29 +348,62 @@ function Countdown({ end, total, onZero }: { end: number; total: number; onZero:
 function Brief({ s, warning, onStart }: { s: PilotState; warning: string; onStart: () => Promise<void> }) {
   const { t } = usePrefs();
   const b = t.pilot.brief;
+  const tb = t.tt.brief;
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
+  const qs = s.questions;
+  const sections: { n: number; id: string; icon: typeof Bot; tone: string; meta: string[]; body: ReactNode }[] = [];
+  if (qs && qs.knowledge > 0)
+    sections.push({ n: 1, id: "knowledge", icon: Calculator, tone: "", meta: [tb.questions(qs.knowledge), t.tt.q.toolsOk], body: tb.s1 });
+  if (qs && qs.with_ai > 0) sections.push({ n: 2, id: "ai", icon: Bot, tone: "is-ai", meta: [tb.questions(qs.with_ai)], body: tb.s2 });
+  if (s.scenario)
+    sections.push({
+      n: 3,
+      id: "practice",
+      icon: Target,
+      tone: "is-practice",
+      meta: [b.budget(s.build_minutes), ...(s.ownership_available ? [b.ownershipToo] : [])],
+      body: (
+        <>
+          <p>{tb.s3(s.build_minutes)}</p>
+          <p className="tq-mission-title">
+            <b>{b.mission} —</b> {s.scenario.title}
+          </p>
+          <p className="small">
+            <InlineCode text={s.scenario.brief} />
+          </p>
+          {s.ownership_available && <p className="small muted">{tb.s3Own}</p>}
+        </>
+      ),
+    });
+  else if (s.ownership_available)
+    sections.push({ n: 3, id: "own", icon: UserCheck, tone: "is-own", meta: ["5 min"], body: tb.ownOnly });
   return (
     <div className="exam-card stack-lg">
       <div className="stack-sm">
         <span className="eyebrow">
-          {t.pilot.eyebrow} · {s.job_title}
+          {t.tt.name} · {s.job_title}
         </span>
-        <h1 className="exam-h1">{s.scenario.title}</h1>
+        <h1 className="exam-h1">{tb.title}</h1>
+        <p className="muted" style={{ maxWidth: "72ch" }}>
+          {tb.lead}
+        </p>
         <div className="row wrap" style={{ gap: 8 }}>
           <span className="chip chip-accent">
             <span>
               {b.level} · {t.pilot.levels[s.level]}
             </span>
           </span>
-          <span className="chip chip-plain">
-            <Clock size={12} aria-hidden="true" />
-            <span>{b.budget(s.build_minutes)}</span>
-          </span>
-          {s.ownership_available && (
-            <span className="chip chip-violet">
-              <UserCheck size={12} aria-hidden="true" />
-              <span>{b.ownershipToo}</span>
+          {qs && qs.total > 0 && (
+            <span className="chip chip-plain">
+              <Clock size={12} aria-hidden="true" />
+              <span>{tb.questionsTime(qs.minutes)}</span>
+            </span>
+          )}
+          {s.scenario && (
+            <span className="chip chip-plain">
+              <Clock size={12} aria-hidden="true" />
+              <span>{b.budget(s.build_minutes)}</span>
             </span>
           )}
         </div>
@@ -289,21 +418,40 @@ function Brief({ s, warning, onStart }: { s: PilotState; warning: string; onStar
         </div>
       )}
 
-      <section className="pl-mission" aria-labelledby="pl-mission">
-        <h2 id="pl-mission" className="exam-h2">
-          <Target size={18} aria-hidden="true" /> {b.mission}
+      <section aria-labelledby="tq-plan">
+        <h2 id="tq-plan" className="exam-h2">
+          <ListOrdered size={18} aria-hidden="true" /> {tb.planTitle}
         </h2>
-        <p>
-          <InlineCode text={s.scenario.brief} />
-        </p>
+        <ol className="tq-plan">
+          {sections.map(({ n, id, icon: Icon, tone, meta, body }) => (
+            <li key={id} className={cx("tq-plan-item", tone)}>
+              <span className="tq-plan-icon" aria-hidden="true">
+                <Icon size={18} />
+              </span>
+              <div className="stack-sm" style={{ minWidth: 0, flex: 1 }}>
+                <div className="row wrap" style={{ gap: 8 }}>
+                  <h3 className="tq-plan-title">
+                    {t.tt.sectionN(n)} — {t.tt.section[id]}
+                  </h3>
+                  {meta.map((m) => (
+                    <span key={m} className="chip chip-plain">
+                      <span>{m}</span>
+                    </span>
+                  ))}
+                </div>
+                {typeof body === "string" ? <p>{body}</p> : body}
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section aria-labelledby="pl-rules">
         <h2 id="pl-rules" className="exam-h2">
-          {b.rulesTitle}
+          {tb.rulesTitle}
         </h2>
         <ul className="exam-rules">
-          {b.rules.map((r) => (
+          {[...tb.rules, ...(s.scenario ? [tb.ruleMission] : [])].map((r) => (
             <li key={r}>
               <CheckCircle2 size={16} aria-hidden="true" />
               <span>{r}</span>
@@ -314,16 +462,16 @@ function Brief({ s, warning, onStart }: { s: PilotState; warning: string; onStar
 
       <section className="exam-notice" aria-labelledby="pl-rec">
         <h2 id="pl-rec" className="exam-h2">
-          <ShieldCheck size={18} aria-hidden="true" /> {b.recordedTitle}
+          <ShieldCheck size={18} aria-hidden="true" /> {tb.recordedTitle}
         </h2>
         <ul className="exam-monitored">
-          {b.recorded.map((m) => (
+          {tb.recorded.map((m) => (
             <li key={m}>{m}</li>
           ))}
         </ul>
         <p className="exam-nocam">
           <CameraOff size={16} aria-hidden="true" />
-          <b>{b.noCamera}</b>
+          <b>{tb.noCamera}</b>
         </p>
         <p className="exam-full-notice" style={{ lineHeight: 1.6 }}>
           {s.notice}
@@ -338,7 +486,7 @@ function Brief({ s, warning, onStart }: { s: PilotState; warning: string; onStar
 
       <label className="check" style={{ fontSize: 15 }}>
         <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-        <span>{b.understood}</span>
+        <span>{tb.understood}</span>
       </label>
       <div>
         <button
@@ -352,6 +500,325 @@ function Brief({ s, warning, onStart }: { s: PilotState; warning: string; onStar
           {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
           {b.start}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ questions (sections 1 and 2)
+
+function QuestionStage({
+  token,
+  q,
+  s,
+  onStep,
+  onResync,
+}: {
+  token: string;
+  q: PilotQuestion;
+  s: PilotState;
+  onStep: (r: StepResult) => void;
+  onResync: () => Promise<void>;
+}) {
+  const { t } = usePrefs();
+  const tq = t.tt.q;
+  const toast = useToast();
+  const [end] = useState(() => Date.now() + Math.max(0, q.remaining) * 1000);
+  const left = useLeft(end);
+  const stemId = `tq-stem-${q.index}`;
+  const { ready, value, fields } = useAnswer(q, stemId);
+  const [sending, setSending] = useState(false);
+  const [tab, setTab] = useState<"question" | "assistant">("question");
+  const [unread, setUnread] = useState(false);
+  const [announce, setAnnounce] = useState("");
+  const closed = useRef(false);
+  const ai = q.section === "ai";
+  const qs = s.questions;
+  const k = qs?.knowledge ?? 0;
+  const sectionN = ai ? 2 : 1;
+  const pos = ai ? q.index - k + 1 : q.index + 1;
+  const count = ai ? qs?.with_ai ?? q.total : k || q.total;
+
+  const resync = () =>
+    pilot
+      .timeout(token, q.index)
+      .then(onStep)
+      .catch(() => void onResync());
+
+  // timer reached zero: the server closes the question, then the next one is served
+  useEffect(() => {
+    if (left === 30 || left === 10) setAnnounce(`${t.test.timeLeft} ${left} s`);
+    if (left > 0 || closed.current) return;
+    closed.current = true;
+    toast.push("warning", t.test.timeUp);
+    void resync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [left]);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!ready || closed.current) return;
+    closed.current = true;
+    setSending(true);
+    try {
+      const r = await pilot.answer(token, q.index, value());
+      if (r.late) toast.push("warning", t.test.late);
+      onStep(r);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        toast.push("warning", tq.closed);
+        return void resync();
+      }
+      closed.current = false;
+      setSending(false);
+      toast.error(err);
+    }
+  };
+
+  const card = (
+    <form className="tq-card" onSubmit={submit} aria-busy={sending} id="tq-panel-question" data-panel="question">
+      <div className="tq-chips row wrap">
+        {q.personal ? (
+          <span className="chip chip-violet">
+            <UserCheck size={12} aria-hidden="true" />
+            <span>{t.test.personal}</span>
+          </span>
+        ) : (
+          <span className="chip chip-plain">
+            <span>{q.skill}</span>
+          </span>
+        )}
+        {ai ? (
+          <span className="chip chip-warn">
+            <AlertTriangle size={12} aria-hidden="true" />
+            <span>{tq.aiHint}</span>
+          </span>
+        ) : (
+          <>
+            <span className="chip chip-ok">
+              <Calculator size={12} aria-hidden="true" />
+              <span>{tq.toolsOk}</span>
+            </span>
+            <span className="xs faint">{tq.noAssistant}</span>
+          </>
+        )}
+      </div>
+      <h1 className="exam-stem" id={stemId}>
+        {q.stem}
+      </h1>
+      {fields}
+      <div className="exam-actions">
+        <span className="xs faint row" style={{ gap: 6 }}>
+          <Info size={13} aria-hidden="true" />
+          {t.test.noBack}
+        </span>
+        <span className="spacer" />
+        <button type="submit" className="btn btn-primary btn-lg" disabled={!ready || sending}>
+          {sending ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <CheckCircle2 size={16} aria-hidden="true" />}
+          {t.test.submit}
+        </button>
+      </div>
+    </form>
+  );
+
+  return (
+    <div className={cx("tq", ai && "is-ai")} data-tab={tab}>
+      <div className="exam-top">
+        <div className="exam-progress">
+          <span className="small">
+            <b>{tq.progress(sectionN, pos, count)}</b> <span className="faint">· {t.tt.section[q.section]}</span>
+          </span>
+          <div className="progress-bar" aria-hidden="true">
+            <span style={{ width: `${((q.index + 1) / q.total) * 100}%` }} />
+          </div>
+          <span className="xs faint">{tq.overall(q.index + 1, q.total)}</span>
+        </div>
+        <QuestionTimer left={left} total={q.seconds} />
+        <span className="sr-only" aria-live="assertive">
+          {announce}
+        </span>
+      </div>
+
+      {ai ? (
+        <>
+          <div className="tabs tq-tabs" role="tablist" aria-label={t.tt.name}>
+            {(["question", "assistant"] as const).map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`tq-tab-${id}`}
+                aria-selected={tab === id}
+                aria-controls={`tq-panel-${id}`}
+                className="tab"
+                onClick={() => {
+                  setTab(id);
+                  if (id === "assistant") setUnread(false);
+                }}
+              >
+                {id === "question" ? <FileText size={16} aria-hidden="true" /> : <Bot size={16} aria-hidden="true" />}
+                {tq.tabs[id]}
+                {id === "assistant" && unread && <span className="pl-dot" role="img" aria-label={tq.unread} />}
+              </button>
+            ))}
+          </div>
+          <div className="tq-grid">
+            {card}
+            <QuestionAssistant
+              token={token}
+              q={q}
+              initial={s.transcript}
+              onReply={() => {
+                if (tab !== "assistant") setUnread(true);
+              }}
+              onClosed={resync}
+            />
+          </div>
+        </>
+      ) : (
+        card
+      )}
+    </div>
+  );
+}
+
+function QuestionAssistant({
+  token,
+  q,
+  initial,
+  onReply,
+  onClosed,
+}: {
+  token: string;
+  q: PilotQuestion;
+  initial: PilotTurn[];
+  onReply: () => void;
+  onClosed: () => void;
+}) {
+  const { t } = usePrefs();
+  const tq = t.tt.q;
+  const toast = useToast();
+  const [turns, setTurns] = useState<PilotTurn[]>(() =>
+    initial.filter((x) => x.question === q.index && (x.kind === "prompt" || x.kind === "assistant")),
+  );
+  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState("");
+  const send = async (message: string): Promise<boolean> => {
+    setBusy(true);
+    setPending(message);
+    try {
+      const r = await pilot.chat(token, message);
+      setTurns((cur) => [...cur, ...(r.prompt ? [r.prompt] : []), r.reply]);
+      onReply();
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        if (/section 2/i.test(e.message)) toast.push("info", tq.assistantOff);
+        else {
+          toast.push("warning", tq.closed);
+          onClosed();
+        }
+      } else toast.error(e);
+      return false;
+    } finally {
+      setPending("");
+      setBusy(false);
+    }
+  };
+  return (
+    <section id="tq-panel-assistant" className="pl-panel pl-chat tq-assistant" aria-labelledby="tq-h-chat" data-panel="assistant">
+      <h2 id="tq-h-chat" className="pl-panel-title">
+        <Bot size={16} aria-hidden="true" />
+        {tq.assistantTitle}
+        <span className="chip chip-warn tq-ai-warn">
+          <AlertTriangle size={12} aria-hidden="true" />
+          <span>{tq.aiHint}</span>
+        </span>
+      </h2>
+      <ChatLog turns={turns} pending={pending} empty={tq.assistantEmpty} />
+      <Composer busy={busy} onSend={send} placeholder={tq.composerPh} label={tq.composerLabel} />
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ section transitions
+
+function AiIntro({ s, onStart }: { s: PilotState; onStart: () => void }) {
+  const { t } = usePrefs();
+  const tr = t.tt.transition;
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="exam-card stack-lg tq-transition">
+      <div className="stack-sm">
+        <span className="eyebrow row" style={{ gap: 6 }}>
+          <CheckCircle2 size={14} aria-hidden="true" /> {tr.done(1)}
+        </span>
+        <h1 className="exam-h1">{tr.aiTitle}</h1>
+        <p style={{ maxWidth: "72ch", lineHeight: 1.6 }}>{tr.aiBody}</p>
+      </div>
+      <ul className="exam-rules">
+        {tr.aiPoints.map((r) => (
+          <li key={r}>
+            <Bot size={16} aria-hidden="true" />
+            <span>{r}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="stack-sm">
+        <div>
+          <button
+            className="btn btn-primary btn-lg"
+            disabled={busy}
+            autoFocus
+            onClick={() => {
+              setBusy(true);
+              onStart();
+            }}
+          >
+            {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+            {tr.aiStart(s.questions?.with_ai ?? 0)}
+          </button>
+        </div>
+        <p className="xs faint">{tr.clockNote}</p>
+      </div>
+    </div>
+  );
+}
+
+function PracticeIntro({ s, onStart }: { s: PilotState; onStart: () => void }) {
+  const { t } = usePrefs();
+  const tr = t.tt.transition;
+  const last = (s.questions?.with_ai ?? 0) > 0 ? 2 : 1;
+  return (
+    <div className="exam-card stack-lg tq-transition">
+      <div className="stack-sm">
+        <span className="eyebrow row" style={{ gap: 6 }}>
+          <CheckCircle2 size={14} aria-hidden="true" /> {tr.done(last)}
+        </span>
+        <h1 className="exam-h1">{tr.practiceTitle}</h1>
+        <p style={{ maxWidth: "72ch", lineHeight: 1.6 }}>{tr.practiceBody}</p>
+      </div>
+      {s.scenario && (
+        <section className="pl-mission" aria-labelledby="tq-mission">
+          <h2 id="tq-mission" className="exam-h2">
+            <Target size={18} aria-hidden="true" /> {s.scenario.title}
+          </h2>
+          <p>
+            <InlineCode text={s.scenario.brief} />
+          </p>
+        </section>
+      )}
+      <div className="stack-sm">
+        <div>
+          <button className="btn btn-primary btn-lg" autoFocus onClick={onStart}>
+            <Code2 size={16} aria-hidden="true" />
+            {tr.practiceStart}
+          </button>
+        </div>
+        <p className="xs faint row" style={{ gap: 6 }}>
+          <Clock size={13} aria-hidden="true" />
+          {tr.practiceClock}
+        </p>
       </div>
     </div>
   );
@@ -589,7 +1056,7 @@ function Workspace({
               <ChevronDown size={14} aria-hidden="true" className="pl-caret" />
             </summary>
             <p className="small">
-              <InlineCode text={s.scenario.brief} />
+              <InlineCode text={s.scenario?.brief ?? ""} />
             </p>
           </details>
         ) : (
@@ -769,7 +1236,7 @@ function Workspace({
   );
 }
 
-function ChatLog({ turns, pending, onOpen }: { turns: PilotTurn[]; pending: string; onOpen: (p: string) => void }) {
+function ChatLog({ turns, pending, onOpen, empty }: { turns: PilotTurn[]; pending: string; onOpen?: (p: string) => void; empty?: string }) {
   const { t } = usePrefs();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -779,7 +1246,7 @@ function ChatLog({ turns, pending, onOpen }: { turns: PilotTurn[]; pending: stri
   const visible = turns.filter((x) => !(x.kind === "phase" && x.index === 0));
   return (
     <div className="pl-scroll" ref={ref}>
-      {visible.length === 0 && !pending && <p className="small muted pl-empty">{t.pilot.build.chatEmpty}</p>}
+      {visible.length === 0 && !pending && <p className="small muted pl-empty">{empty ?? t.pilot.build.chatEmpty}</p>}
       <ol className="pl-log" role="log" aria-live="polite" aria-relevant="additions" aria-label={t.pilot.build.chatTitle}>
         {visible.map((turn) => (
           <TurnItem key={turn.index} turn={turn} onOpen={onOpen} />
@@ -802,7 +1269,17 @@ function ChatLog({ turns, pending, onOpen }: { turns: PilotTurn[]; pending: stri
   );
 }
 
-function Composer({ busy, onSend, placeholder }: { busy: boolean; onSend: (m: string) => Promise<boolean>; placeholder: string }) {
+function Composer({
+  busy,
+  onSend,
+  placeholder,
+  label,
+}: {
+  busy: boolean;
+  onSend: (m: string) => Promise<boolean>;
+  placeholder: string;
+  label?: string;
+}) {
   const { t } = usePrefs();
   const b = t.pilot.build;
   const [text, setText] = useState("");
@@ -821,7 +1298,7 @@ function Composer({ busy, onSend, placeholder }: { busy: boolean; onSend: (m: st
   return (
     <form className="pl-composer" onSubmit={submit}>
       <label htmlFor="pl-prompt" className="sr-only">
-        {b.composerLabel}
+        {label ?? b.composerLabel}
       </label>
       <textarea
         id="pl-prompt"

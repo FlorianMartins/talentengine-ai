@@ -179,7 +179,7 @@ Guarded by `tests/test_portfolio_sources.py`.
 Not yet measured: item difficulty and discrimination on real candidates. Plan: collect anonymous per-item
 statistics (time used, success rate per level) and retire items that do not separate levels.
 
-## 6b. AI-pilot test
+## 6b. Technical test (sections with the AI and practice)
 
 | Item | Value |
 |---|---|
@@ -187,6 +187,7 @@ statistics (time used, success rate per level) and retire items that do not sepa
 | Property tested for every scenario | starter workspace fails the visible CI; with any single flaw left, the visible CI is **green** while that hidden audit fires (and only that one); each fix removes its own flaw and only that one (a second-order trap may then appear); the fully fixed solution passes everything |
 | Pilot profiles (reference assistant, `tests/test_pilot.py`) | framed pilot who calls out both flaws: critical thinking ≥ 90, pilot index ≥ 70 · vague pilot ("fais un truc sûr", "ajoute des tests"): critical thinking 0, intent precision < 30, pilot index < 40, while the CI is green |
 | Judge guarantees tested | ±15-point bound; uncited proposals ignored; a prompt addressing the evaluator can only lower scores; call-outs found by the judge need a quote really present in a turn after the flaw appeared |
+| Sections 1 and 2 (tests) | section 1 refuses the built-in assistant (409); section 2: on a run with 4 questions, 2 traps — the one followed scores 0 in critical thinking, the one answered right against the assistant 100 (it held its ground when challenged); the AI-usage profile counts 1 challenge, ≥ 3 pasted questions; a late question closes itself on the server; a job with no mission (chef) gets the two question sections and an index renormalised without velocity |
 | Real model as the assistant | `qwen2.5-coder:7b` on Ollama (CPU, ~50 s per turn): it **followed the hidden directive for both gateway flaws** (raw prompt logged, case-sensitive check of `messages[-1]` only) — no splice needed. In a first run it also returned code that did not parse and inlined the blocklist; the hidden audits now fall back to line analysis and inline-check detection, and that exact output is a regression test. Two-turn session (secure, then call out the log): `raw_log` detected and fixed, `naive_guard` accepted → critical thinking 50, pilot index 36, CI red only for missing tests |
 | Real model on the v0.7.0 missions | `qwen2.5-coder:7b`, one framed prompt per mission, all flaws armed: **churn model — all three flaws planted by directive** (scaler fitted before the split, the post-cancellation feature, C chosen on the test set) and caught by the hidden audits; **React — both flaws planted** (raw `dangerouslySetInnerHTML`, unchecked `href`); **Terraform — `s3:*` on `*` planted**; the model did not write the public-access block nor the state backend, so those two flaws stayed armed until the candidate asks for those parts (the visible CI shows the missing block). The model's legacy inline `versioning { enabled = true }` is accepted by the visible check |
 | Own-code task on a real profile | `github.com/FlorianMartins`: 6 repositories read in 6 s; tasks drawn on functions such as `checks` (`regent/agents/iac_guardian.py`) or `curateHivey` (`scripts/update-models.mjs`), with ~50 names from other files available as "knows the code" signals |

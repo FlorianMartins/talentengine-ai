@@ -299,9 +299,139 @@ export function ReportPrintDoc({
         )}
       </section>
 
+      {pilots.some((s) => s.report) && (
+        <section className="pd-section">
+          <h2>{t.tt.name}</h2>
+          {pilots
+            .filter((s) => s.report)
+            .map((s) => {
+              const pr = s.report!;
+              const pp = t.pilot.report;
+              const tr = t.tt.report;
+              const pct = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${Math.round(v)} %`);
+              const u = pr.ai_usage;
+              const qs = pr.questions ?? [];
+              const nAi = qs.filter((q) => q.section === "ai").length;
+              return (
+                <div key={s.id} className="pd-q">
+                  <h3>
+                    {tr.overall} {pr.pilot_index_pct.toFixed(0)} %
+                    {pr.authenticity_pct !== null ? ` · ${pp.authenticity} ${Math.round(pr.authenticity_pct)} %` : ""} ·{" "}
+                    {pr.scenario_title || tr.questionsOnly} · {t.pilot.levels[pr.level]} · {s.id}
+                  </h3>
+                  <p className="pd-small">
+                    {t.tt.sectionN(1)} {t.tt.section.knowledge} {pct(pr.applied_knowledge_pct)} · {t.tt.sectionN(2)} {t.tt.section.ai}{" "}
+                    {pct(pr.ai_section_pct)} · {t.tt.sectionN(3)} {t.tt.section.practice} {pr.scenario_id ? "" : tr.noMission}
+                    {pr.own_work_pct !== null && pr.own_work_pct !== undefined ? ` · ${tr.ownWork(pr.own_work_pct)}` : ""}
+                  </p>
+                  <table className="pd-table">
+                    <tbody>
+                      {pr.metrics.map((m) => (
+                        <tr key={m.id}>
+                          <td>{pp.metricLabels[m.id] ?? m.label}</td>
+                          <td>{m.final_pct.toFixed(0)} %</td>
+                          <td>
+                            {pp.factual} {m.factual_pct.toFixed(0)} %
+                            {m.judge_pct !== null ? ` · ${pp.judgeProposal} ${m.judge_pct.toFixed(0)} % (${m.judge_applied ? pp.applied : pp.notApplied})` : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {qs.length > 0 && (
+                    <table className="pd-table">
+                      <thead>
+                        <tr>
+                          <th>{tr.col.n}</th>
+                          <th>{tr.col.section}</th>
+                          <th>{tr.col.skill}</th>
+                          <th>{tr.col.result}</th>
+                          <th>{tr.col.time}</th>
+                          <th>{tr.col.consulted}</th>
+                          <th>{tr.col.trapped}</th>
+                          <th>{tr.col.followed}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {qs.map((q) => {
+                          const ai = q.section === "ai";
+                          return (
+                            <tr key={q.index}>
+                              <td>{q.index + 1}</td>
+                              <td>{t.tt.section[q.section]}</td>
+                              <td>
+                                {q.skill}
+                                {q.personal ? ` (${tr.personal})` : ""}
+                              </td>
+                              <td>{q.late ? tr.late : q.score >= 1 ? tr.right : q.score > 0 ? tr.partial(q.score * 100) : tr.wrong}</td>
+                              <td>{tr.seconds(q.seconds_used, q.seconds)}</td>
+                              <td>{ai ? tr.consultedN(q.consulted_ai) : "—"}</td>
+                              <td>{ai ? (q.trapped ? tr.yes : tr.no) : "—"}</td>
+                              <td>
+                                {ai && q.trapped && q.consulted_ai > 0 ? (q.followed_ai ? tr.followedYes : tr.followedNo) : "—"}
+                                {q.challenged ? ` · ${tr.challenged}` : ""}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                  {u && nAi > 0 && (
+                    <p className="pd-small">
+                      <b>{tr.aiUsageTitle} —</b>{" "}
+                      {u.consulted === 0
+                        ? tr.usage.none(nAi)
+                        : [
+                            tr.usage.consulted(u.consulted, nAi),
+                            tr.usage.challenges(u.challenges),
+                            ...(u.pasted_verbatim ? [tr.usage.pasted(u.pasted_verbatim)] : []),
+                            u.trapped_consulted ? tr.usage.followed(u.trapped_followed, u.trapped_consulted) : tr.usage.noTrap,
+                          ].join(" ; ")}
+                      . <i>{tr.aiUsageNote}</i>
+                    </p>
+                  )}
+                  {pr.faults.length > 0 && (
+                    <table className="pd-table">
+                      <tbody>
+                        {pr.faults.map((f) => (
+                          <tr key={f.id}>
+                            <td>
+                              {f.title} <span className="pd-small">({f.category}{f.cwe ? ` · ${f.cwe}` : ""})</span>
+                            </td>
+                            <td>
+                              {pp.colDetected} {f.detected ? `${pp.yes} — ${pp.detectedBy[f.detected_by] ?? f.detected_by}` : pp.no}
+                            </td>
+                            <td>
+                              {pp.colFixed} — {f.fixed_at_close ? pp.yes : pp.no}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  {(pr.velocity || pr.ownership) && (
+                    <p className="pd-small">
+                      {pr.velocity
+                        ? `${pp.iterations} ${pp.iterationsVal(pr.velocity.iterations, pr.velocity.par)} · ${pp.greenAtClose} — ${pr.velocity.green_at_close ? pp.yes : pp.no}`
+                        : ""}
+                      {pr.ownership ? `${pr.velocity ? " · " : ""}${pp.ownershipTitle} — ${pp.band[pr.ownership.band] ?? pr.ownership.band}` : ""}
+                    </p>
+                  )}
+                  <p className="pd-small">
+                    <b>{pp.signal}</b> {pp.bounded}
+                  </p>
+                </div>
+              );
+            })}
+        </section>
+      )}
+
       {tests.some((a) => a.results) && (
         <section className="pd-section">
-          <h2>{t.verif.title}</h2>
+          <h2>
+            {t.verif.title} — {t.tt.panel.legacyTitle}
+          </h2>
           {tests
             .filter((a) => a.results)
             .map((a) => {
@@ -330,66 +460,6 @@ export function ReportPrintDoc({
                   </p>
                   <p className="pd-small">
                     <b>{t.verif.integrityNote}</b>
-                  </p>
-                </div>
-              );
-            })}
-        </section>
-      )}
-
-      {pilots.some((s) => s.report) && (
-        <section className="pd-section">
-          <h2>{t.pilot.name}</h2>
-          {pilots
-            .filter((s) => s.report)
-            .map((s) => {
-              const pr = s.report!;
-              const pp = t.pilot.report;
-              return (
-                <div key={s.id} className="pd-q">
-                  <h3>
-                    {pp.index} {pr.pilot_index_pct.toFixed(0)} %
-                    {pr.authenticity_pct !== null ? ` · ${pp.authenticity} ${Math.round(pr.authenticity_pct)} %` : ""} · {pr.scenario_title} ·{" "}
-                    {t.pilot.levels[pr.level]} · {s.id}
-                  </h3>
-                  <table className="pd-table">
-                    <tbody>
-                      {pr.metrics.map((m) => (
-                        <tr key={m.id}>
-                          <td>{pp.metricLabels[m.id] ?? m.label}</td>
-                          <td>{m.final_pct.toFixed(0)} %</td>
-                          <td>
-                            {pp.factual} {m.factual_pct.toFixed(0)} %
-                            {m.judge_pct !== null ? ` · ${pp.judgeProposal} ${m.judge_pct.toFixed(0)} % (${m.judge_applied ? pp.applied : pp.notApplied})` : ""}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <table className="pd-table">
-                    <tbody>
-                      {pr.faults.map((f) => (
-                        <tr key={f.id}>
-                          <td>
-                            {f.title} <span className="pd-small">({f.category}{f.cwe ? ` · ${f.cwe}` : ""})</span>
-                          </td>
-                          <td>
-                            {pp.colDetected} {f.detected ? `${pp.yes} — ${pp.detectedBy[f.detected_by] ?? f.detected_by}` : pp.no}
-                          </td>
-                          <td>
-                            {pp.colFixed} — {f.fixed_at_close ? pp.yes : pp.no}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <p className="pd-small">
-                    {pp.iterations} {pp.iterationsVal(pr.velocity.iterations, pr.velocity.par)} · {pp.greenAtClose} —{" "}
-                    {pr.velocity.green_at_close ? pp.yes : pp.no}
-                    {pr.ownership ? ` · ${pp.ownershipTitle} — ${pp.band[pr.ownership.band] ?? pr.ownership.band}` : ""}
-                  </p>
-                  <p className="pd-small">
-                    <b>{pp.signal}</b> {pp.bounded}
                   </p>
                 </div>
               );

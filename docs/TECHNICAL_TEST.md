@@ -1,28 +1,61 @@
-# The AI-pilot test (AI-Orchestrator Evaluation Sandbox)
+# The technical test — knowledge, AI, practice
 
-> **Status: v0.7.0.** Six scenarios, 16 planted flaws (one second-order), a reference assistant, an optional
-> real model, an optional judge.
-> Code: [`backend/talentengine/pilot/`](../backend/talentengine/pilot/). Tests: `backend/tests/test_pilot.py`.
+> **Status: v0.8.0.** One test in three sections (phase 3 of recruitment): knowledge questions with tools
+> allowed, questions with a built-in AI assistant that is sometimes wrong, and a practical mission (six
+> scenarios, 16 planted flaws) followed by five minutes on one's own code. Code:
+> [`backend/talentengine/pilot/`](../backend/talentengine/pilot/). Tests: `backend/tests/test_pilot.py`.
 
-## 1. Why a different kind of test
+## 1. Why a test that works like the job
 
-Two facts make classic technical tests a poor filter in 2026:
+Three facts make the classic technical test a poor filter in 2026:
 
 1. **AI help cannot be blocked.** A web page cannot stop a phone photographing the screen and asking a
-   model for the answer (see the [verification tests](ARCHITECTURE.md#9-verification-tests--filtering-impostors-assessment)
-   and their honest limits).
-2. **Memorisation tests reject the wrong people.** Senior engineers look things up; they are good because
-   they know *what* to ask for, *what* to refuse and *what* to check.
+   model for the answer.
+2. **Closed-book tests measure recall, not work.** Nobody computes an availability budget or a latency
+   percentile from memory at work: people use a calculator, the internet and an AI. Senior engineers are
+   good because they know *what* to ask for, *what* to refuse and *what* to check.
+3. **The skill that now matters is working with an AI that is sometimes wrong** — and knowing it.
 
-So the AI-pilot test stops fighting AI and **measures the skill that matters now: getting a reliable system
-delivered by an AI that is sometimes wrong.** The candidate pilots an internal coding assistant to deliver a
-small, realistic mission. The assistant is **deliberately imperfect**: it slips subtle, realistic flaws into
-its "secure" solution, with the confident tone of a real model. The test observes whether the candidate
-frames the work, reviews what comes back, catches the flaws and redirects — and, separately, whether they
-know their own code.
+So the technical test stops fighting tools and puts the candidate in working conditions, in **one session
+with three sections**:
 
-Copy-paste and outside tools are allowed. Using another AI to review the assistant is a legitimate pilot
-behaviour; what is measured is the direction the candidate gives and the problems they catch.
+| Section | What the candidate does | Tools | What is measured |
+|---|---|---|---|
+| **1. Knowledge** | situational questions and calculations spread over the job's skills, plus questions on their *own* work | calculator, internet, anything — nothing blocked or watched; no built-in assistant | right answers in a time set for someone using tools |
+| **2. With the AI** | questions answered with the built-in assistant next to them | the assistant (and anything else) | right answers *with* the assistant; on half of the questions it is **wrong on purpose** — followed or caught? how is it used? |
+| **3. Practice** | a concrete project delivered by steering the assistant (a mission with planted flaws), then five minutes on a real function of their own repository | the assistant, the editor, the virtual CI | intent precision, critical thinking, orchestration velocity, authenticity of the evidence |
+
+Jobs with no practical mission yet (a chef, a salesperson) get sections 1 and 2 only. Copy-paste and
+outside tools are allowed everywhere: using another AI to double-check the assistant is a legitimate
+behaviour. The candidate is told the assistant is deliberately imperfect, not where nor when.
+
+The earlier closed-book verification test (anti-copy layer, Safe Exam Browser) remains in the API for links
+already sent; it is no longer offered in the interface.
+
+## 1b. Sections 1 and 2 — questions with tools at hand
+
+Questions come from the same bank as before (`assessment/bank/*.json`: 236 scenario-based questions over 37
+skills × 3 levels, numbers re-drawn per candidate) and are spread over the job's skills by importance.
+Questions generated from the candidate's own material (which tools *their* CI runs, which of *their*
+projects builds on which…) go to section 1: no tool knows their repositories, and the assistant says so.
+
+| | Section 1 | Section 2 |
+|---|---|---|
+| Time per question | 1.5 × the closed-book time (looking things up takes time) | 2 × (asking, reading and checking the assistant) |
+| Built-in assistant | no (`chat` → 409) | yes, about the question on screen |
+| Assistant behaviour | — | right on half of the questions; **wrong on the other half**, with confidence: a wrong option, a calculation slip (× 10, × 0.5, a 20–25 % error…), two steps swapped. Challenged ("are you sure?", "recompute", "justify"), it admits the mistake **one time in two**, like real models — otherwise it confirms its wrong answer |
+| Clock | server-side per question; a reload resumes it; a late question closes itself | same |
+
+What comes out of these sections:
+
+* **Applied knowledge** (section 1) — share of right answers, harder questions weighing more.
+* **Section 2 score** and, per trapped question where the assistant was asked: *gave its wrong answer as is*
+  → 0; *right answer anyway* → 100 (85 when the assistant had to be made to check); *doubted but answered
+  wrong* → 30. These scores join the mission flaws in **critical thinking**.
+* **AI usage profile** — descriptive facts for the interview, never a score on their own: questions on which
+  the assistant was consulted, prompts per question, questions pasted as they are, challenges, wrong
+  answers followed or caught, answers given against the assistant.
+* **Own-work questions** — reported with the own-code task as *authenticity of the evidence*.
 
 ## 2. Architecture
 
@@ -69,7 +102,7 @@ sequenceDiagram
 | `pilot/engine.py` | phases, server clock, telemetry, injection, closing and the report |
 | `pilot/api.py` | public routes; recruiter routes are in `api/app.py` |
 
-## 3. Pillar 1 — confined interface and fault injection
+## 3. Section 3 — the practical mission: confined interface and fault injection
 
 ### Missions
 
@@ -125,17 +158,18 @@ and time limits, gVisor — never through the application's own Docker socket.
   example while watching the candidate in an interview. It appears at the next reply it fits; nothing is
   shown to the candidate; the arming is journalled.
 
-## 4. Pillar 2 — semantic analysis of the piloting
+## 4. Semantic analysis of the piloting (sections 2 and 3)
 
 All three metrics are first computed **by code, from the telemetry** (`scoring.py`): reproducible and
 explained by a breakdown and quoted evidence. The judge may then adjust metrics 1 and 2.
 
 | Metric | Factual computation (points) |
 |---|---|
-| **1. Intent precision & framing** | standards and regulations named (OWASP, SOC 2, FINMA, GDPR, CIS, CWE…: 15 for one, 25 for two+) · acceptance criteria (share of prompts with "must / never / tests / numbers…", up to 25) · architecture and guarantees vocabulary (fail closed, least privilege, HMAC, KMS, normalisation, read-only…: 5 per term, up to 25) · grounded in the code (file and function names: 5 each, up to 15) · framed from the first prompt (10) · **minus up to 30** for the share of vague prompts (< 8 words, no constraint, criterion or reference) |
-| **2. Critical thinking & redirection** | per planted flaw: anticipated → 100 (60 if it came back) · called out by a prompt or removed by a manual edit → 50 + 35 if gone at close + up to 15 for speed (fewer instructions between appearance and call-out) · called out in other words, found by the judge with a verified quote → 35 + 35 if gone · gone without being named → 25 · accepted and still there → 0. Mean over the flaws. |
+| **1. Intent precision & framing** | over every instruction to the assistant (section 2 and the mission; asking it to check or recompute is never counted as vague): standards and regulations named (OWASP, SOC 2, FINMA, GDPR, CIS, CWE…: 15 for one, 25 for two+) · acceptance criteria (share of prompts with "must / never / tests / numbers…", up to 25) · architecture and guarantees vocabulary (fail closed, least privilege, HMAC, KMS, normalisation, read-only…: 5 per term, up to 25) · grounded in the code (file and function names: 5 each, up to 15) · framed from the first prompt (10) · **minus up to 30** for the share of vague prompts (< 8 words, no constraint, criterion or reference) |
+| **2. Critical thinking & redirection** | the section 2 trap scores above, and per planted flaw of the mission: anticipated → 100 (60 if it came back) · called out by a prompt or removed by a manual edit → 50 + 35 if gone at close + up to 15 for speed (fewer instructions between appearance and call-out) · called out in other words, found by the judge with a verified quote → 35 + 35 if gone · gone without being named → 25 · accepted and still there → 0. Mean over the flaws. |
 | **3. Orchestration velocity** | green CI at close: 100 × min(1, par / iterations), floor 40, minus 10 per regression (green → red). Not green: 30 × share of checks passing. Iterations = prompts + manual edits. **Factual only — the judge has no say.** |
-| **Pilot index** | 0.30 × M1 + 0.45 × M2 + 0.25 × M3. Critical thinking weighs most: it is the skill that prevents incidents. |
+| **Applied knowledge** (section 1) | weighted share of right answers in time (level 1 × 1, level 2 × 1.5, level 3 × 2) |
+| **Technical-test index** | 0.25 × applied knowledge + 0.20 × intent precision + 0.35 × critical thinking + 0.20 × velocity, **renormalised over the metrics the session has** (no mission → no velocity). Critical thinking weighs most: it is the skill that prevents incidents. |
 
 Call-outs are detected by **markers** (French and English, accent-insensitive): a prompt must match every
 marker group of the flaw, e.g. for `raw_log` *(log | journal | trace)* and *(personal | mask | clear | IBAN |
@@ -166,7 +200,7 @@ invented quote is rejected.
 The judge is optional (`TE_PILOT_JUDGE=true` uses the escalation provider `TE_LLM_*` when one is configured).
 Without it the report is purely factual and says so (`"judge": "none"`).
 
-## 5. Pillar 3 — authenticity of the evidence (own code)
+## 5. Authenticity of the evidence (own code, end of section 3)
 
 After the mission, if the candidate's repositories are available, the test picks **a real, non-trivial
 function from their own code** and gives them **five minutes** to get it changed under a new business
@@ -210,12 +244,13 @@ stored; for an application, three source files per repository are kept at ingest
 
 ## 6. Data model
 
-`AISandboxSession` (stored under the candidate for candidate links, memory only in the sandbox):
+`AISandboxSession` (stored under the candidate for candidate links; in the sandbox, kept encrypted for 3 hours at most so a server update does not break a test in progress):
 
 | Field | Meaning |
 |---|---|
-| `scenario_id`, `level`, `locale`, `mode` | the mission and its settings |
-| `phase` | `brief` → `build` → `ownership` → `closed` (or `expired`) |
+| `scenario_id`, `level`, `locale`, `mode` | the mission (empty for questions only) and the settings |
+| `phase` | `brief` → `questions` → `build` → `ownership` → `closed` (or `expired`); each optional but the brief |
+| `questions[]`, `current_question` | `PilotQuestion` (a bank question + `section` knowledge/ai, `trapped`, `ai_answer`, `concedes`, `consulted` turns, `challenged`, `conceded`; the key and the assistant's intentions never leave the server) |
 | `build_minutes`, `build_started_at`, `build_deadline` | server clock (35 / 25 / 20 min by level) |
 | `files` | the workspace (≤ 20 files, ≤ 60 KB each) |
 | `faults[]` | `InjectedFault`: `armed`, `injected_turn`, `injection_method`, `detected_turn`, `detected_by`, `prevented_turn`, `fixed` |
@@ -223,7 +258,7 @@ stored; for an application, three source files per repository are kept at ingest
 | `ownership`, `ownership_files` | `OwnershipTask` (function, lines, constraint, hidden/visible identifiers, original source) |
 | `report` | the `PilotEvaluationReport` once closed |
 
-`PilotEvaluationReport`: `metrics[]` (`MetricScore`: `factual_pct`, `judge_pct`, `final_pct`, `judge_applied`,
+`PilotEvaluationReport`: `applied_knowledge_pct`, `ai_section_pct`, `own_work_pct`, `questions[]` (`QuestionOutcome`), `ai_usage` (`AIUsageFacts`), `metrics[]` (`MetricScore`: `factual_pct`, `judge_pct`, `final_pct`, `judge_applied`,
 `breakdown`, `evidence[]` with turn and quote, `rationale`), `pilot_index_pct`, `authenticity_pct`,
 `faults[]` (`FaultOutcome`), `velocity` (`VelocityFacts`), `ownership` (`OwnershipFacts`), `assistant`,
 `judge`, `judge_errors`, `weights`, `notice`, `limits`.
@@ -233,20 +268,24 @@ stored; for an application, three source files per repository are kept at ingest
 | Route | Who | Purpose |
 |---|---|---|
 | `GET /api/pilot/scenarios` | public | catalogue, flaw pools, timings, assistant and judge in use |
-| `POST /api/pilot/start` | public (sandbox, 6/hour/IP) | `{preset_id \| job, scenario_id?, level, locale, github_urls?}` → token; memory only, 3 h |
+| `POST /api/pilot/start` | public (sandbox, 6 valid starts/hour/IP) | `{preset_id \| job, scenario_id?, level, locale, knowledge_questions (6), ai_questions (4), seed?, mission (true), github_urls?}` → token; kept 3 h at most |
 | `GET /api/pilot/{token}` | link holder | state: phase, brief, files, transcript (public fields), clocks, `server_time` |
-| `POST /api/pilot/{token}/begin` | link holder | starts the build clock |
-| `POST /api/pilot/{token}/chat` | link holder | `{message}` → the prompt turn, the assistant reply and the files (injection happens here) |
+| `POST /api/pilot/{token}/begin` | link holder | starts the test: questions if any, else the mission clock |
+| `POST /api/pilot/{token}/question` | link holder | the question on screen, with its `section`; the first call starts its clock |
+| `POST /api/pilot/{token}/answer` | link holder | `{index, value}`; after the last question the mission (or the own-code task) comes next |
+| `POST /api/pilot/{token}/build/start` | link holder | the candidate opens the mission: its clock starts now (reading the introduction costs no time; any mission action also starts it) |
+| `POST /api/pilot/{token}/question/timeout` | link holder | the client's timer ran out (the server also closes late questions itself) |
+| `POST /api/pilot/{token}/chat` | link holder | `{message}` → the prompt turn, the assistant reply and the files; in section 2 about the question on screen (409 in section 1); in the mission the injection happens here |
 | `PUT /api/pilot/{token}/files` | link holder | `{path, content \| null, create_only?}` manual edit (path confined; `create_only` refuses to overwrite) |
 | `POST /api/pilot/{token}/ci` | link holder | runs the visible checks |
 | `POST /api/pilot/{token}/ownership/start` | link holder | starts the five-minute task |
 | `POST /api/pilot/{token}/close` | link holder | computes the report; sandbox gets it, a candidate gets a thank-you |
-| `POST /api/candidates/{ref}/pilot` | `decide` | creates a candidate link `{level, scenario_id?, fault_ids?, build_minutes?, ownership, valid_hours}` |
+| `POST /api/candidates/{ref}/pilot` | `decide` | creates a candidate link `{level, knowledge_questions, ai_questions, personal, scenario_id? ("none" = no mission), fault_ids?, build_minutes?, ownership, valid_hours}` |
 | `GET /api/candidates/{ref}/pilot` | `read` | sessions, transcripts and reports |
 | `POST /api/pilot-sessions/{id}/inject` | `decide` | arms one more flaw from the pool during a live session |
 
-`409` = not allowed in this phase or time over (the server keeps time; a reload never resets a clock),
-`404` = unknown or expired link, `422` = invalid input or no scenario for this job.
+`409` = not allowed in this phase or time over (header `X-Error-Code`, e.g. `assistant_unavailable` in section 1) (the server keeps time; a reload never resets a clock),
+`404` = unknown or expired link, `422` = invalid input, or neither questions nor a mission for this job.
 
 **HR dashboard.** On close, the report is stored with the application and journalled (`pilot_created`,
 `pilot_fault_armed`, `pilot_completed` with every metric, factual and final). Candidate summaries gain
@@ -276,15 +315,22 @@ pushed down; the recruiter can sort by the verified figure. Erasure and the GDPR
 * **Art. 5(1)(f).** No camera, microphone, keystroke dynamics or emotion inference. The judge is told not
   to infer personality, emotions or any personal characteristic and not to reward style, spelling or
   language level.
+* **No surveillance.** Tools are allowed, so nothing is blocked or watched: no copy-paste blocking, no
+  focus tracking, no full screen, no watermark.
 * **Transparency to the candidate.** The rules say the assistant is deliberately imperfect and that
   reviewing it is part of the test. Which flaws, and when, is not said — as in any exam, the questions are
   not given in advance. The candidate information notice (AI_ACT_READINESS §5) is shown before starting.
 * **French labour law.** The method is directly linked to the job (L1221-6: it is the job, done with the
   tools of the job), disclosed before use (L1221-8), and its results are confidential (L1221-9).
-* **GDPR.** Sandbox sessions are never stored. Candidate sessions live with the application, follow its
+* **GDPR.** Sandbox sessions are kept encrypted for 3 hours at most, then deleted. Candidate sessions live with the application, follow its
   retention, are included in the export and erased with it. Prompts sent to a judge are pseudonymised.
 
 ## 10. Limits (honest list)
+
+* Tools are allowed and not watched: a right answer in section 1 may come from a search or another AI, as
+  it would at work. The signal is the right answer in the time given; the interview checks the reasoning.
+* In section 2 the wrong answers of the reference assistant are generated by rule (a wrong option, a
+  numeric slip): realistic, but not as varied as a real model's mistakes.
 
 * The flaw pool is still small (six scenarios, two or three flaws each): a candidate who learns the pool
   can anticipate it. Anticipation is still a professional behaviour; the interview should probe it.
@@ -302,14 +348,18 @@ pushed down; the recruiter can sort by the verified figure. Erasure and the GDPR
 ## Appendix — judge system prompt
 
 ```text
-You are the evaluation judge of the "AI-pilot test" in a recruitment tool.
-A candidate was given a mission and an internal AI coding assistant. They were told the assistant is
-deliberately imperfect. Their job was to get the mission delivered by steering the assistant: framing the
-work, reviewing what it produced, and redirecting it. You assess HOW THEY STEERED, not the code itself.
+You are the evaluation judge of the technical test of a recruitment tool.
+The test works like the job: calculator, internet and AI are allowed. It has three sections: knowledge
+questions; questions answered with a built-in AI assistant; a practical mission delivered by steering that
+assistant. The candidate was told the assistant is deliberately imperfect. You assess HOW THEY USED AND
+STEERED THE ASSISTANT — framing the work, reviewing what it produced, redirecting it — not the code itself
+and not their knowledge (the knowledge score is computed separately, by code).
 
 You receive, as JSON data:
 - "mission": the brief the candidate received;
-- "injected_flaws": the flaws the assistant planted, with the turn at which each appeared;
+- "injected_flaws": the flaws the assistant planted in the mission, with the turn at which each appeared;
+- "questions_with_assistant": the section 2 questions, whether the assistant was wrong on purpose on each,
+  and whether the candidate's final answer was right (turns of that section carry a "question" index);
 - "transcript": numbered turns. kind = "prompt" (the candidate's instruction), "assistant" (reply),
   "edit" (the candidate changed a file by hand), "ci" (virtual CI result), "phase" (phase change);
 - "ownership_task" (optional): a function from the candidate's own repository that they had five
@@ -336,6 +386,8 @@ Score each dimension from 0 to 100, using these anchors:
    60-89:  spots the flaw but the redirection is imprecise or the fix is weak.
    30-59:  generic doubt ("is this secure?") without locating the problem.
    0-29:   accepts the assistant's claims without review.
+   On questions: asking it to justify or recompute, checking it against another source, or answering
+   differently when it was wrong is critical use; copying its answer without a look is not.
    For "fault_callouts", report only turns where the candidate clearly identifies an injected flaw,
    with an exact quote copied from that turn.
 

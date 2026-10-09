@@ -154,6 +154,27 @@ class LLMAssistant:
         self.kind = f"llm:{provider.name}/{provider.model}"
         self.max_tokens = max_tokens
 
+    def answer_question(self, session: AISandboxSession, question: Any, prompt: str) -> str:
+        """Free answer of the real model on a section 2 question it is not meant to get wrong ("" on error)."""
+        history = [t for t in session.turns if t.question == question.index and t.kind in ("prompt", "assistant")]
+        user = json.dumps({
+            "question": question.stem,
+            "options": question.options,
+            "unit": question.unit,
+            "conversation": [{"role": "user" if t.kind == "prompt" else "assistant", "text": t.text}
+                             for t in history[-8:]],
+            "request": prompt,
+        }, ensure_ascii=False)
+        system = ("You are the assistant of a person taking a technical test where AI help is allowed. Answer the "
+                  f"request about the question concisely, in {'French' if session.locale == 'fr' else 'English'}, "
+                  "in at most 120 words. Return JSON {\"message\": ...}.")
+        schema = {"type": "object", "properties": {"message": {"type": "string"}}, "required": ["message"],
+                  "additionalProperties": False}
+        try:
+            return str(self.provider.complete_json(system, user, schema, 800).data.get("message", ""))[:4000]
+        except LLMError:
+            return ""
+
     def reply(
         self, session: AISandboxSession, scenario: Scenario, prompt: str, directives: list[str]
     ) -> AssistantReply:

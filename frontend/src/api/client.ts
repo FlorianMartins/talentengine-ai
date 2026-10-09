@@ -20,7 +20,10 @@ import type {
   PilotChatResult,
   PilotClose,
   PilotEditResult,
+  PilotAnswerResult,
   PilotLink,
+  PilotPhase,
+  PilotQuestion,
   PilotStart,
   PilotState,
   PilotTurn,
@@ -210,10 +213,27 @@ const pilotUrl = (token: string, path = "") => `${API}/pilot/${enc(token)}${path
 
 export const pilot = {
   scenarios: (locale: Locale) => request<PilotCatalog>(`${API}/pilot/scenarios?locale=${locale}`),
-  start: (body: { preset_id?: string; job?: JobProfile; scenario_id?: string; level: AssessLevel; locale: Locale; github_urls?: string[] }) =>
-    request<PilotStart>(`${API}/pilot/start`, json(body)),
+  start: (body: {
+    preset_id?: string;
+    job?: JobProfile;
+    scenario_id?: string;
+    level: AssessLevel;
+    locale: Locale;
+    github_urls?: string[];
+    /** section 1 (tools allowed) and section 2 (with the built-in assistant), 0–20 each */
+    knowledge_questions?: number;
+    ai_questions?: number;
+    /** assessment_seed from /api/try/match: adds questions on the visitor's own work */
+    seed?: string;
+    /** section 3, the practical mission, when one fits the job */
+    mission?: boolean;
+  }) => request<PilotStart>(`${API}/pilot/start`, json(body)),
   state: (token: string) => request<PilotState>(pilotUrl(token)),
   begin: (token: string) => request<PilotState>(pilotUrl(token, "/begin"), json({})),
+  question: (token: string) => request<PilotQuestion>(pilotUrl(token, "/question"), json({})),
+  answer: (token: string, index: number, value: unknown) => request<PilotAnswerResult>(pilotUrl(token, "/answer"), json({ index, value })),
+  timeout: (token: string, index: number) =>
+    request<{ next: number; total: number; phase: PilotPhase }>(pilotUrl(token, "/question/timeout"), json({ index })),
   chat: (token: string, message: string) => request<PilotChatResult>(pilotUrl(token, "/chat"), json({ message })),
   /** `content: null` deletes the file; `createOnly` refuses (409) to overwrite an existing file */
   edit: (token: string, path: string, content: string | null, createOnly = false) =>
@@ -223,6 +243,8 @@ export const pilot = {
     }),
   ci: (token: string) => request<PilotTurn>(pilotUrl(token, "/ci"), json({})),
   startOwnership: (token: string) => request<PilotState>(pilotUrl(token, "/ownership/start"), json({})),
+  /** section 3: starts the mission clock when the candidate opens the mission */
+  startBuild: (token: string) => request<PilotState>(pilotUrl(token, "/build/start"), json({})),
   close: (token: string) => request<PilotClose>(pilotUrl(token, "/close"), json({})),
 };
 

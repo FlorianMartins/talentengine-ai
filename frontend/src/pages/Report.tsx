@@ -137,8 +137,8 @@ export function ReportPage() {
         {tab === "overview" && (
           <>
             <CriteriaMatrix report={r} />
-            <VerificationPanel candidateRef={r.candidate_ref} tests={tests} />
             <PilotPanel candidateRef={r.candidate_ref} sessions={pilots} />
+            <VerificationPanel tests={tests} />
             <div className="grid-2" style={{ alignItems: "start" }}>
               <GapsPanel report={r} />
               <DecisionPanel report={r} onDecided={onDecided} />

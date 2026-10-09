@@ -30,14 +30,18 @@ from ..shield.injection import screen
 from .models import JUDGE_MAX_SHIFT, AISandboxSession, MetricScore
 from .scenarios import Scenario
 
-JUDGE_SYSTEM_PROMPT = """You are the evaluation judge of the "AI-pilot test" in a recruitment tool.
-A candidate was given a mission and an internal AI coding assistant. They were told the assistant is
-deliberately imperfect. Their job was to get the mission delivered by steering the assistant: framing the
-work, reviewing what it produced, and redirecting it. You assess HOW THEY STEERED, not the code itself.
+JUDGE_SYSTEM_PROMPT = """You are the evaluation judge of the technical test of a recruitment tool.
+The test works like the job: calculator, internet and AI are allowed. It has three sections: knowledge
+questions; questions answered with a built-in AI assistant; a practical mission delivered by steering that
+assistant. The candidate was told the assistant is deliberately imperfect. You assess HOW THEY USED AND
+STEERED THE ASSISTANT — framing the work, reviewing what it produced, redirecting it — not the code itself
+and not their knowledge (the knowledge score is computed separately, by code).
 
 You receive, as JSON data:
 - "mission": the brief the candidate received;
-- "injected_flaws": the flaws the assistant planted, with the turn at which each appeared;
+- "injected_flaws": the flaws the assistant planted in the mission, with the turn at which each appeared;
+- "questions_with_assistant": the section 2 questions, whether the assistant was wrong on purpose on each,
+  and whether the candidate's final answer was right (turns of that section carry a "question" index);
 - "transcript": numbered turns. kind = "prompt" (the candidate's instruction), "assistant" (reply),
   "edit" (the candidate changed a file by hand), "ci" (virtual CI result), "phase" (phase change);
 - "ownership_task" (optional): a function from the candidate's own repository that they had five
@@ -64,6 +68,8 @@ Score each dimension from 0 to 100, using these anchors:
    60-89:  spots the flaw but the redirection is imprecise or the fix is weak.
    30-59:  generic doubt ("is this secure?") without locating the problem.
    0-29:   accepts the assistant's claims without review.
+   On questions: asking it to justify or recompute, checking it against another source, or answering
+   differently when it was wrong is critical use; copying its answer without a look is not.
    For "fault_callouts", report only turns where the candidate clearly identifies an injected flaw,
    with an exact quote copied from that turn.
 
@@ -135,7 +141,7 @@ def _mask(text: str) -> str:
     return text
 
 
-def build_transcript(session: AISandboxSession, scenario: Scenario) -> dict[str, Any]:
+def build_transcript(session: AISandboxSession, scenario: Scenario | None) -> dict[str, Any]:
     turns = []
     for t in session.turns:
         item: dict[str, Any] = {"turn": t.index, "kind": t.kind, "phase": t.phase, "text": _mask(t.text)[:3000]}
@@ -144,14 +150,21 @@ def build_transcript(session: AISandboxSession, scenario: Scenario) -> dict[str,
             item["failing"] = [c.id for c in t.checks if not c.passed]
         if t.changes:
             item["files_changed"] = [c.path for c in t.changes]
+        if t.question is not None:
+            item["question"] = t.question
         turns.append(item)
     data: dict[str, Any] = {
         "locale": session.locale,
-        "mission": scenario.brief["en"],
+        "mission": scenario.brief["en"] if scenario else "(no practical mission for this job: questions only)",
         "injected_flaws": [
             {"fault_id": f.id, "title": scenario.fault(f.id).title["en"], "appeared_at_turn": f.injected_turn}
             for f in session.faults
-            if f.injected_turn is not None
+            if f.injected_turn is not None and scenario is not None
+        ],
+        "questions_with_assistant": [
+            {"question": q.index, "stem": _mask(q.stem)[:1500], "assistant_was_wrong_on_purpose": q.trapped,
+             "candidate_answer_correct": (q.score or 0) >= 1}
+            for q in session.questions if q.section == "ai"
         ],
         "transcript": turns,
     }
@@ -164,7 +177,7 @@ def build_transcript(session: AISandboxSession, scenario: Scenario) -> dict[str,
     return data
 
 
-def run_judge(provider: LLMProvider, session: AISandboxSession, scenario: Scenario) -> dict[str, Any]:
+def run_judge(provider: LLMProvider, session: AISandboxSession, scenario: Scenario | None) -> dict[str, Any]:
     payload = json.dumps(build_transcript(session, scenario), ensure_ascii=False)
     result = provider.complete_json(JUDGE_SYSTEM_PROMPT, payload, JUDGE_SCHEMA, 3000)
     return result.data

@@ -80,7 +80,10 @@ class NewAssessment(BaseModel):
 
 class NewPilot(BaseModel):
     level: int = Field(2, ge=1, le=3, description="1 junior, 2 confirmed, 3 senior")
-    scenario_id: str = Field("", description="Empty: the scenario that best fits the job")
+    scenario_id: str = Field("", description="Empty: the mission that best fits the job; \"none\": no mission")
+    knowledge_questions: int = Field(6, ge=0, le=20, description="Section 1: questions, tools allowed")
+    ai_questions: int = Field(4, ge=0, le=20, description="Section 2: questions with the built-in assistant")
+    personal: bool = Field(True, description="Add questions generated from the candidate's own work")
     fault_ids: list[str] = Field(default_factory=list, max_length=4, description="Empty: drawn at random")
     build_minutes: int | None = Field(None, ge=10, le=90)
     ownership: bool = Field(True, description="Add the five-minute task on a function of the candidate's own code")
@@ -224,8 +227,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(build_assess_router(settings, tests, seeds, test_limit, test_finished))
 
     # ------------------------------------------------------------------ AI-pilot test (Module 3)
+    from ..pilot.api import build_questions_for, scenario_for
     from ..pilot.api import build_router as build_pilot_router
-    from ..pilot.api import scenario_for
     from ..pilot.engine import PilotEngine, PilotError
     from ..pilot.ownership import choose_task
     from ..pilot.sources import fetch_sources
@@ -249,7 +252,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         }, actor="candidate", job_id=session.job_id, candidate_ref=session.candidate_ref)
 
     app.include_router(build_pilot_router(settings, pilot, pilot_limit,
-                                          lambda urls: fetch_sources(urls, settings.github_token), pilot_closed))
+                                          lambda urls: fetch_sources(urls, settings.github_token), pilot_closed,
+                                          seeds=seeds))
 
     # ------------------------------------------------------------------ meta
 
@@ -483,7 +487,13 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     def create_pilot(ref: str, body: NewPilot, who: Principal = CAN_DECIDE) -> dict[str, Any]:
         cand = engine.get_candidate(ref)
         job = engine.get_job(cand.job_id)
-        scenario = scenario_for(job, body.scenario_id)
+        scenario = scenario_for(job, body.scenario_id, required=False)
+        l1, arts = engine.level1(ref)
+        personal = personal_questions(l1, arts, random.SystemRandom()) if body.personal else []
+        questions = build_questions_for(job, body.level, body.knowledge_questions, body.ai_questions, job.locale,
+                                        personal)
+        if scenario is None and not questions:
+            raise HTTPException(422, "no question and no practical mission exist yet for this job")
         task, note = None, ""
         if body.ownership:
             repos = [(a.label, a.repo_paths, {**a.repo_files, **a.source_files}) for a in engine.artifacts(ref)
@@ -494,13 +504,17 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
                         "the session has no task on their own code")
         token, session = pilot.create(scenario, body.level, locale=job.locale, mode="candidate", job_title=job.title,
                                       job_id=job.id, candidate_ref=ref, fault_ids=body.fault_ids,
-                                      build_minutes=body.build_minutes, ownership=task, valid_hours=body.valid_hours)
+                                      build_minutes=body.build_minutes, ownership=task, valid_hours=body.valid_hours,
+                                      questions=questions)
         engine.ledger.append("pilot_created", {
-            "session": session.id, "scenario": scenario.id, "level": body.level,
+            "session": session.id, "scenario": scenario.id if scenario else None, "level": body.level,
+            "questions": {"knowledge": sum(q.section == "knowledge" for q in questions),
+                          "with_ai": sum(q.section == "ai" for q in questions)},
             "faults": [f.id for f in session.faults], "ownership": task is not None,
             "build_minutes": session.build_minutes, "expires_at": session.expires_at.isoformat(),
         }, actor=who.name, job_id=job.id, candidate_ref=ref)
-        return {"token": token, "path": f"/pilote/{token}", "session_id": session.id, "scenario": scenario.id,
+        return {"token": token, "path": f"/pilote/{token}", "session_id": session.id,
+                "scenario": scenario.id if scenario else None, "questions": len(questions),
                 "faults": [f.id for f in session.faults], "ownership": task is not None, "note": note,
                 "build_minutes": session.build_minutes, "expires_at": session.expires_at.isoformat()}
 

@@ -1,16 +1,13 @@
 // /test/:token — verification test player: distraction-free, server-paced, one question at a time.
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   Camera,
   CameraOff,
   CheckCircle2,
   Clock,
   EyeOff,
-  GripVertical,
   Info,
   Link2Off,
   Loader2,
@@ -25,7 +22,8 @@ import { assess, ApiError } from "../api/client";
 import type { AssessFinish, AssessQuestion, AssessState } from "../api/types";
 import { usePrefs, useToast } from "../lib/prefs";
 import { cx } from "../lib/format";
-import { ORDER_DRAG_TYPE, useIntegrity } from "../lib/integrity";
+import { useIntegrity } from "../lib/integrity";
+import { QuestionTimer, useAnswer } from "../components/QuestionInputs";
 import { Logo } from "../components/Shell";
 import { ToastRegion } from "../components/feedback";
 import { AssessResultsView } from "../components/AssessResultsView";
@@ -299,10 +297,7 @@ function QuestionView({
   const { t } = usePrefs();
   const toast = useToast();
   const left = useCountdown(q.remaining);
-  const [single, setSingle] = useState<number | null>(null);
-  const [multi, setMulti] = useState<number[]>([]);
-  const [numeric, setNumeric] = useState("");
-  const [order, setOrder] = useState<number[]>(() => q.options.map((_, i) => i));
+  const { ready, value, fields } = useAnswer(q, "q-stem");
   const [sending, setSending] = useState(false);
   const closed = useRef(false);
 
@@ -317,16 +312,6 @@ function QuestionView({
       .catch(() => onDone(q.index + 1, q.total));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [left]);
-
-  const value = (): unknown => {
-    if (q.type === "single") return single;
-    if (q.type === "multi") return multi;
-    if (q.type === "order") return order;
-    const n = Number(numeric.replace(/\s/g, "").replace(",", "."));
-    return Number.isFinite(n) ? n : null;
-  };
-  const ready =
-    q.type === "single" ? single !== null : q.type === "multi" ? multi.length > 0 : q.type === "order" ? true : value() !== null && numeric.trim() !== "";
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -345,11 +330,7 @@ function QuestionView({
     }
   };
 
-  const pct = q.seconds > 0 ? (left / q.seconds) * 100 : 0;
-  const urgent = left <= 10;
   const veiled = integrity.state.away || integrity.state.shot;
-  const mm = String(Math.floor(left / 60)).padStart(1, "0");
-  const ss = String(left % 60).padStart(2, "0");
 
   return (
     <form className="exam-q" onSubmit={submit} aria-busy={sending || busy}>
@@ -362,15 +343,7 @@ function QuestionView({
             <span style={{ width: `${((q.index + 1) / q.total) * 100}%` }} />
           </div>
         </div>
-        <div className={cx("exam-timer", urgent && "is-urgent")} role="timer" aria-label={`${t.test.timeLeft} ${mm}:${ss}`}>
-          <svg viewBox="0 0 40 40" aria-hidden="true">
-            <circle cx="20" cy="20" r="17" className="et-track" />
-            <circle cx="20" cy="20" r="17" className="et-fill" strokeDasharray={2 * Math.PI * 17} strokeDashoffset={2 * Math.PI * 17 * (1 - pct / 100)} />
-          </svg>
-          <span className="num">
-            {mm}:{ss}
-          </span>
-        </div>
+        <QuestionTimer left={left} total={q.seconds} />
       </div>
 
       {integrity.state.fullscreenLeft && (
@@ -407,55 +380,7 @@ function QuestionView({
           <h1 className="exam-stem" id="q-stem">
             {q.stem}
           </h1>
-          {q.type === "single" && (
-            <fieldset className="exam-options" aria-labelledby="q-stem">
-              {q.options.map((o, i) => (
-                <label key={i} className={cx("exam-option", single === i && "on")}>
-                  <input type="radio" name={`q${q.index}`} checked={single === i} onChange={() => setSingle(i)} />
-                  <span>{o}</span>
-                </label>
-              ))}
-            </fieldset>
-          )}
-          {q.type === "multi" && (
-            <fieldset className="exam-options" aria-labelledby="q-stem" aria-describedby="q-hint">
-              <p id="q-hint" className="hint">
-                {t.test.multiHint}
-              </p>
-              {q.options.map((o, i) => (
-                <label key={i} className={cx("exam-option", multi.includes(i) && "on")}>
-                  <input
-                    type="checkbox"
-                    checked={multi.includes(i)}
-                    onChange={(e) => setMulti(e.target.checked ? [...multi, i] : multi.filter((x) => x !== i))}
-                  />
-                  <span>{o}</span>
-                </label>
-              ))}
-            </fieldset>
-          )}
-          {q.type === "numeric" && (
-            <div className="exam-numeric">
-              <label htmlFor="q-num" className="sr-only">
-                {t.test.numericPh}
-              </label>
-              <input
-                id="q-num"
-                className="input num"
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder={t.test.numericPh}
-                value={numeric}
-                aria-describedby="q-num-h"
-                onChange={(e) => setNumeric(e.target.value.replace(/[^0-9,.\-\s]/g, ""))}
-              />
-              {q.unit && <span className="exam-unit">{q.unit}</span>}
-              <p id="q-num-h" className="hint" style={{ width: "100%" }}>
-                {t.test.numericHint}
-              </p>
-            </div>
-          )}
-          {q.type === "order" && <OrderList options={q.options} order={order} setOrder={setOrder} />}
+          {fields}
         </div>
         {veiled && (
           <div className="exam-veil" role="alert">
@@ -477,77 +402,6 @@ function QuestionView({
         </button>
       </div>
     </form>
-  );
-}
-
-/** Keyboard-accessible ordering: drag and drop (internal only) plus up/down buttons and Alt+arrows. */
-function OrderList({ options, order, setOrder }: { options: string[]; order: number[]; setOrder: (o: number[]) => void }) {
-  const { t } = usePrefs();
-  const [dragging, setDragging] = useState<number | null>(null);
-  const move = (from: number, to: number) => {
-    if (to < 0 || to >= order.length || from === to) return;
-    const next = [...order];
-    const [x] = next.splice(from, 1);
-    if (x === undefined) return;
-    next.splice(to, 0, x);
-    setOrder(next);
-  };
-  return (
-    <div className="stack-sm">
-      <p className="hint">{t.test.orderHint}</p>
-      <ol className="exam-order">
-        {order.map((opt, pos) => (
-          <li
-            key={opt}
-            data-order-item
-            draggable
-            className={cx("exam-order-item", dragging === pos && "is-dragging")}
-            onDragStart={(e: DragEvent) => {
-              e.dataTransfer.setData(ORDER_DRAG_TYPE, String(pos));
-              e.dataTransfer.effectAllowed = "move";
-              setDragging(pos);
-            }}
-            onDragEnd={() => setDragging(null)}
-            onDragOver={(e: DragEvent) => {
-              if (e.dataTransfer.types.includes(ORDER_DRAG_TYPE)) e.preventDefault();
-            }}
-            onDrop={(e: DragEvent) => {
-              const from = Number(e.dataTransfer.getData(ORDER_DRAG_TYPE));
-              if (!Number.isNaN(from)) {
-                e.preventDefault();
-                move(from, pos);
-              }
-              setDragging(null);
-            }}
-          >
-            <GripVertical size={16} aria-hidden="true" className="grip" />
-            <span className="exam-order-pos num">{pos + 1}</span>
-            <span className="exam-order-text">{options[opt]}</span>
-            <span className="exam-order-tools">
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon btn-sm"
-                aria-label={`${t.common.moveUp} — ${options[opt]} (${t.test.position(pos + 1)})`}
-                disabled={pos === 0}
-                onClick={() => move(pos, pos - 1)}
-                onKeyDown={(e) => e.altKey && e.key === "ArrowUp" && move(pos, pos - 1)}
-              >
-                <ArrowUp size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon btn-sm"
-                aria-label={`${t.common.moveDown} — ${options[opt]} (${t.test.position(pos + 1)})`}
-                disabled={pos === order.length - 1}
-                onClick={() => move(pos, pos + 1)}
-              >
-                <ArrowDown size={15} aria-hidden="true" />
-              </button>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
   );
 }
 

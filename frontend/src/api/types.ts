@@ -817,9 +817,11 @@ export interface IntegrationInput {
 
 // ------------------------------------------------------------------ AI-pilot test (v0.6)
 
-export type PilotPhase = "brief" | "build" | "ownership" | "closed" | "expired";
+export type PilotPhase = "brief" | "questions" | "build" | "ownership" | "closed" | "expired";
+/** technical test sections 1 and 2: "knowledge" (tools allowed, no built-in assistant), "ai" (with it) */
+export type PilotSection = "knowledge" | "ai";
 export type PilotTurnKind = "prompt" | "assistant" | "edit" | "ci" | "phase";
-export type PilotMetricId = "intent_precision" | "critical_thinking" | "orchestration_velocity" | "ownership";
+export type PilotMetricId = "applied_knowledge" | "intent_precision" | "critical_thinking" | "orchestration_velocity" | "ownership";
 export type OwnershipBand = "knows_the_code" | "partial" | "navigates_blind" | "not_taken";
 
 export interface PilotFileChange {
@@ -846,6 +848,8 @@ export interface PilotTurn {
   changes: PilotFileChange[];
   checks: PilotCheck[];
   passed: boolean | null;
+  /** index of the question on screen (section 2 chat turns), null otherwise */
+  question?: number | null;
 }
 
 export interface PilotOwnershipTask {
@@ -938,8 +942,15 @@ export interface PilotReport {
   pilot_index_pct: number;
   authenticity_pct: number | null;
   faults: PilotFaultOutcome[];
-  velocity: PilotVelocity;
+  /** null when the test has no practical mission */
+  velocity: PilotVelocity | null;
   ownership: PilotOwnershipFacts | null;
+  /** technical test (sections 1 and 2) */
+  questions?: PilotQuestionOutcome[];
+  ai_usage?: PilotAIUsage | null;
+  applied_knowledge_pct?: number | null;
+  ai_section_pct?: number | null;
+  own_work_pct?: number | null;
   prompts: number;
   duration_minutes: number;
   weights: Record<string, number>;
@@ -954,7 +965,10 @@ export interface PilotState {
   locale: Locale;
   level: AssessLevel;
   job_title: string;
-  scenario: { id: string; title: string; brief: string };
+  /** null: a questions-only test (no practical mission fits the job) */
+  scenario: { id: string; title: string; brief: string } | null;
+  questions?: PilotQuestionsInfo;
+  server_time?: string;
   build_minutes: number;
   build_remaining: number | null;
   files: Record<string, string>;
@@ -975,6 +989,7 @@ export interface PilotStart extends PilotState {
 }
 
 export interface PilotChatResult {
+  prompt?: PilotTurn;
   reply: PilotTurn;
   files: Record<string, string>;
 }
@@ -1017,7 +1032,12 @@ export interface PilotCatalog {
 
 export interface NewPilot {
   level: AssessLevel;
+  /** "" or absent: the mission that fits the job; "none": questions only */
   scenario_id?: string;
+  knowledge_questions: number;
+  ai_questions: number;
+  /** questions generated from the candidate's own work */
+  personal: boolean;
   fault_ids?: string[];
   build_minutes?: number | null;
   ownership: boolean;
@@ -1028,7 +1048,8 @@ export interface PilotLink {
   token: string;
   path: string;
   session_id: string;
-  scenario: string;
+  scenario: string | null;
+  questions?: number;
   faults: string[];
   ownership: boolean;
   note: string;
@@ -1061,4 +1082,63 @@ export interface CandidatePilot {
   ownership: PilotOwnershipTask | null;
   transcript: PilotTurn[];
   report: PilotReport | null;
+}
+
+// ------------------------------------------------------------------ technical test: questions (sections 1 and 2)
+
+export interface PilotQuestionsInfo {
+  total: number;
+  /** index of the question on screen (== total once they are all answered) */
+  current: number;
+  knowledge: number;
+  with_ai: number;
+  minutes: number;
+}
+
+/** `POST /api/pilot/{token}/question` */
+export interface PilotQuestion extends AssessQuestion {
+  section: PilotSection;
+  /** the built-in assistant answers on this question (section 2) */
+  assistant: boolean;
+  phase: PilotPhase;
+}
+
+/** `POST /api/pilot/{token}/answer` */
+export interface PilotAnswerResult {
+  accepted: boolean;
+  late: boolean;
+  next: number;
+  total: number;
+  phase: PilotPhase;
+}
+
+export interface PilotQuestionOutcome {
+  index: number;
+  section: PilotSection;
+  skill: string;
+  personal: boolean;
+  score: number;
+  late: boolean;
+  seconds: number;
+  seconds_used: number | null;
+  /** instructions sent to the assistant on this question */
+  consulted_ai: number;
+  /** the assistant was wrong on purpose (revealed after the test) */
+  trapped: boolean;
+  followed_ai: boolean;
+  challenged: boolean;
+  conceded: boolean;
+}
+
+/** descriptive facts about the use of the assistant during the questions — to discuss, not a score */
+export interface PilotAIUsage {
+  questions: number;
+  consulted: number;
+  prompts_per_consulted: number;
+  pasted_verbatim: number;
+  challenges: number;
+  trapped_consulted: number;
+  trapped_followed: number;
+  trapped_caught: number;
+  answered_against_ai: number;
 }
