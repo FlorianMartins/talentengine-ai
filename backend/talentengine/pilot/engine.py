@@ -19,6 +19,7 @@ from datetime import timedelta
 from typing import Any
 
 from ..models import utcnow
+from ..sandbox.sessions import SandboxSessions
 from ..shield.injection import screen
 from ..store import Store
 from .assistant import Assistant, HallucinationInjector, ScriptedAssistant
@@ -100,13 +101,17 @@ class PilotError(Exception):
 
 class PilotEngine:
     def __init__(
-        self, store: Store | None = None, assistant: Assistant | None = None, judge_provider: Any = None
+        self,
+        store: Store | None = None,
+        assistant: Assistant | None = None,
+        judge_provider: Any = None,
+        sandbox_key: str | None = None,
     ) -> None:
         self.store = store
         self.assistant: Assistant = assistant or ScriptedAssistant()
         self.judge_provider = judge_provider
         self.injector = HallucinationInjector()
-        self._memory: dict[str, AISandboxSession] = {}
+        self._sandbox = SandboxSessions("pilot", store, sandbox_key)  # survives a restart, encrypted, 3 h max
         self._lock = threading.RLock()
 
     # ------------------------------------------------------------------------------------------ storage
@@ -116,15 +121,12 @@ class PilotEngine:
             if s.mode == "candidate" and self.store is not None:
                 self.store.put("pilot_sessions", key, s, parent=s.candidate_ref)
             else:
-                self._memory[key] = s
-                now = utcnow()
-                for k in [k for k, v in self._memory.items() if v.expires_at < now]:
-                    del self._memory[k]
+                self._sandbox.put(key, s, s.expires_at)
 
     def get(self, token: str) -> tuple[str, AISandboxSession]:
         key = _hash(token)
         with self._lock:
-            s = self._memory.get(key)
+            s = self._sandbox.get(key, AISandboxSession)
             if s is None and self.store is not None:
                 s = self.store.get("pilot_sessions", key, AISandboxSession)
         if s is None:

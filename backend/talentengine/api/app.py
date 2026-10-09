@@ -203,7 +203,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
 
     limiter = _RateLimiter()
     seeds = SeedStore()
-    tests = AssessmentEngine(engine.store)
+    tests = AssessmentEngine(engine.store, sandbox_key=engine.vault_key)
     app.state.tests = tests
     app.include_router(build_router(settings, seeds, limiter))  # public on purpose: no API key, nothing stored
 
@@ -230,7 +230,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     from ..pilot.ownership import choose_task
     from ..pilot.sources import fetch_sources
 
-    pilot = PilotEngine(engine.store, assistant=pilot_assistant(settings),
+    pilot = PilotEngine(engine.store, sandbox_key=engine.vault_key, assistant=pilot_assistant(settings),
                         judge_provider=engine.provider if settings.pilot_judge and engine.provider else None)
     app.state.pilot = pilot
 

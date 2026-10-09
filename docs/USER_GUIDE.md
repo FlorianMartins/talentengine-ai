@@ -109,7 +109,8 @@ Applications whose consented retention period is over are erased automatically e
 After the result, two optional tests are offered: the **verification test** (questions, including some on
 your own work) and the **AI-pilot test** — you pilot an AI assistant that makes deliberate mistakes through
 a short mission, then, if you gave GitHub links, get five minutes to change one of your own functions. At
-the end you see your scores and which flaws the assistant planted. Nothing is stored.
+the end you see your scores and which flaws the assistant planted. Your CV analysis is never stored; a
+test in progress is kept encrypted for at most 3 hours so that a server update does not interrupt it.
 
 Limits per visitor and per hour are set by `TE_SANDBOX_MATCHES_PER_HOUR` and `TE_SANDBOX_OFFERS_PER_HOUR`;
 `TE_SANDBOX_ENABLED=false` turns the sandbox off.

@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENGINE_VERSION = "0.7.0"
+ENGINE_VERSION = "0.7.1"
 
 
 class Settings(BaseSettings):

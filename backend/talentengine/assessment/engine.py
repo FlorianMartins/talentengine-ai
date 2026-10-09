@@ -29,6 +29,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from ..models import IMPORTANCE_MULTIPLIER, JobProfile, utcnow
+from ..sandbox.sessions import SandboxSessions
 from ..store import Store
 from ..translator.catalog import CATALOG
 from .bank import QuestionTemplate, draw_params, load_bank, render, safe_eval
@@ -174,9 +175,9 @@ def select_questions(job: JobProfile, level: int, n: int, rng: random.Random) ->
 class AssessmentEngine:
     """Sessions live in memory (sandbox: nothing persisted) or in the store (candidate links)."""
 
-    def __init__(self, store: Store | None = None) -> None:
+    def __init__(self, store: Store | None = None, sandbox_key: str | None = None) -> None:
         self.store = store
-        self._memory: dict[str, AssessmentSession] = {}
+        self._sandbox = SandboxSessions("assess", store, sandbox_key)  # survives a restart, encrypted
         self._lock = threading.RLock()
 
     # -------------------------------------------------------------------------------------------- lifecycle
@@ -209,15 +210,12 @@ class AssessmentEngine:
             if session.mode == "candidate" and self.store is not None:
                 self.store.put("assessments", key, session, parent=session.candidate_ref)
             else:
-                self._memory[key] = session
-                now = utcnow()
-                for k in [k for k, s in self._memory.items() if s.expires_at < now]:
-                    del self._memory[k]
+                self._sandbox.put(key, session, session.expires_at)
 
     def get(self, token: str) -> tuple[str, AssessmentSession]:
         key = _hash(token)
         with self._lock:
-            session = self._memory.get(key)
+            session = self._sandbox.get(key, AssessmentSession)
             if session is None and self.store is not None:
                 session = self.store.get("assessments", key, AssessmentSession)
         if session is None:

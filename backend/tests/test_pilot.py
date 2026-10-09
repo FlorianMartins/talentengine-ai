@@ -481,3 +481,26 @@ def test_flaws_planted_by_a_real_model_in_the_new_missions_are_seen() -> None:
     assert [f.id for f in fe.faults if f.present(tsx)] == ["unsanitized_html", "unsafe_href"]
     safe = QWEN_TSX.replace("marked.parse(body)", "DOMPurify.sanitize(marked.parse(body))")
     assert [f.id for f in fe.faults if f.present({"src/components/Comment.tsx": safe})] == ["unsafe_href"]
+
+
+def test_a_sandbox_test_survives_a_server_restart_encrypted_and_expires(settings: Settings) -> None:
+    from talentengine.assessment.engine import AssessmentEngine
+
+    engine = Engine(settings, detector=NoDetector(), provider=False)
+    pilot, token = _session(PilotEngine(engine.store, sandbox_key=engine.vault_key), faults=["raw_log"])
+    pilot.chat(token, "Sécurise la passerelle")
+    rows = engine.store.query("SELECT body FROM documents WHERE collection = 'sandbox_sessions'")
+    assert len(rows) == 1 and "Sécurise" not in rows[0]["body"]  # encrypted at rest
+    restarted = PilotEngine(engine.store, sandbox_key=engine.vault_key)  # a deployment: memory is gone
+    assert restarted.chat(token, "Ajoute des tests")["reply"]["text"]
+    assert restarted.close(token)[2]
+    key, s = restarted.get(token)
+    s.expires_at = utcnow() - timedelta(minutes=1)
+    restarted._save(key, s)
+    with pytest.raises(KeyError):
+        PilotEngine(engine.store, sandbox_key=engine.vault_key).get(token)
+    assert engine.store.query("SELECT COUNT(*) AS n FROM documents WHERE collection = 'sandbox_sessions'")[0]["n"] == 0
+    tests = AssessmentEngine(engine.store, sandbox_key=engine.vault_key)
+    tok, _ = tests.create(preset_job("devops", "fr"), 2, locale="fr", mode="sandbox", n=4)
+    tests.next_question(tok)
+    assert AssessmentEngine(engine.store, sandbox_key=engine.vault_key).state(tok)["status"] == "running"

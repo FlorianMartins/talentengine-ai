@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1 — 2026-10-09
+
+- **Fix**: a server update in the middle of a sandbox test made the link "unknown or expired" (the AI-pilot
+  chat returned 404, then the final screen said the link was invalid). Sandbox test sessions now survive a
+  restart: kept encrypted with the vault key and deleted when they expire (3 hours at most). The CV
+  analysis of the sandbox is still never stored.
+
 ## 0.7.0 — 2026-10-09
 
 A larger, harder AI-pilot test.
