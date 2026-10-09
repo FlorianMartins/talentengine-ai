@@ -525,7 +525,7 @@ function Workspace({
   const createFile = async (path: string) => {
     setBusy("save");
     try {
-      await pilot.edit(token, path, "");
+      await pilot.edit(token, path, "", true);
       await onRefresh();
       setSelected(path);
     } catch (e) {

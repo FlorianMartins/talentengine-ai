@@ -102,8 +102,8 @@ Status (v0.4.0): items 1–3 ✅ (public sandbox, explanation links, print-to-PD
 1. ✅ Three scenarios with planted flaws, factual metrics, bounded judge, own-code task ([PILOT_TEST.md](PILOT_TEST.md)).
 2. 🔜 Double-blind review of 30 recorded sessions by two engineers; publish agreement between factual
    metrics, judge and humans; recalibrate weights, thresholds and par values.
-3. 🔜 Grow the flaw pool (at least five per scenario) and add scenarios for data science (leakage in a
-   train/test split), front end (XSS in a rendered template) and IaC (public bucket, wildcard IAM).
+3. ✅ v0.7.0: six scenarios (data-science leakage, React XSS and Terraform added), a third flaw for the
+   first three, second-order traps. 🔜 At least five flaws per scenario.
 4. 🔜 Isolated test runner on a separate worker (gVisor, no network) so the CI can execute test suites.
 
 ---

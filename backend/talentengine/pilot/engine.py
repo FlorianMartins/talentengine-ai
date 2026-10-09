@@ -41,7 +41,7 @@ from .scenarios import SCENARIOS, Files, Scenario, fold
 from .scoring import WEIGHTS, critical_thinking, detect_callouts, intent_precision, orchestration_velocity, pilot_index
 
 BUILD_MINUTES = {1: 35, 2: 25, 3: 20}
-FAULTS_PER_LEVEL = {1: 1, 2: 2, 3: 2}
+FAULTS_PER_LEVEL = {1: 1, 2: 2, 3: 3}
 
 NOTICE = {
     "fr": (
@@ -224,6 +224,7 @@ class PilotEngine:
             "ownership_remaining": max(0, int((own.deadline - now).total_seconds())) if own and own.deadline else None,
             "assistant": "reference" if s.assistant_kind == "scripted" else "model",
             "expires_at": s.expires_at.isoformat(),
+            "server_time": now.isoformat(),  # clients align their countdown on it
             "notice": NOTICE[s.locale],
             "report": s.report if s.mode == "sandbox" else None,
         }
@@ -283,14 +284,14 @@ class PilotEngine:
         if not message:
             raise ValueError("empty instruction")
         scenario = SCENARIOS[s.scenario_id]
-        s.add_turn("prompt", text=message, screened=screen(message))
+        prompt = s.add_turn("prompt", text=message, screened=screen(message))
         if s.phase == "ownership":
             reply_text, changed = self._ownership_reply(s, message)
             before = dict(s.ownership_files)
             s.ownership_files.update(changed)
             s.add_turn("assistant", text=reply_text, changes=_diff(before, s.ownership_files))
             self._save(key, s)
-            return {"reply": s.turns[-1].public(), "files": s.ownership_files}
+            return {"prompt": prompt.public(), "reply": s.turns[-1].public(), "files": s.ownership_files}
         detect_callouts(s, scenario)  # a prompt can prevent a flaw before it is planted, or call one out
         reply = self.assistant.reply(s, scenario, message, self.injector.directives(s, scenario))
         before = dict(s.files)
@@ -306,9 +307,9 @@ class PilotEngine:
             f.id for f in s.faults if f.injected_turn is not None and scenario.fault(f.id).present(files)
         ]
         self._save(key, s)
-        return {"reply": turn.public(), "files": s.files}
+        return {"prompt": prompt.public(), "reply": turn.public(), "files": s.files}
 
-    def edit(self, token: str, path: str, content: str | None) -> dict[str, Any]:
+    def edit(self, token: str, path: str, content: str | None, create_only: bool = False) -> dict[str, Any]:
         key, s = self._open(token, ("build", "ownership"))
         path = path.strip().lstrip("/")
         if not path or ".." in path.split("/") or len(path) > 200:
@@ -316,6 +317,8 @@ class PilotEngine:
         if content is not None and len(content.encode()) > MAX_FILE_BYTES:
             raise ValueError("file too large")
         target = s.ownership_files if s.phase == "ownership" else s.files
+        if create_only and path in target:
+            raise PilotError(f"{path} already exists")
         if content is not None and path not in target and len(target) >= MAX_FILES:
             raise ValueError("too many files")
         before = dict(target)

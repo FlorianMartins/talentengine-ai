@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.0 — 2026-10-09
+
+A larger, harder AI-pilot test.
+
+- **Three new missions**: `ml_leakage` (churn model: scaler fitted before the split, a feature only known
+  after the outcome, regularisation tuned on the test set), `frontend_xss` (React Markdown comments:
+  unsanitised HTML, `javascript:` author links) and `iac_storage` (Terraform partner bucket: public access
+  block off, `s3:*` on `*`, unencrypted state).
+- **A third flaw for the first missions**: a fail-open injection screen (CWE-636), a hard-coded HMAC key and
+  an API token baked into the image. Level 3 now draws three flaws.
+- **Second-order traps** (`Fault.after`): a flaw that only appears in the assistant's *fix* of another one —
+  reject the unkeyed hash, get an HMAC with its key in the source.
+- **Fairer routing**: scenario fit is divided by the square root of the scenario's skill count, so a cloud
+  architect gets Terraform and a data scientist the churn model.
+- **Robust hidden audits** for code a model leaves broken (line fallback) and for TSX and HCL.
+- API: `/chat` also returns the prompt turn, state has `server_time`, `PUT /files` accepts `create_only`,
+  and the sandbox start limit only counts valid requests. `pilot/scenarios.py` became a package, one module
+  per mission.
+
 ## 0.6.0 — 2026-10-09
 
 The AI-pilot test: measure how candidates get work done *with* an AI that is sometimes wrong.

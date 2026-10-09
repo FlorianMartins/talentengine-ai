@@ -1,6 +1,7 @@
 # The AI-pilot test (AI-Orchestrator Evaluation Sandbox)
 
-> **Status: v0.6.0.** Three scenarios, a reference assistant, an optional real model, an optional judge.
+> **Status: v0.7.0.** Six scenarios, 16 planted flaws (one second-order), a reference assistant, an optional
+> real model, an optional judge.
 > Code: [`backend/talentengine/pilot/`](../backend/talentengine/pilot/). Tests: `backend/tests/test_pilot.py`.
 
 ## 1. Why a different kind of test
@@ -59,7 +60,7 @@ sequenceDiagram
 | File | Role |
 |---|---|
 | `pilot/models.py` | `AISandboxSession`, `Turn` (telemetry), `InjectedFault`, `OwnershipTask`, `PilotEvaluationReport`, `MetricScore` |
-| `pilot/scenarios.py` | missions, starter workspaces, visible CI checks, faults (hidden audit, detection markers, directive) |
+| `pilot/scenarios/` | `base.py` (checks, faults, static-analysis helpers) and one module per mission: `gateway`, `export`, `container`, `ml`, `frontend`, `iac` — starter workspace, visible CI checks, faults (hidden audit, detection markers, directive, explanation) |
 | `pilot/assistant.py` | `ScriptedAssistant` (reference), `LLMAssistant` (real model), `HallucinationInjector` |
 | `pilot/ci.py` | static virtual CI; `IsolatedRunner` design for executing tests later |
 | `pilot/ownership.py` | function extraction (Python AST; JS/TS/Go/Java/Kotlin/Rust/C#/PHP), constraint choice, familiarity analysis |
@@ -74,12 +75,22 @@ sequenceDiagram
 
 | Scenario | Mission | Planted flaws (pool) | Fits jobs with |
 |---|---|---|---|
-| `llm_gateway` | Production-ready LLM gateway: block prompt injection, never let personal data out (OWASP LLM Top 10, GDPR) | `raw_log` — raw prompt (emails, IBANs) logged before masking (LLM02, CWE-532) · `naive_guard` — case-sensitive blocklist that reads only the last message (LLM01, CWE-184) | LLM engineering, security, back end |
-| `payments_export` | Pseudonymised monthly card-transactions export (banking secrecy, FINMA 2008/21, FADP/GDPR) | `unkeyed_hash` — IBAN "pseudonymised" with an unkeyed SHA-256, reversible by enumeration (CWE-759) · `raw_row_log` — every row, IBAN included, in debug logs (CWE-532) | data engineering, security, databases |
-| `container_hardening` | Production Dockerfile + Compose (CIS Docker Benchmark, OWASP Docker Top 10) | `root_user` — no `USER`, runs as root (CWE-250) · `docker_socket` — host Docker socket mounted "for the watchdog" (CWE-668) | containers, CI/CD, cloud, IaC |
+| `llm_gateway` | Production-ready LLM gateway: block prompt injection, never let personal data out (OWASP LLM Top 10, GDPR) | `raw_log` — raw prompt (emails, IBANs) logged before masking (LLM02, CWE-532) · `naive_guard` — case-sensitive blocklist that reads only the last message (LLM01, CWE-184) · `fail_open` — an error in the screen lets the request through (CWE-636) | LLM engineering, security, back end |
+| `payments_export` | Pseudonymised monthly card-transactions export (banking secrecy, FINMA 2008/21, FADP/GDPR) | `unkeyed_hash` — IBAN "pseudonymised" with an unkeyed SHA-256, reversible by enumeration (CWE-759) · `raw_row_log` — every row, IBAN included, in debug logs (CWE-532) · `key_in_code` — **second order**: the assistant's *fix* uses an HMAC whose key is hard-coded (CWE-321) | data engineering, security, databases |
+| `container_hardening` | Production Dockerfile + Compose (CIS Docker Benchmark, OWASP Docker Top 10) | `root_user` — no `USER`, runs as root (CWE-250) · `docker_socket` — host Docker socket mounted "for the watchdog" (CWE-668) · `secret_in_env` — API token baked into an image layer with `ENV` (CWE-798) | containers, CI/CD, cloud |
+| `ml_leakage` | Churn model whose test AUC will drive a budget (honest evaluation) | `scaler_leak` — scaler fitted on all rows before the split · `target_leak` — a feature only filled after the customer asked to cancel · `test_reuse` — regularisation chosen by looking at the test set | machine learning, data analysis, experimentation |
+| `frontend_xss` | React component rendering user comments as Markdown, author linked to their site (OWASP ASVS V5) | `unsanitized_html` — Markdown HTML injected without DOMPurify (stored XSS, CWE-79) · `unsafe_href` — the author's website used as `href` without a scheme check (`javascript:`, CWE-79) | front end, security, testing |
+| `iac_storage` | Terraform for a partner-reports bucket (CIS AWS Foundations, least privilege) | `public_bucket` — public-access block switched off "for partners" although they use presigned URLs (CWE-284) · `wildcard_iam` — `s3:*` on `*` for the app role (CWE-250) · `state_unencrypted` — Terraform state backend with `encrypt = false` (CWE-311) | IaC, cloud, security |
 
-The scenario is chosen from the job's weighted skills (or set by the recruiter). Jobs with no fitting
-scenario (e.g. a chef) get a clear 422: the verification test remains the tool for them.
+The scenario is chosen from the job's weighted skills (or set by the recruiter): the weight the job puts on
+a scenario's skills, divided by the square root of their number, so a focused scenario is not drowned by a
+broad one (a cloud architect gets Terraform, a DevOps engineer the container, a data scientist the churn
+model, a front-end developer the React component). Jobs with no fitting scenario (e.g. a chef) get a clear
+422: the verification test remains the tool for them.
+
+**Second-order traps.** A fault can declare `after`: it only appears in the assistant's *fix* of another
+fault. In the banking export, a candidate who rejects the unkeyed SHA-256 gets an HMAC… with the key written
+in the source. Fixing one problem and accepting the next is exactly what reviewing an AI looks like.
 
 ### The virtual CI is green while the flaws are there
 
@@ -89,7 +100,8 @@ solution passes every visible check. That is the point: in real life the CI is g
 still unsafe. A test asserts this for every scenario.
 
 No candidate code is executed on the server. Checks are `ast` analysis for Python and line rules for
-Dockerfiles and Compose files. `IsolatedRunner` (in `ci.py`) documents the exact command to run test suites
+Dockerfiles, Compose, TSX and Terraform files; when a model returns code that does not parse, the hidden
+audits fall back to line analysis so a flaw in broken code is still seen. `IsolatedRunner` (in `ci.py`) documents the exact command to run test suites
 later in a separate worker: no network, read-only root, no capabilities, non-root user, CPU/memory/process
 and time limits, gVisor — never through the application's own Docker socket.
 
@@ -107,7 +119,7 @@ and time limits, gVisor — never through the application's own Docker socket.
 * Each flaw is planted **once**, at the first reply where it fits (e.g. when the injection screen exists).
 * A flaw the candidate **anticipated** — a constraint given before it was planted, such as "never log
   personal data, even in debug" — is not planted, and earns full credit.
-* **Per-candidate variants**: which flaws are drawn (one at level 1, two at levels 2–3) is random
+* **Per-candidate variants**: which flaws are drawn (one at level 1, two at level 2, three at level 3) is random
   (`SystemRandom`), from the same pool for everyone on the scenario: comparable *and* not predictable.
 * A recruiter can **arm one more flaw** during a live session (`POST /api/pilot-sessions/{id}/inject`), for
   example while watching the candidate in an interview. It appears at the next reply it fits; nothing is
@@ -222,10 +234,10 @@ stored; for an application, three source files per repository are kept at ingest
 |---|---|---|
 | `GET /api/pilot/scenarios` | public | catalogue, flaw pools, timings, assistant and judge in use |
 | `POST /api/pilot/start` | public (sandbox, 6/hour/IP) | `{preset_id \| job, scenario_id?, level, locale, github_urls?}` → token; memory only, 3 h |
-| `GET /api/pilot/{token}` | link holder | state: phase, brief, files, transcript (public fields), clocks |
+| `GET /api/pilot/{token}` | link holder | state: phase, brief, files, transcript (public fields), clocks, `server_time` |
 | `POST /api/pilot/{token}/begin` | link holder | starts the build clock |
-| `POST /api/pilot/{token}/chat` | link holder | `{message}` → assistant reply + files (injection happens here) |
-| `PUT /api/pilot/{token}/files` | link holder | `{path, content \| null}` manual edit (path confined) |
+| `POST /api/pilot/{token}/chat` | link holder | `{message}` → the prompt turn, the assistant reply and the files (injection happens here) |
+| `PUT /api/pilot/{token}/files` | link holder | `{path, content \| null, create_only?}` manual edit (path confined; `create_only` refuses to overwrite) |
 | `POST /api/pilot/{token}/ci` | link holder | runs the visible checks |
 | `POST /api/pilot/{token}/ownership/start` | link holder | starts the five-minute task |
 | `POST /api/pilot/{token}/close` | link holder | computes the report; sandbox gets it, a candidate gets a thank-you |
@@ -274,9 +286,9 @@ pushed down; the recruiter can sort by the verified figure. Erasure and the GDPR
 
 ## 10. Limits (honest list)
 
-* The flaw pool per scenario is small (two flaws, three scenarios): a candidate who learns the pool can
-  anticipate it. Anticipation is still a professional behaviour; the interview should probe it. More
-  scenarios and flaws are the main next step.
+* The flaw pool is still small (six scenarios, two or three flaws each): a candidate who learns the pool
+  can anticipate it. Anticipation is still a professional behaviour; the interview should probe it.
+  Growing the pool remains a priority.
 * Call-out detection by markers can miss unusual phrasings; the judge closes part of the gap. Read the
   transcript before concluding.
 * The CI is static analysis, not test execution (see `IsolatedRunner` for the planned isolated runner).

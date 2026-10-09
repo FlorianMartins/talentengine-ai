@@ -48,6 +48,7 @@ class ChatBody(BaseModel):
 class EditBody(BaseModel):
     path: str = Field(..., min_length=1, max_length=200)
     content: str | None = Field(None, description="null deletes the file")
+    create_only: bool = Field(False, description="refuse (409) when the file already exists")
 
 
 def scenario_for(job: JobProfile, scenario_id: str = "") -> Scenario:
@@ -96,7 +97,6 @@ def build_router(settings: Settings, pilot: PilotEngine, limiter: Callable[[Requ
     def start(body: PilotStart, request: Request) -> dict[str, Any]:
         if not settings.sandbox_enabled:
             raise HTTPException(404, "the public sandbox is disabled")
-        limiter(request)
         loc = "en" if body.locale == "en" else "fr"
         try:
             if body.job:
@@ -108,6 +108,7 @@ def build_router(settings: Settings, pilot: PilotEngine, limiter: Callable[[Requ
         except (ValidationError, KeyError) as exc:
             raise HTTPException(422, f"invalid job profile: {exc}") from exc
         scenario = scenario_for(job, body.scenario_id)
+        limiter(request)  # counted once the request is valid: a rejected job does not use the quota
         ownership = None
         warning = ""
         urls = [u for u in body.github_urls if u.strip()]
@@ -138,7 +139,7 @@ def build_router(settings: Settings, pilot: PilotEngine, limiter: Callable[[Requ
 
     @router.put("/{token}/files")
     def edit(token: str, body: EditBody) -> dict[str, Any]:
-        return dict(guard(lambda: pilot.edit(token, body.path, body.content)))
+        return dict(guard(lambda: pilot.edit(token, body.path, body.content, body.create_only)))
 
     @router.post("/{token}/ci")
     def ci(token: str) -> dict[str, Any]:

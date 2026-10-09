@@ -369,7 +369,7 @@ export const frPilot = {
     ],
     whatTitle: "Ce que la personne fait",
     what: [
-      "Elle pilote un assistant interne volontairement imparfait pour livrer une mission réaliste (passerelle LLM, export bancaire pseudonymisé, conteneur de production).",
+      "Elle pilote un assistant interne volontairement imparfait pour livrer une mission réaliste (passerelle LLM, export bancaire pseudonymisé, conteneur de production, modèle de ML, composant React, Terraform).",
       "L'assistant glisse discrètement des failles : données personnelles dans les journaux, hachage sans clé, conteneur root, docker.sock…",
       "Trois métriques : précision d'intention, esprit critique et redirection, vélocité jusqu'à une CI verte.",
       "En option, 5 minutes sur une vraie fonction de son propre dépôt : l'authenticité de la preuve.",
@@ -742,7 +742,7 @@ export const enPilot: typeof frPilot = {
     ],
     whatTitle: "What the person does",
     what: [
-      "They pilot a deliberately imperfect internal assistant to deliver a realistic mission (LLM gateway, pseudonymised banking export, production container).",
+      "They pilot a deliberately imperfect internal assistant to deliver a realistic mission (LLM gateway, pseudonymised banking export, production container, ML model, React component, Terraform).",
       "The assistant quietly slips in flaws: personal data in logs, unkeyed hashing, a root container, docker.sock…",
       "Three metrics: intent precision, critical thinking and redirection, velocity to a green CI.",
       "Optionally, 5 minutes on a real function of their own repository: the authenticity of the evidence.",

@@ -267,9 +267,11 @@ in recruitment is prohibited in the EU.
 
 Your future engineer will work with AI every day. Rather than pretending otherwise, the **AI-pilot test**
 watches them do exactly that: they get a realistic mission (secure an LLM gateway, ship a pseudonymised
-banking export, put an API in production) and an AI assistant that is **deliberately imperfect**. It
+banking export, put an API in production, train a churn model, render user comments in React, write
+Terraform — six missions, picked from the job) and an AI assistant that is **deliberately imperfect**. It
 delivers a "secure" solution that passes the CI but hides a subtle flaw — customer IBANs written to the
-logs, a filter that a capital letter defeats, a container running as root. You receive:
+logs, a filter that a capital letter defeats, a container running as root, a test score inflated by data
+leakage. Sometimes the flaw hides in the assistant's own fix of the previous one. You receive:
 
 - **Intent precision** — did they frame the work (standards such as OWASP, GDPR, FINMA; acceptance
   criteria; guarantees), or type "make it secure"?

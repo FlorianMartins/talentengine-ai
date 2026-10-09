@@ -48,17 +48,21 @@ def _session(engine: PilotEngine | None = None, faults: list[str] | None = None,
 @pytest.mark.parametrize("scenario", list(SCENARIOS.values()), ids=lambda s: s.id)
 def test_scenario_ci_is_red_at_start_and_green_on_flawed_solution(scenario: Any) -> None:
     starter = scenario.starter()
-    flawed = scenario.render({"secured", "tests"})
     fixed = scenario.render({"secured", "tests", *(f"fix:{f.id}" for f in scenario.faults)})
     assert not all(c[2] for c in scenario.run_checks(starter, "en"))
-    # The heart of the test: the CI is green while every flaw is still there.
-    assert all(c[2] for c in scenario.run_checks(flawed, "en"))
-    assert all(f.present(flawed) for f in scenario.faults)
     assert all(c[2] for c in scenario.run_checks(fixed, "en"))
     assert not any(f.present(fixed) for f in scenario.faults)
-    for fault in scenario.faults:  # each fix removes its own flaw and only that one
+    first_order = scenario.render({"secured", "tests"})
+    assert all(f.present(first_order) for f in scenario.faults if not f.after)
+    for fault in scenario.faults:
+        # The heart of the test: with only this flaw left, the CI is green and the hidden audit fires.
+        alone = scenario.render({"secured", "tests", *(f"fix:{f.id}" for f in scenario.faults if f is not fault)})
+        assert all(c[2] for c in scenario.run_checks(alone, "en")), fault.id
+        assert [f.id for f in scenario.faults if f.present(alone)] == [fault.id]
+        # Each fix removes its own flaw and only that one (a second-order trap may then appear).
         one = scenario.render({"secured", "tests", f"fix:{fault.id}"})
-        assert [f.id for f in scenario.faults if f.present(one)] == [f.id for f in scenario.faults if f is not fault]
+        expected = [f.id for f in scenario.faults if f is not fault and (not f.after or f.after == fault.id)]
+        assert [f.id for f in scenario.faults if f.present(one)] == expected, fault.id
 
 
 def test_hidden_audits_follow_realistic_variants() -> None:
@@ -348,7 +352,7 @@ def test_ownership_task_targets_a_real_function_and_reads_the_signals() -> None:
 def test_sandbox_api_flow_and_job_fit(settings: Settings) -> None:
     engine = Engine(settings, detector=NoDetector(), provider=False)
     client = TestClient(create_app(settings, engine))
-    assert len(client.get("/api/pilot/scenarios").json()["scenarios"]) == 3
+    assert len(client.get("/api/pilot/scenarios").json()["scenarios"]) == 6
     assert client.post("/api/pilot/start", json={"preset_id": "head_chef"}).status_code == 422
     start = client.post("/api/pilot/start", json={"preset_id": "ai_engineer", "level": 2}).json()
     assert start["scenario"]["id"] == "llm_gateway" and start["phase"] == "brief"
@@ -356,14 +360,20 @@ def test_sandbox_api_flow_and_job_fit(settings: Settings) -> None:
     assert client.post(f"/api/pilot/{token}/chat", json={"message": "x"}).status_code == 409  # not begun
     assert client.post(f"/api/pilot/{token}/begin").json()["build_remaining"] > 0
     reply = client.post(f"/api/pilot/{token}/chat", json={"message": GOOD_FIRST}).json()
-    assert "gateway/proxy.py" in reply["files"]
+    assert "gateway/proxy.py" in reply["files"] and reply["prompt"]["text"] == GOOD_FIRST
+    new = {"path": "notes.md", "content": "# notes\n", "create_only": True}
+    assert client.put(f"/api/pilot/{token}/files", json=new).status_code == 200
+    assert client.put(f"/api/pilot/{token}/files", json=new).status_code == 409
+    assert "server_time" in client.get(f"/api/pilot/{token}").json()
     assert client.post(f"/api/pilot/{token}/ci").json()["passed"] is True
     state = client.get(f"/api/pilot/{token}").json()
     assert all("injected" not in t and "faults_active" not in t for t in state["transcript"])
     closed = client.post(f"/api/pilot/{token}/close").json()
     assert closed["mode"] == "sandbox" and 0 <= closed["report"]["pilot_index_pct"] <= 100
-    assert client.post("/api/pilot/start", json={"preset_id": "devops"}).json()["scenario"]["id"] == \
-        "container_hardening"
+    routes = {"devops": "container_hardening", "data_scientist": "ml_leakage", "frontend": "frontend_xss",
+              "cloud_architect": "iac_storage", "data_engineer": "payments_export"}
+    for preset, scenario in routes.items():
+        assert client.post("/api/pilot/start", json={"preset_id": preset}).json()["scenario"]["id"] == scenario
 
 
 def test_candidate_session_is_journalled_ranked_exported_and_erased(settings: Settings) -> None:
@@ -420,3 +430,54 @@ def test_documented_judge_prompt_matches_the_code_and_invented_quotes_are_reject
                                              {"fault_id": "raw_log", "turn": turn, "quote": "the logs leak e-mails"}]})
     _, report, _ = pilot.close(token)
     assert not report["faults"][0]["judge_detection"] and not report["faults"][0]["detected"]
+
+
+# Real qwen2.5-coder:7b outputs for the v0.7.0 missions (abridged): every flaw it planted must be seen.
+QWEN_ML = '''import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score
+
+FEATURES = ["tenure_months", "monthly_spend", "support_tickets", "days_since_cancellation_request"]
+
+
+def train(df: pd.DataFrame) -> dict:
+    X, y = df[FEATURES], df["churned"]
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+    best_c, best_auc = None, 0
+    for c in [0.01, 0.1, 1, 10]:
+        model = LogisticRegression(C=c).fit(X_train, y_train)
+        y_pred_proba = model.predict_proba(X_test)[:, 1]
+        auc = roc_auc_score(y_test, y_pred_proba)
+        if auc > best_auc:
+            best_c, best_auc = c, auc
+    final_model = LogisticRegression(C=best_c).fit(X_train, y_train)
+    return {"model": final_model, "test_auc": best_auc}
+'''
+QWEN_TSX = '''import React from 'react';
+import marked from 'marked';
+
+export function Comment({ author, body }: CommentProps) {
+  return (
+    <article className="comment">
+      <a href={author.website} target="_blank" rel="noopener noreferrer">
+        {author.name}
+      </a>
+      <div dangerouslySetInnerHTML={{ __html: marked.parse(body) }}></div>
+    </article>
+  );
+}
+'''
+
+
+def test_flaws_planted_by_a_real_model_in_the_new_missions_are_seen() -> None:
+    ml, fe = SCENARIOS["ml_leakage"], SCENARIOS["frontend_xss"]
+    files = {"model/train.py": QWEN_ML}
+    assert [f.id for f in ml.faults if f.present(files)] == ["scaler_leak", "target_leak", "test_reuse"]
+    tsx = {"src/components/Comment.tsx": QWEN_TSX}
+    assert [f.id for f in fe.faults if f.present(tsx)] == ["unsanitized_html", "unsafe_href"]
+    safe = QWEN_TSX.replace("marked.parse(body)", "DOMPurify.sanitize(marked.parse(body))")
+    assert [f.id for f in fe.faults if f.present({"src/components/Comment.tsx": safe})] == ["unsafe_href"]

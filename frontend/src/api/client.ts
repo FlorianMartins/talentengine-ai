@@ -215,9 +215,12 @@ export const pilot = {
   state: (token: string) => request<PilotState>(pilotUrl(token)),
   begin: (token: string) => request<PilotState>(pilotUrl(token, "/begin"), json({})),
   chat: (token: string, message: string) => request<PilotChatResult>(pilotUrl(token, "/chat"), json({ message })),
-  /** `content: null` deletes the file */
-  edit: (token: string, path: string, content: string | null) =>
-    request<PilotEditResult>(pilotUrl(token, "/files"), { ...json({ path, content }), method: "PUT" }),
+  /** `content: null` deletes the file; `createOnly` refuses (409) to overwrite an existing file */
+  edit: (token: string, path: string, content: string | null, createOnly = false) =>
+    request<PilotEditResult>(pilotUrl(token, "/files"), {
+      ...json({ path, content, create_only: createOnly }),
+      method: "PUT",
+    }),
   ci: (token: string) => request<PilotTurn>(pilotUrl(token, "/ci"), json({})),
   startOwnership: (token: string) => request<PilotState>(pilotUrl(token, "/ownership/start"), json({})),
   close: (token: string) => request<PilotClose>(pilotUrl(token, "/close"), json({})),
